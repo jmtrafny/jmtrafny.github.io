@@ -5,6 +5,7 @@ layout: default
 Text can be **bold**, _italic_, or ~~strikethrough~~.
 
 [Link to another page](./another-page.html).
+[Link to internal page](./pages/internal-page.md).
 
 There should be whitespace between paragraphs.
 
