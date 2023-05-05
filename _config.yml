@@ -1,7 +1,7 @@
 title: A place for stories.
 email: keyboardbandit@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Captivating original stories and TTRPG write-ups. Explore imaginative worlds, 
+  Original stories and TTRPG write-ups. Explore imaginative worlds, 
   discover intriguing new characters, and embark on epic, unforgettable adventures. 
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
@@ -11,6 +11,15 @@ github_username:  jmtrafny
 theme: jekyll-theme-midnight
 plugins:
   - jekyll-feed
+
+# Pages to include
+collections:
+  reports:
+    output: true
+    permalink: /reports/:path/
+  stories:
+    output: true
+    permalink: /stories/:path/
   
 # Exclude from processing.
 # The following items will not be processed, by default.
