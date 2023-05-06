@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: session-reports
 ---
 
 ## Welcome to the reports page

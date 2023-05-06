@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: just-header
 title: Black
 ---
 

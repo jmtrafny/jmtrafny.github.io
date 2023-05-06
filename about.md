@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: about
 ---
 
 ## Welcome to the about page

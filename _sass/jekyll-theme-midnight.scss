@@ -240,8 +240,19 @@ section {
   #title {
     border: 0;
     outline: none;
-    margin: 0 0 10px 0;
+    margin: 0 0 15px 0;
     padding: 0 0 5px 0;
+
+    #base-title,
+    #changing-title {
+      display: inline-block;
+      vertical-align: top;
+    }
+
+    #changing-title {
+      min-width: 100px;
+      text-align: left;
+    }
 
     h1 {
       font-family: 'OpenSansLight', "Helvetica Neue", Helvetica, Arial, sans-serif;

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="{{ site.lang | default: " en-US" }}">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  {% seo %}
+  <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js"
+    integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+  <script src="{{ '/assets/js/respond.js' | relative_url }}"></script>
+  <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  <!--[if lt IE 8]>
+    <link rel="stylesheet" href="{{ '/assets/css/ie.css' | relative_url }}">
+    <![endif]-->
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  {% include head-custom.html %}
+</head>
+
+<body>
+  <div id="header">
+    <nav>
+      <ul>
+        <li><a href="{{ '/' | relative_url }}">Home</a></li>
+        <li><a href="{{ '/about' | relative_url }}">About</a></li>
+        <li><a href="{{ '/stories' | relative_url }}">Stories</a></li>
+        <li><a href="{{ '/reports' | relative_url }}">Session Reports</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="wrapper">
+
+    <section>
+      <div id="title">
+        <h1>{{ site.title | default: site.github.repository_name }} <span id="changing-title"></span></h1>
+        <p>{{ site.description | default: site.github.project_tagline }}</p>
+        <hr>
+      </div>
+
+      {{ content }}
+
+    </section>
+
+  </div>
+
+
+  <script>
+    $(document).ready(function () {
+      const titleWords = ["me.", "stories.", "information.", "adventure.", "journey.", "experience.", "memoirs.", "tales.", "narratives.", "insights.", "discovery.", "exploration.", "odyssey.", "chronicles.", "accounts.", "recollections.", "history.", "legend.", "fable.", "myth.", "lore.", "anecdotes.", "testimony.", "wanderlust."];
+      const baseTitle = "A place for";
+      let currentTitleIndex = 0;
+      const $changingTitle = $("#changing-title");
+
+      function changeTitle() {
+        $changingTitle.animate({ opacity: 0 }, 500, function () {
+          currentTitleIndex = (currentTitleIndex + 1) % titleWords.length;
+          $changingTitle.text(titleWords[currentTitleIndex]);
+          $changingTitle.animate({ opacity: 1 }, 500);
+        });
+      }
+
+      // Set initial title
+      $changingTitle.text(titleWords[currentTitleIndex]);
+
+      // Change the title every 3 seconds
+      setInterval(changeTitle, 3000);
+    });
+  </script>
+
+
+
+
+</body>
+
+</html>

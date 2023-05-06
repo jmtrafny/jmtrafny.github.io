@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: stories
 ---
 
 ## Welcome to the reports page
