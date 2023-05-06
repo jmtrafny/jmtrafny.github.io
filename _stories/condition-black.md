@@ -1,9 +1,10 @@
 ---
 layout: just-header
-title: Black
+title: Condition Black
+universe: Unique
 ---
 
-## Condition Black
+# Condition Black
 
 “General Quarters! General Quarters! All hands man your battle stations, this is not a drill. Set condition Black throughout the ship!” The 1MC crackled and sparked to life as the ship’s AI hologram gave the order. I unceremoniously cleared my workstations by dumping the contents of my desk into stowable bins and slammed the emergency lock-out button on my way out of the medical bay, void-hardening my workstation. The acceleration chambers for medical personnel were on the same deck as the med bay, leaving me little time to dread what was coming.
 
@@ -34,5 +35,3 @@ Coming out of the register is as harsh as entering. You go from a cosmic perspec
 As the last of the Plasticene is pumped from my body the lid to my pod slides open while the 1MC repeats its tinny drone.
 
 “Ok then,” I think to myself, “time to go to work.”
-
-<a href="javascript:history.back()">Back</a>
