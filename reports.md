@@ -8,4 +8,4 @@ layout: session-reports
   [{{ report.title }}]({{ report.url | relative_url }})
 {% endfor %}
 
-[back](./)
+

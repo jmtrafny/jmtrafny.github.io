@@ -6,4 +6,4 @@ layout: about
 
 _yay_
 
-[back](./)
+
