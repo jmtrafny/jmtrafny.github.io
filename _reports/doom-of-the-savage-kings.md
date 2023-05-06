@@ -1,10 +1,11 @@
 ---
 layout: just-header
-title: Doom
+title: Doom of the Savage Kings
+group: "The Whole Fam Damily"
+sequence: 2
 ---
 
-## Welcome to the first session report.
+## Welcome to the second session report.
 
-Doom page in the _reports directory
+Coming soon!
 
-[back](./)
