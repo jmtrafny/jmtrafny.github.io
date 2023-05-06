@@ -323,7 +323,12 @@ screen and (max-width: 480px) {
     margin-top: 40px;
   }
 
-  nav {
-    display: none;
+  #header nav ul {
+    display: block;
+    padding: 10px;
+  }
+
+  #header nav ul li {
+    display: inline-block;
   }
 }
