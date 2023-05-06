@@ -258,6 +258,7 @@ PLATFORMS
 
 DEPENDENCIES
   github-pages
+  jekyll-feed
   wdm (>= 0.1.0)
   webrick
 
