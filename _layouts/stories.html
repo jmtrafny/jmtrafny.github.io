@@ -21,23 +21,15 @@
 </head>
 
 <body>
-  <div id="header">
-    <nav>
-      <ul>
-        <li><a href="{{ '/' | relative_url }}">Home</a></li>
-        <li><a href="{{ '/about' | relative_url }}">About</a></li>
-        <li><a href="{{ '/stories' | relative_url }}">Stories</a></li>
-        <li><a href="{{ '/reports' | relative_url }}">Session Reports</a></li>
-      </ul>
-    </nav>
-  </div>
+  {% include header.html %}
 
   <div class="wrapper">
 
     <section>
       <div id="title">
         <h1>A place for stories.</h1>
-        <p> </p>
+        <p>A World Beyond: Bold, original speculative fiction stories to transport you to a breathtaking world just
+          beyond our own.</p>
         <hr>
       </div>
 
