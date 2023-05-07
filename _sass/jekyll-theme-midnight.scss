@@ -228,6 +228,49 @@ dt {
         }
       }
     }
+
+    .mobile-nav-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .mobile-nav {
+      display: none;
+      font-family: 'OpenSansLight', "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: normal;
+      font-size: 14px;
+      color: white;
+      background: #353535;
+      border: none;
+      box-shadow: 0px 1px 3px rgba(0, 0, 0, .25);
+      padding: 12px;
+      margin-top: 6px;
+      -webkit-appearance: none; // To remove the default arrow in WebKit browsers
+      -moz-appearance: none; // To remove the default arrow in Mozilla browsers
+      appearance: none; // To remove the default arrow in modern browsers
+      cursor: pointer;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    .arrow-down {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid white;
+      pointer-events: none; // To ensure that the click event passes through to the select element
+
+      @media screen and (min-width: 390px) {
+        display: none;
+      }
+    }
   }
 }
 
@@ -289,46 +332,59 @@ section {
   }
 }
 
-@media print,
-screen and (max-width: 720px) {
-
-  #title {
-    .credits {
-      display: block;
-      width: 100%;
-      line-height: 30px;
-      text-align: center;
-
-      .left {
-        float: none;
-        display: block;
+@media (max-width: 390px) {
+  #header {
+    nav {
+      ul {
+        display: none;
       }
 
-      .right {
-        float: none;
+      .mobile-nav {
         display: block;
       }
     }
   }
 }
 
-@media print,
-screen and (max-width: 480px) {
 
-  #header {
-    margin-top: -20px;
-  }
+// @media print, screen and (max-width: 720px) {
 
-  section {
-    margin-top: 40px;
-  }
+//   #title {
+//     .credits {
+//       display: block;
+//       width: 100%;
+//       line-height: 30px;
+//       text-align: center;
 
-  #header nav ul {
-    display: block;
-    padding: 10px;
-  }
+//       .left {
+//         float: none;
+//         display: block;
+//       }
 
-  #header nav ul li {
-    display: inline-block;
-  }
-}
+//       .right {
+//         float: none;
+//         display: block;
+//       }
+//     }
+//   }
+// }
+
+// @media print, screen and (max-width: 480px) {
+
+//   #header {
+//     margin-top: -20px;
+//   }
+
+//   section {
+//     margin-top: 40px;
+//   }
+
+//   #header nav ul {
+//     display: block;
+//     padding: 10px;
+//   }
+
+//   #header nav ul li {
+//     display: inline-block;
+//   }
+// }

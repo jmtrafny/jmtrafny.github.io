@@ -7,5 +7,37 @@
             <li><a href="{{ '/reports' | relative_url }}">Session Reports</a></li>
             <li><a href="{{ '/micro-vtt' | relative_url }}">µVTT</a></li>
         </ul>
+        <div class="mobile-nav-wrapper">
+            <select id="mobile-nav" class="mobile-nav">
+                <option value="{{ '/' | relative_url }}">Home</option>
+                <option value="{{ '/about' | relative_url }}">About</option>
+                <option value="{{ '/stories' | relative_url }}">Stories</option>
+                <option value="{{ '/reports' | relative_url }}">Session Reports</option>
+                <option value="{{ '/micro-vtt' | relative_url }}">µVTT</option>
+            </select>
+            <div class="arrow-down"></div>
+        </div>
     </nav>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const mobileNav = document.getElementById("mobile-nav");
+
+            mobileNav.addEventListener("change", function () {
+                const selectedUrl = this.value;
+                if (selectedUrl) {
+                    window.location.href = selectedUrl;
+                }
+            });
+
+            // Set the current page as the selected option
+            const currentPath = window.location.pathname;
+            for (let i = 0; i < mobileNav.options.length; i++) {
+                const optionPath = new URL(mobileNav.options[i].value, window.location.origin).pathname;
+                if (currentPath === optionPath) {
+                    mobileNav.selectedIndex = i;
+                    break;
+                }
+            }
+        });
+    </script>
 </div>
