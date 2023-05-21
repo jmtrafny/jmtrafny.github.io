@@ -1,0 +1,21 @@
+---
+layout: post
+title:  "The App I'm Working On"
+date:   2023-05-20 22:21:64 -0700
+categories: blog post
+---
+
+I finally convinced my family to start a home TTRPG with me over discord. Since I don't have a huge amount of time to come up with a campaign (or be bothered to actually read the 5th ed. Dungeon Master's Guide) I decided to run Dungeon Crawl Classics in a rules-light manner. 
+
+We’re playing over discord and for the most part it's "theater of the mind", but as the Judge it would be a lot easier if I could see or keep track of their character sheets. There are lots of ways to do this online, there are plenty of Virtual Tabletops, VTTs. But most require a large time investment and require a bit of computer literacy from the players.
+
+Therein lies the rub. I'm playing with my parents, brother, and nephews who don’t have great access to the internet. My nephews play over their phones, my parents share a computer, my brother’s internet isn’t great, and there is one printer between them. It’s hard enough to get them all together consistently, harder still to get them to invest time into online tools.
+
+Here’s what I want: a dead simple, light weight, virtual tabletop, with an emphasis on sharing character sheets, that can run on any device, and is rules agnostic. If you are familiar with D&D Beyond, it would be a lightweight version of that but with custom rulesets (or maybe SRD integration?). 
+
+Instead of being a native app on the phone, it would need to be a website you can log into and jump into your game.  A DM or Judge could use the site on their computer to design character sheets and rulesets, and players could access their assigned sheets through their phone on the website. When the player adds or removes something from their character sheet, the Judge will see it reflected and vice versa. This DM to Player content delivery could extend beyond character sheets and include tools like initiative trackers, private messages, party loot, shared notes, maps, or other custom content. 
+
+I plan on using this blog to track the development of the app.  For funzies, since no one reads this.
+
+You can check it out [here](https://micro-vtt.vercel.app/).
+
