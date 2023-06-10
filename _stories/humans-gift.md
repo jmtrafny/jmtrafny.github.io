@@ -6,6 +6,8 @@ universe: Unique
 
 # Humans gift from the future; or, "When it comes to time travel, you technically want to be second."
 
+*## [Click here](https://youtu.be/mdoMmm2SM3Y?t=14) to hear a narration of this story!*
+
 Humanity is a remarkable species. They are technically the youngest species in the galaxy. Yes, you read that right, not sentient species, just species in general. Additionally, they are the only species who have a recorded history of their entire evolutionary process, and the only species to have colonized the Andromeda Galaxy; apparently, they have plans for her core that they don’t want to test “locally”. They didn’t mean to invent time travel, it just happened to be a consequence of their FTL design. The way they tell the story (and believe me, they love telling this story), it happened relatively early in their evolution; approximately 7,500 human years after they began keeping records in the form of marks in dried mud.
 
 They were already capable of near light speed travel thanks to their Soliton drives. The Soliton used massive amounts of energy to create a rotating bubble of warped spacetime, allowing their void ships to “fall” towards the direction they wanted to go. A Soliton drive with a clever enough AI could reach speeds just over two percent the speed of light, not blindingly fast on the cosmic scale, but it got their foot in the door as the humans say.

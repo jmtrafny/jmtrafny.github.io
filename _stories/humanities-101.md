@@ -6,6 +6,8 @@ universe: Unique
 
 # Humanities 101
 
+*## [Click here](https://youtu.be/E8IaUSPdP0A?t=7) to hear a narration of this story!*
+
 “Professor, why do we learn so much about the Human’s culture when there are no humans left?”
 
 “For the same reason we learn ancient Kreffenese, Cadet. So much of the modern Krate language is derived from that early language; an understanding Kreffenese helps us to know Krate at a deeper level.”

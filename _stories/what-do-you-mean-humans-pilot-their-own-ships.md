@@ -6,6 +6,8 @@ universe: Unique
 
 # What do you mean the humans pilot their own ships?
 
+*## [Click here](https://youtu.be/yrawEevJe1Q?t=13) to hear a narration of this story!*
+
 “Ah, Science Officer Kren, I was just on my way to see you.”
 
 Lieutenant Kren looked up from his data slate as he heard the ships Chief Engineer approach. Kren got up from all fours and sat back on his haunches in parade rest and greeted the Commander.
