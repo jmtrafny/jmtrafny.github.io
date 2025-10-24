@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Position,
   decode,
@@ -26,43 +26,44 @@ function App() {
   const [gameMode, setGameMode] = useState<GameMode>('1player'); // Default to 1-player
   const [playerSide, setPlayerSide] = useState<Side | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
 
   // AI move handler
   const makeAIMove = (position: Position) => {
+    if (aiThinking) return; // Prevent double-triggering
+
     setAiThinking(true);
     setTimeout(() => {
       const result = solve(position);
       if (result.best) {
         const newPos = applyMove(position, result.best);
         setPos(newPos);
-        const newHistory = history.slice(0, hIndex + 1);
-        newHistory.push(encode(newPos));
-        setHistory(newHistory);
-        setHIndex(hIndex + 1);
+        setHistory(prev => {
+          const newHistory = prev.slice(0, hIndex + 1);
+          newHistory.push(encode(newPos));
+          return newHistory;
+        });
+        setHIndex(prev => prev + 1);
       }
       setAiThinking(false);
     }, 500);
   };
 
+  // Trigger AI move when it's AI's turn
+  useEffect(() => {
+    if (gameMode === '1player' && playerSide !== null && pos.turn !== playerSide && !aiThinking) {
+      makeAIMove(pos);
+    }
+  }, [gameMode, playerSide, pos.turn, aiThinking]);
+
   // Push new position to history
-  const pushPos = (newPos: Position, movedPiece?: Piece) => {
+  const pushPos = (newPos: Position) => {
     setPos(newPos);
     const newHistory = history.slice(0, hIndex + 1);
     newHistory.push(encode(newPos));
     setHistory(newHistory);
     setHIndex(hIndex + 1);
-
-    // In 1-player mode, determine player side on first move
-    if (gameMode === '1player' && playerSide === null && movedPiece) {
-      const side = sideOf(movedPiece);
-      setPlayerSide(side);
-    }
-
-    // Trigger AI move if 1-player mode and it's AI's turn
-    if (gameMode === '1player' && playerSide !== null && newPos.turn !== playerSide) {
-      makeAIMove(newPos);
-    }
   };
 
   // Handle square click
@@ -97,8 +98,7 @@ function App() {
     // Try to move
     const move = legalMoves(pos).find((m) => m.from === sel && m.to === i);
     if (move) {
-      const movedPiece = pos.board[move.from] as Piece;
-      pushPos(applyMove(pos, move), movedPiece);
+      pushPos(applyMove(pos, move));
     }
 
     setSel(null);
@@ -128,10 +128,20 @@ function App() {
   // New Game
   const handleNewGame = () => {
     setShowModal(true);
+    setShowColorPicker(false);
   };
 
-  // Start game with selected mode
-  const startGame = (mode: '1player' | '2player') => {
+  // Handle mode selection
+  const handleModeSelect = (mode: '1player' | '2player') => {
+    if (mode === '1player') {
+      setShowColorPicker(true);
+    } else {
+      startGame(mode, null);
+    }
+  };
+
+  // Start game with selected mode and optional player side
+  const startGame = (mode: '1player' | '2player', side: Side | null) => {
     const startPos = decode(START_CODE);
     setPos(startPos);
     setHistory([encode(startPos)]);
@@ -139,8 +149,9 @@ function App() {
     setSel(null);
     setTargets([]);
     setGameMode(mode);
-    setPlayerSide(null);
+    setPlayerSide(side);
     setShowModal(false);
+    setShowColorPicker(false);
     clearTT();
   };
 
@@ -174,17 +185,49 @@ function App() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>New Game</h2>
-            <div className="modal-buttons">
-              <button className="modal-btn" onClick={() => startGame('1player')}>
-                1 Player
-                <div className="modal-subtitle">Play against AI</div>
-              </button>
-              <button className="modal-btn" onClick={() => startGame('2player')}>
-                2 Player
-                <div className="modal-subtitle">Local multiplayer</div>
-              </button>
-            </div>
+            {!showColorPicker ? (
+              <>
+                <h2>New Game</h2>
+                <div className="modal-buttons">
+                  <button className="modal-btn" onClick={() => handleModeSelect('1player')}>
+                    1 Player
+                    <div className="modal-subtitle">Play against AI</div>
+                  </button>
+                  <button className="modal-btn" onClick={() => handleModeSelect('2player')}>
+                    2 Player
+                    <div className="modal-subtitle">Local multiplayer</div>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2>Choose Your Color</h2>
+                <div className="modal-buttons">
+                  <button className="modal-btn" onClick={() => startGame('1player', 'w')}>
+                    ♔ White
+                    <div className="modal-subtitle">You move first</div>
+                  </button>
+                  <button className="modal-btn" onClick={() => startGame('1player', 'b')}>
+                    ♚ Black
+                    <div className="modal-subtitle">AI moves first</div>
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowColorPicker(false)}
+                  style={{
+                    marginTop: '12px',
+                    padding: '8px',
+                    background: 'transparent',
+                    border: '1px solid #374151',
+                    borderRadius: '8px',
+                    color: '#9ca3af',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ← Back
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
