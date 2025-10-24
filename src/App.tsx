@@ -14,6 +14,16 @@ import {
   Side,
 } from './engine';
 import { solve, clearTT } from './solver';
+import {
+  initAudio,
+  playMove,
+  playCapture,
+  playVictory,
+  playDefeat,
+  playDraw,
+  toggleMute,
+  getMuted,
+} from './audio';
 import './App.css';
 
 type GameMode = '1player' | '2player' | null;
@@ -38,6 +48,12 @@ function App() {
   const [gameResult, setGameResult] = useState<string>('');
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const [soundMuted, setSoundMuted] = useState(() => getMuted());
+
+  // Initialize audio on mount
+  useEffect(() => {
+    initAudio();
+  }, []);
 
   // AI move handler
   const makeAIMove = (position: Position) => {
@@ -47,6 +63,9 @@ function App() {
     setTimeout(() => {
       const result = solve(position);
       if (result.best) {
+        // Check if AI is capturing
+        const isCapture = position.board[result.best.to] !== EMPTY;
+
         const newPos = applyMove(position, result.best);
         setPos(newPos);
         setHistory(prev => {
@@ -55,6 +74,13 @@ function App() {
           return newHistory;
         });
         setHIndex(prev => prev + 1);
+
+        // Play appropriate sound
+        if (isCapture) {
+          playCapture();
+        } else {
+          playMove();
+        }
       }
       setAiThinking(false);
     }, 500);
@@ -67,16 +93,35 @@ function App() {
       setGameOver(true);
       if (term === 'STALEMATE') {
         setGameResult('Draw - Stalemate');
+        playDraw();
       } else if (term === 'WHITE_MATE') {
         setGameResult('Black Wins - White is checkmated');
+        // Player victory/defeat based on their side (1-player mode)
+        if (gameMode === '1player' && playerSide === 'b') {
+          playVictory();
+        } else if (gameMode === '1player' && playerSide === 'w') {
+          playDefeat();
+        } else {
+          // 2-player mode: play victory for winner
+          playVictory();
+        }
       } else if (term === 'BLACK_MATE') {
         setGameResult('White Wins - Black is checkmated');
+        // Player victory/defeat based on their side (1-player mode)
+        if (gameMode === '1player' && playerSide === 'w') {
+          playVictory();
+        } else if (gameMode === '1player' && playerSide === 'b') {
+          playDefeat();
+        } else {
+          // 2-player mode: play victory for winner
+          playVictory();
+        }
       }
     } else {
       setGameOver(false);
       setGameResult('');
     }
-  }, [pos]);
+  }, [pos, gameMode, playerSide]);
 
   // Trigger AI move when it's AI's turn
   useEffect(() => {
@@ -141,7 +186,17 @@ function App() {
     // Try to move
     const move = legalMoves(pos).find((m) => m.from === sel && m.to === i);
     if (move) {
+      // Check if this is a capture
+      const isCapture = pos.board[i] !== EMPTY;
+
       pushPos(applyMove(pos, move));
+
+      // Play appropriate sound
+      if (isCapture) {
+        playCapture();
+      } else {
+        playMove();
+      }
     }
 
     setSel(null);
@@ -212,6 +267,12 @@ function App() {
     }
 
     setDeferredPrompt(null);
+  };
+
+  // Handle sound toggle
+  const handleToggleSound = () => {
+    const newMuted = toggleMute();
+    setSoundMuted(newMuted);
   };
 
 
@@ -294,11 +355,16 @@ function App() {
       <div className="panel">
         <div className="header">
           <h1 className="title">♟️ Thin Chess</h1>
-          {showInstallButton && (
-            <button className="install-btn" onClick={handleInstall}>
-              Install
+          <div className="header-buttons">
+            <button className="icon-btn" onClick={handleToggleSound} title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}>
+              {soundMuted ? '🔇' : '🔊'}
             </button>
-          )}
+            {showInstallButton && (
+              <button className="install-btn" onClick={handleInstall}>
+                Install
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="board-wrap">

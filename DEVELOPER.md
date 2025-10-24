@@ -382,6 +382,6 @@ npm run preview      # Preview production build
 
 ## License
 
-MIT © [Your Name]
+MIT © James Trafny
 
 **Questions?** Open an issue on GitHub.
