@@ -18,6 +18,11 @@ import './App.css';
 
 type GameMode = '1player' | '2player' | null;
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 function App() {
   const [pos, setPos] = useState<Position>(() => decode(START_CODE));
   const [history, setHistory] = useState<string[]>([encode(decode(START_CODE))]);
@@ -31,6 +36,8 @@ function App() {
   const [aiThinking, setAiThinking] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameResult, setGameResult] = useState<string>('');
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
 
   // AI move handler
   const makeAIMove = (position: Position) => {
@@ -77,6 +84,21 @@ function App() {
       makeAIMove(pos);
     }
   }, [gameMode, playerSide, pos.turn, aiThinking, gameOver]);
+
+  // Capture PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
 
   // Push new position to history
   const pushPos = (newPos: Position) => {
@@ -178,6 +200,20 @@ function App() {
     clearTT();
   };
 
+  // Handle PWA install
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      setShowInstallButton(false);
+    }
+
+    setDeferredPrompt(null);
+  };
+
 
   // Load position from code
   const handleLoad = () => {
@@ -256,7 +292,14 @@ function App() {
       )}
 
       <div className="panel">
-        <h1 className="title">♟️ Thin Chess</h1>
+        <div className="header">
+          <h1 className="title">♟️ Thin Chess</h1>
+          {showInstallButton && (
+            <button className="install-btn" onClick={handleInstall}>
+              Install
+            </button>
+          )}
+        </div>
 
         <div className="board-wrap">
           <div className="board">
