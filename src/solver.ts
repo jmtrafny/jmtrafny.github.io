@@ -49,8 +49,14 @@ function keyOf(pos: Position): string {
  * - LOSS: current side will lose with perfect play
  * - DRAW: position is drawn (stalemate or repetition fortress)
  */
-export function solve(pos: Position, path: Set<string> = new Set()): SolveResult {
+export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): SolveResult {
   const key = keyOf(pos);
+
+  // Depth limit to prevent stack overflow
+  const MAX_DEPTH = 50;
+  if (depth > MAX_DEPTH) {
+    return { res: 'DRAW', depth: MAX_DEPTH };
+  }
 
   // Transposition table hit
   if (TT.has(key)) {
@@ -84,7 +90,7 @@ export function solve(pos: Position, path: Set<string> = new Set()): SolveResult
   // Try each move
   for (const m of moves) {
     const child = applyMove(pos, m);
-    const r = solve(child, path);
+    const r = solve(child, path, depth + 1);
 
     // Found a winning move (opponent loses)
     if (r.res === 'LOSS') {
@@ -117,7 +123,7 @@ export function solve(pos: Position, path: Set<string> = new Set()): SolveResult
   let delaying: Move | undefined = undefined;
 
   for (const m of legalMoves(pos)) {
-    const r = solve(applyMove(pos, m));
+    const r = solve(applyMove(pos, m), new Set(), depth + 1);
     if (r.depth > maxDepth) {
       maxDepth = r.depth;
       delaying = m;

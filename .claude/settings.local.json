@@ -5,12 +5,7 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(npm test)",
-      "Bash(npx vitest run:*)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Transform prototype into production MVP\n\n- Migrated from single-file HTML to Vite + TypeScript + React architecture\n- Modularized engine (move gen, king safety, terminal states) and solver (tri-valued search with TT)\n- Added PWA support (manifest + service worker) for offline capability\n- Created comprehensive test suite (engine + solver edge cases)\n- Set up GitHub Actions CI/CD for automated deployment\n- Added documentation (README for users, DEVELOPER for contributors)\n\nProduction build tested and working (dist/ output 199KB gzipped to 63KB).\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)",
-      "Bash(git rm:*)",
-      "Bash(git commit:*)"
+      "Bash(npx vitest run:*)"
     ],
     "deny": [],
     "ask": []

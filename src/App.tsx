@@ -6,6 +6,7 @@ import {
   START_CODE,
   legalMoves,
   applyMove,
+  terminal,
   PIECE_IMAGES,
   EMPTY,
   sideOf,
@@ -28,6 +29,8 @@ function App() {
   const [showModal, setShowModal] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameResult, setGameResult] = useState<string>('');
 
   // AI move handler
   const makeAIMove = (position: Position) => {
@@ -50,12 +53,30 @@ function App() {
     }, 500);
   };
 
+  // Check for game over (stalemate/checkmate)
+  useEffect(() => {
+    const term = terminal(pos);
+    if (term) {
+      setGameOver(true);
+      if (term === 'STALEMATE') {
+        setGameResult('Draw - Stalemate');
+      } else if (term === 'WHITE_MATE') {
+        setGameResult('Black Wins - White is checkmated');
+      } else if (term === 'BLACK_MATE') {
+        setGameResult('White Wins - Black is checkmated');
+      }
+    } else {
+      setGameOver(false);
+      setGameResult('');
+    }
+  }, [pos]);
+
   // Trigger AI move when it's AI's turn
   useEffect(() => {
-    if (gameMode === '1player' && playerSide !== null && pos.turn !== playerSide && !aiThinking) {
+    if (gameMode === '1player' && playerSide !== null && pos.turn !== playerSide && !aiThinking && !gameOver) {
       makeAIMove(pos);
     }
-  }, [gameMode, playerSide, pos.turn, aiThinking]);
+  }, [gameMode, playerSide, pos.turn, aiThinking, gameOver]);
 
   // Push new position to history
   const pushPos = (newPos: Position) => {
@@ -68,7 +89,7 @@ function App() {
 
   // Handle square click
   const handleSquareClick = (i: number) => {
-    if (aiThinking) return; // Don't allow moves while AI is thinking
+    if (aiThinking || gameOver) return; // Don't allow moves while AI is thinking or game is over
 
     const p = pos.board[i];
 
@@ -152,6 +173,8 @@ function App() {
     setPlayerSide(side);
     setShowModal(false);
     setShowColorPicker(false);
+    setGameOver(false);
+    setGameResult('');
     clearTT();
   };
 
@@ -266,12 +289,18 @@ function App() {
           </div>
         </div>
 
+        {gameOver && (
+          <div className="game-over-banner">
+            {gameResult}
+          </div>
+        )}
+
         <div className="controls row">
           <button onClick={handleNewGame}>New Game</button>
-          <button onClick={handleUndo} disabled={hIndex <= 0 || aiThinking}>
+          <button onClick={handleUndo} disabled={hIndex <= 0 || aiThinking || gameOver}>
             Undo
           </button>
-          <button onClick={handleRedo} disabled={hIndex >= history.length - 1 || aiThinking}>
+          <button onClick={handleRedo} disabled={hIndex >= history.length - 1 || aiThinking || gameOver}>
             Redo
           </button>
         </div>
