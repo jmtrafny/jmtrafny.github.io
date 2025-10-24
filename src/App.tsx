@@ -30,7 +30,7 @@ function App() {
   const [sel, setSel] = useState<number | null>(null);
   const [targets, setTargets] = useState<number[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>('1player'); // Default to 1-player
-  const [playerSide, setPlayerSide] = useState<Side | null>(null);
+  const [playerSide, setPlayerSide] = useState<Side | null>('w'); // Default to white
   const [showModal, setShowModal] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
