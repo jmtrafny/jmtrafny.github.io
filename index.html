@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thin Chess (1×12)</title>
+  <style>
+    :root{
+      --light:#f0d9b5; /* light square */
+      --dark:#b58863;  /* dark square */
+      --bg:#0f172a;    /* slate-900 */
+      --panel:#111827; /* gray-900 */
+      --text:#e5e7eb;  /* gray-200 */
+      --accent:#22d3ee;/* cyan-400 */
+      --warn:#f59e0b;  /* amber-500 */
+      --lose:#ef4444;  /* red-500 */
+      --win:#10b981;   /* emerald-500 */
+    }
+    html,body{height:100%;}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Inter,sans-serif;
+      color:var(--text); background:linear-gradient(180deg,#0b1220,#0f172a 40%);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .app{display:grid; grid-template-columns:auto 320px; gap:24px; width:min(980px,96vw);}    
+    .panel{background:var(--panel); border:1px solid #1f2937; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.35);}    
+    .title{font-weight:700; font-size:clamp(20px,2.4vw,28px); letter-spacing:.2px; display:flex; align-items:center; gap:10px; margin:0 0 4px;}
+    .subtitle{opacity:.8; margin:.25rem 0 1rem; font-size:14px}
+
+    /* board */
+    .board-wrap{display:flex; gap:16px; align-items:center;}
+    .board{display:grid; grid-template-columns:repeat(1,64px); grid-auto-rows:64px; border:2px solid #111; border-radius:12px; overflow:hidden; box-shadow:0 16px 30px rgba(0,0,0,.45);}    
+    .sq{display:flex; align-items:center; justify-content:center; font-size:40px; position:relative; user-select:none;}
+    .sq.light{background:var(--light);} .sq.dark{background:var(--dark);}    
+    .sq.selected{outline:3px solid var(--accent); z-index:1}
+    .sq.target::after{content:""; position:absolute; width:14px; height:14px; border-radius:50%; background:rgba(34,211,238,.9);}    
+    .coords{display:flex; flex-direction:column; gap:8px; align-items:center;}
+    .coords .n{width:40px; height:40px; display:grid; place-items:center; border-radius:10px; background:#0b1020; opacity:.8}
+
+    .controls{display:grid; gap:10px; grid-template-columns:repeat(2,1fr);} 
+    .controls button{background:#0b1020; color:var(--text); border:1px solid #1f2937; border-radius:10px; padding:10px 12px; font-weight:600; cursor:pointer; transition:.15s;}
+    .controls button:hover{border-color:#374151; transform:translateY(-1px);}    
+    .controls button:disabled{opacity:.45; cursor:not-allowed; filter:saturate(.6);}    
+
+    .row{margin:12px 0;}
+    .eval{font-weight:800; letter-spacing:.3px;}
+    .eval.win{color:var(--win);} .eval.lose{color:var(--lose);} .eval.draw{color:var(--warn);}    
+    .tiny{opacity:.72; font-size:12px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .tag{display:inline-block; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:.3px; border:1px solid #263041;}
+
+    textarea, input[type="text"]{width:100%; background:#0b1020; color:var(--text); border:1px solid #1f2937; border-radius:10px; padding:10px 12px; font-family:inherit}
+    .footer{opacity:.75; font-size:12px; margin-top:10px}
+    .link{color:#93c5fd; text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <h1 class="title">♟️ Thin Chess <span class="tag">1×12</span></h1>
+      <div class="subtitle">R = slide any distance · N = jump ±2 · K = ±1 · Kings cannot move into check · Stalemate = draw · Current side shown below.</div>
+      <div class="board-wrap">
+        <div id="board" class="board"></div>
+        <div class="coords tiny">
+          <div class="n">1</div>
+          <div class="n">2</div>
+          <div class="n">3</div>
+          <div class="n">4</div>
+          <div class="n">5</div>
+          <div class="n">6</div>
+          <div class="n">7</div>
+          <div class="n">8</div>
+          <div class="n">9</div>
+          <div class="n">10</div>
+          <div class="n">11</div>
+          <div class="n">12</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="status" class="eval draw">Ready.</div>
+        <div class="tiny">Side to move: <span id="sideTag" class="tag">White</span></div>
+      </div>
+
+      <div class="controls row">
+        <button id="btnUndo" disabled>Undo</button>
+        <button id="btnRedo" disabled>Redo</button>
+        <button id="btnBest">Best Move</button>
+        <button id="btnSolve">Solve</button>
+        <button id="btnReset">Reset</button>
+        <button id="btnSwap">Swap Side</button>
+      </div>
+
+      <details class="row">
+        <summary><b>Share / Edit Position</b></summary>
+        <div class="tiny" style="margin:.5rem 0 .25rem">Position code (<span class="mono">w=white, b=black, k/r/n pieces, x blank; top→bottom; side appended as ":w" or ":b"</span>)</div>
+        <input id="posCode" type="text" class="mono"/>
+        <div style="display:flex; gap:10px; margin-top:8px">
+          <button id="btnLoad">Load</button>
+          <button id="btnCopy">Copy</button>
+        </div>
+      </details>
+
+      <div class="footer">Built as a single static file. Drop this <span class="mono">index.html</span> into a GitHub Pages repo and you’re live. — © You</div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:0 0 8px">How it works</h3>
+      <ol style="margin:0 0 12px 20px; line-height:1.5">
+        <li>Click a piece to see legal targets; click a target to move.</li>
+        <li>“Best Move” computes a perfect-play reply from the current position using a cached solver.</li>
+        <li>“Solve” classifies the position as Win/Loss/Draw with a principal variation depth.</li>
+        <li>Use the position code to share or modify setups quickly.</li>
+      </ol>
+      <div class="tiny">Notes: repetition in the search path is treated as a draw; solver uses tri-valued DF-search with a transposition table.</div>
+    </div>
+  </div>
+
+<script>
+(()=>{
+  // ---------- Types & Utilities ----------
+  const W='w', B='b';
+  const EMPTY='.';
+  const PIECES=['k','r','n'];
+  const UNICODE={
+    wk:'\u2654', wq:'\u2655', wr:'\u2656', wb:'\u2657', wn:'\u2658', wp:'\u2659',
+    bk:'\u265A', bq:'\u265B', br:'\u265C', bb:'\u265D', bn:'\u265E', bp:'\u265F'
+  };
+  const topDark = true; // square 1 (top) is dark per prompt image
+
+  function clone(a){return a.slice();}
+  function sideOf(piece){return piece[0]==='w'?W:(piece[0]==='b'?B:null)}
+  function typeOf(piece){return piece[1]}
+  function sqColor(i){ // i 0..11 -> bool dark?
+    // top square (index 0) is dark; alternate downward
+    return (topDark ? 0:1) === (i%2) ? true : false;
+  }
+
+  // Position encoding/decoding using prompt code
+  // e.g. "bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w"
+  function decode(code){
+    const [cells, turnRaw] = code.trim().split(':');
+    const items = cells.split(',').map(s=>s.trim());
+    if(items.length !== 12) throw new Error('Need 12 comma-separated squares');
+    const board = items.map(s=>{
+      if(s==='x') return EMPTY;
+      if(!/^[wb][krn]$/.test(s)) throw new Error('Bad token '+s);
+      return s;
+    });
+    const turn = (turnRaw||'w').trim()==='b'?B:W;
+    return {board, turn};
+  }
+  function encode(pos){
+    const cells = pos.board.map(p=> p===EMPTY? 'x' : p).join(',');
+    return cells+':'+pos.turn;
+  }
+
+  // Initial position from the prompt
+  const START_CODE = 'bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w';
+
+  // ---------- Move generation ----------
+  function inBounds(i){return i>=0 && i<12}
+  function findKing(board, side){
+    for(let i=0;i<12;i++){const p=board[i]; if(p!==EMPTY && p===side+'k') return i;}
+    return -1;
+  }
+  function attacked(board, side, idx){
+    // Is idx attacked by opponent?
+    const opp = side===W?B:W;
+    // Opp king ±1
+    for(const d of [-1,1]){const j=idx+d; if(inBounds(j)){const p=board[j]; if(p===opp+'k') return true;}}
+    // Opp knight ±2
+    for(const d of [-2,2]){const j=idx+d; if(inBounds(j)){const p=board[j]; if(p===opp+'n') return true;}}
+    // Opp rook rays
+    for(const d of [-1,1]){
+      let j=idx+d;
+      while(inBounds(j)){
+        const p=board[j];
+        if(p!==EMPTY){ if(p===opp+'r') return true; else break; }
+        j+=d;
+      }
+    }
+    return false;
+  }
+  function legalMoves(pos){
+    const {board, turn} = pos;
+    const moves=[]; // {from,to}
+    for(let i=0;i<12;i++){
+      const p=board[i];
+      if(p===EMPTY) continue;
+      if(sideOf(p)!==turn) continue;
+      const t=typeOf(p);
+      if(t==='k'){
+        for(const d of [-1,1]){
+          const j=i+d; if(!inBounds(j)) continue;
+          const q=board[j]; if(q!==EMPTY && sideOf(q)===turn) continue;
+          if(!wouldExposed({from:i,to:j})) moves.push({from:i,to:j});
+        }
+      } else if(t==='n'){
+        for(const d of [-2,2]){
+          const j=i+d; if(!inBounds(j)) continue;
+          const q=board[j]; if(q!==EMPTY && sideOf(q)===turn) continue;
+          if(!wouldExposed({from:i,to:j})) moves.push({from:i,to:j});
+        }
+      } else if(t==='r'){
+        for(const d of [-1,1]){
+          let j=i+d;
+          while(inBounds(j)){
+            const q=board[j];
+            if(q===EMPTY){ if(!wouldExposed({from:i,to:j})) moves.push({from:i,to:j}); }
+            else { if(sideOf(q)!==turn){ if(!wouldExposed({from:i,to:j})) moves.push({from:i,to:j}); } break; }
+            j+=d;
+          }
+        }
+      }
+    }
+    return moves;
+
+    function wouldExposed(m){
+      const nb=board.slice();
+      nb[m.to]=nb[m.from]; nb[m.from]=EMPTY;
+      const kIdx=findKing(nb, turn);
+      return attacked(nb, turn, kIdx);
+    }
+  }
+  function applyMove(pos, m){
+    const nb=pos.board.slice();
+    nb[m.to]=nb[m.from]; nb[m.from]=EMPTY;
+    return {board:nb, turn: pos.turn===W?B:W};
+  }
+
+  function isCheck(pos){
+    const kIdx=findKing(pos.board, pos.turn);
+    return attacked(pos.board, pos.turn, kIdx);
+  }
+
+  function terminal(pos){
+    const moves=legalMoves(pos);
+    if(moves.length>0) return null; // non-terminal
+    // no legal moves: checkmate or stalemate
+    return isCheck(pos) ? (pos.turn===W? 'WHITE_MATE' : 'BLACK_MATE') : 'STALEMATE';
+  }
+
+  // ---------- Solver (tri-valued with cycle-draw heuristic) ----------
+  // Results from the viewpoint of side-to-move in that state: 'WIN'|'LOSS'|'DRAW'
+  const TT = new Map(); // transposition table key-> {res, depth, best}
+
+  function keyOf(pos){ return encode(pos); }
+
+  function solve(pos, path=new Set()){ 
+    const key=keyOf(pos);
+    if(TT.has(key)) return TT.get(key);
+    if(path.has(key)) return {res:'DRAW', depth:0}; // cycle detected
+
+    const term=terminal(pos);
+    if(term){
+      if(term==='STALEMATE') return save(key,{res:'DRAW', depth:0});
+      // Mate: if side-to-move has no legal moves and is in check, it is checkmated
+      return save(key,{res:'LOSS', depth:0});
+    }
+
+    path.add(key);
+    let bestMove=null;
+    let bestDepth=Infinity;
+    let hasDrawChild=false;
+
+    const moves=legalMoves(pos);
+    for(const m of moves){
+      const child=applyMove(pos,m);
+      const r=solve(child, path);
+      if(r.res==='LOSS'){ // we can force a win
+        const score={res:'WIN', depth:r.depth+1, best:m};
+        path.delete(key); return save(key, score);
+      }
+      if(r.res==='DRAW'){
+        hasDrawChild=true;
+        if(r.depth+1 < bestDepth){ bestDepth=r.depth+1; bestMove=m; }
+      }
+      // else child is WIN → bad for us; keep searching
+    }
+
+    path.delete(key);
+    if(hasDrawChild){ return save(key,{res:'DRAW', depth:bestDepth, best:bestMove}); }
+    // all children are WIN for opponent → we are in LOSS
+    // choose the move that delays mate longest
+    let maxDepth=-1, delaying=null;
+    for(const m of legalMoves(pos)){
+      const r=solve(applyMove(pos,m));
+      if(r.depth>maxDepth){ maxDepth=r.depth; delaying=m; }
+    }
+    return save(key,{res:'LOSS', depth:maxDepth+1, best:delaying});
+  }
+  function save(key, val){ TT.set(key,val); return val; }
+
+  // ---------- UI ----------
+  const boardEl=document.getElementById('board');
+  const statusEl=document.getElementById('status');
+  const sideTag=document.getElementById('sideTag');
+  const posCode=document.getElementById('posCode');
+
+  const btnUndo=document.getElementById('btnUndo');
+  const btnRedo=document.getElementById('btnRedo');
+  const btnBest=document.getElementById('btnBest');
+  const btnSolve=document.getElementById('btnSolve');
+  const btnReset=document.getElementById('btnReset');
+  const btnSwap=document.getElementById('btnSwap');
+  const btnLoad=document.getElementById('btnLoad');
+  const btnCopy=document.getElementById('btnCopy');
+
+  let pos=decode(START_CODE);
+  let sel=null; // selected index
+  let targets=[]; // legal target squares for selection
+  let history=[encode(pos)];
+  let hIndex=0;
+
+  function render(){
+    boardEl.innerHTML='';
+    for(let i=0;i<12;i++){
+      const p=pos.board[i];
+      const cell=document.createElement('div');
+      cell.className='sq '+((i%2===0)?'dark':'light');
+      if(sel===i) cell.classList.add('selected');
+      if(targets.includes(i)) cell.classList.add('target');
+      cell.dataset.index=i;
+      cell.textContent = p===EMPTY? '' : UNICODE[p];
+      boardEl.appendChild(cell);
+    }
+    sideTag.textContent = pos.turn===W? 'White' : 'Black';
+    sideTag.style.borderColor = pos.turn===W? '#2dd4bf' : '#60a5fa';
+    posCode.value = encode(pos);
+    const t=terminal(pos);
+    if(t===null){ setEval('Ready.', 'draw'); }
+    else if(t==='STALEMATE'){ setEval('Draw (stalemate).', 'draw'); }
+    else { setEval((pos.turn===W?'White':'Black')+' is checkmated.', 'lose'); }
+
+    btnUndo.disabled = hIndex<=0;
+    btnRedo.disabled = hIndex>=history.length-1;
+  }
+
+  function setEval(text, cls){
+    statusEl.className='eval '+cls; statusEl.textContent=text;
+  }
+
+  function select(i){
+    const p=pos.board[i];
+    if(p===EMPTY || sideOf(p)!==pos.turn){ sel=null; targets=[]; render(); return; }
+    sel=i; targets=legalMoves(pos).filter(m=>m.from===i).map(m=>m.to);
+    render();
+  }
+
+  boardEl.addEventListener('click', e=>{
+    const cell=e.target.closest('.sq'); if(!cell) return;
+    const i=+cell.dataset.index;
+    if(sel===null){ select(i); return; }
+    if(i===sel){ sel=null; targets=[]; render(); return; }
+    const move = legalMoves(pos).find(m=>m.from===sel && m.to===i);
+    if(move){ pushPos(applyMove(pos, move)); }
+    sel=null; targets=[]; render();
+  });
+
+  function pushPos(next){
+    pos=next; history=history.slice(0,hIndex+1); history.push(encode(pos)); hIndex++;
+  }
+
+  btnUndo.onclick=()=>{ if(hIndex>0){ hIndex--; pos=decode(history[hIndex]); render(); }}
+  btnRedo.onclick=()=>{ if(hIndex<history.length-1){ hIndex++; pos=decode(history[hIndex]); render(); }}
+  btnReset.onclick=()=>{ pos=decode(START_CODE); history=[encode(pos)]; hIndex=0; sel=null; targets=[]; TT.clear(); render(); }
+  btnSwap.onclick = ()=>{ pos={board:pos.board.slice(), turn: pos.turn===W?B:W}; pushPos(pos); render(); }
+
+  btnBest.onclick=()=>{
+    const res=solve(pos);
+    let label = res.res==='WIN' ? 'Winning' : (res.res==='LOSS' ? 'Losing' : 'Drawing');
+    setEval(`${label} for ${pos.turn===W?'White':'Black'} (d=${res.depth}).`, res.res==='WIN'?'win':res.res==='LOSS'?'lose':'draw');
+    if(res.best){ pushPos(applyMove(pos,res.best)); render(); }
+  }
+
+  btnSolve.onclick=()=>{
+    const res=solve(pos);
+    const ply = res.depth;
+    const who = pos.turn===W? 'White' : 'Black';
+    if(res.res==='WIN') setEval(`WIN for ${who} in ≤ ${ply} ply (perfect play).`, 'win');
+    else if(res.res==='LOSS') setEval(`LOSS for ${who} in ≤ ${ply} ply (perfect play).`, 'lose');
+    else setEval(`DRAW with perfect play (cycle/fortress), frontier depth ≤ ${ply}.`, 'draw');
+  }
+
+  btnLoad.onclick=()=>{
+    try{ pos=decode(posCode.value.trim()); history=[encode(pos)]; hIndex=0; sel=null; targets=[]; TT.clear(); render(); }
+    catch(err){ alert('Load error: '+err.message); }
+  }
+  btnCopy.onclick=()=>{ navigator.clipboard.writeText(posCode.value); setEval('Copied position code to clipboard.', 'draw'); }
+
+  // bootstrap
+  render();
+})();
+</script>
+</body>
+</html>
