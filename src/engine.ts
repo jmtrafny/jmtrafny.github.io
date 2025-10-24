@@ -27,7 +27,7 @@ export interface Move {
 
 export const EMPTY: Cell = '.';
 
-// Unicode chess symbols
+// Unicode chess symbols (kept for backward compatibility)
 export const UNICODE: Record<Piece, string> = {
   wk: '\u2654',
   wr: '\u2656',
@@ -35,6 +35,16 @@ export const UNICODE: Record<Piece, string> = {
   bk: '\u265A',
   br: '\u265C',
   bn: '\u265E',
+};
+
+// SVG piece images
+export const PIECE_IMAGES: Record<Piece, string> = {
+  wk: '/pieces/wk.svg',
+  wr: '/pieces/wr.svg',
+  wn: '/pieces/wn.svg',
+  bk: '/pieces/bk.svg',
+  br: '/pieces/br.svg',
+  bn: '/pieces/bn.svg',
 };
 
 // Default starting position
