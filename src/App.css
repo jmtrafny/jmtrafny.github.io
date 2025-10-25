@@ -139,6 +139,88 @@ body {
   transform: translateY(-1px);
 }
 
+/* Game container with move log and board */
+.game-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+/* Move log */
+.move-log {
+  background: #0b1020;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 180px;
+  max-width: 220px;
+  max-height: 640px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.move-log-header {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--accent);
+  margin-bottom: 12px;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1f2937;
+}
+
+.move-log-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.move-log-empty {
+  text-align: center;
+  opacity: 0.5;
+  font-size: 13px;
+  padding: 20px 0;
+}
+
+.move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.move-pair {
+  display: grid;
+  grid-template-columns: 32px 1fr 1fr;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(31, 41, 55, 0.3);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.move-pair:hover {
+  background: rgba(31, 41, 55, 0.6);
+}
+
+.move-number {
+  color: var(--accent);
+  font-weight: 600;
+  text-align: right;
+}
+
+.move-white {
+  color: var(--text);
+}
+
+.move-black {
+  color: #9ca3af;
+}
+
 /* board */
 .board-wrap {
   display: flex;
@@ -793,5 +875,25 @@ details summary {
   50% {
     opacity: 0.9;
     box-shadow: 0 0 18px rgba(34, 211, 238, 0.6);
+  }
+}
+
+/* Responsive design for move log */
+@media (max-width: 768px) {
+  .game-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .move-log {
+    width: 100%;
+    max-width: 100%;
+    max-height: 200px;
+    order: 2;
+    margin-top: 16px;
+  }
+
+  .board-wrap {
+    order: 1;
   }
 }

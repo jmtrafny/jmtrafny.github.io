@@ -1005,3 +1005,93 @@ export function terminal(pos: Position): string | null {
 export function detectRepetition(history: string[], currentPos: string): number {
   return history.filter(pos => pos === currentPos).length;
 }
+
+/**
+ * Convert a move to standard algebraic notation
+ * Examples: "e4", "Nf3", "Rxb5+", "O-O", "Qh4#"
+ */
+export function moveToAlgebraic(pos: Position, move: Move): string {
+  const config = getConfig(pos);
+  const piece = pos.board[move.from];
+  const pieceType = typeOf(piece);
+  const captured = pos.board[move.to] !== EMPTY;
+
+  // Get destination square notation
+  const [toRank, toFile] = indexToCoords(move.to, config);
+  const toSquare = coordsToAlgebraic(toRank, toFile, config);
+
+  // Check if move results in check or checkmate
+  const newPos = applyMove(pos, move);
+  const isCheck = newPos ? (legalMoves(newPos).length === 0 ? false : (findKing(newPos.board, newPos.turn, getConfig(newPos)) >= 0 ? attacked(newPos.board, newPos.turn, findKing(newPos.board, newPos.turn, getConfig(newPos)), getConfig(newPos)) : false)) : false;
+  const isCheckmate = terminal(newPos) === `${newPos.turn === 'w' ? 'WHITE' : 'BLACK'}_MATE`;
+
+  let notation = '';
+
+  // Piece prefix (K, Q, R, B, N - nothing for pawns)
+  if (pieceType && pieceType !== 'p') {
+    notation += pieceType.toUpperCase();
+  }
+
+  // Disambiguation: check if multiple pieces of same type can reach the destination
+  if (pieceType && pieceType !== 'p' && pieceType !== 'k') {
+    const samePieceMoves = legalMoves(pos).filter(m => {
+      const p = pos.board[m.from];
+      return typeOf(p) === pieceType && sideOf(p) === pos.turn && m.to === move.to && m.from !== move.from;
+    });
+
+    if (samePieceMoves.length > 0) {
+      const [fromRank, fromFile] = indexToCoords(move.from, config);
+      // Check if file disambiguation is enough
+      const sameFile = samePieceMoves.some(m => {
+        const [, otherFile] = indexToCoords(m.from, config);
+        return otherFile === fromFile;
+      });
+
+      if (!sameFile) {
+        // File is enough
+        notation += config.files[fromFile];
+      } else {
+        // Need rank or both
+        const sameRank = samePieceMoves.some(m => {
+          const [otherRank] = indexToCoords(m.from, config);
+          return otherRank === fromRank;
+        });
+
+        if (!sameRank) {
+          notation += (fromRank + 1).toString();
+        } else {
+          // Need both file and rank
+          notation += coordsToAlgebraic(fromRank, fromFile, config);
+        }
+      }
+    }
+  }
+
+  // Pawn captures need file notation
+  if (pieceType === 'p' && captured) {
+    const [, fromFile] = indexToCoords(move.from, config);
+    notation += config.files[fromFile];
+  }
+
+  // Capture notation
+  if (captured) {
+    notation += 'x';
+  }
+
+  // Destination square
+  notation += toSquare;
+
+  // Promotion
+  if (move.promotion) {
+    notation += '=' + move.promotion.toUpperCase();
+  }
+
+  // Check/Checkmate
+  if (isCheckmate) {
+    notation += '#';
+  } else if (isCheck) {
+    notation += '+';
+  }
+
+  return notation;
+}

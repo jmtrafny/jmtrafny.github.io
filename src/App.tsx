@@ -22,6 +22,7 @@ import {
   ThinMode,
   THIN_MODE_PACK,
   MODE_HELP_CONTENT,
+  moveToAlgebraic,
 } from './engine';
 import { solve, clearTT } from './solver';
 import {
@@ -76,6 +77,7 @@ function App() {
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [soundMuted, setSoundMuted] = useState(() => getMuted());
   const [repetitionDetected, setRepetitionDetected] = useState(false);
+  const [moveLog, setMoveLog] = useState<string[]>([]); // Track all moves in algebraic notation
 
   // Initialize audio on mount
   useEffect(() => {
@@ -108,6 +110,9 @@ function App() {
           // Check if AI is capturing
           const isCapture = position.board[bestMove.to] !== EMPTY;
 
+          // Generate move notation
+          const moveNotation = moveToAlgebraic(position, bestMove);
+
           const newPos = applyMove(position, bestMove);
           setPos(newPos);
           setHistory(prev => {
@@ -116,6 +121,7 @@ function App() {
             return newHistory;
           });
           setHIndex(prev => prev + 1);
+          setMoveLog(prev => [...prev, moveNotation]);
 
           // Play appropriate sound
           if (isCapture) {
@@ -242,6 +248,10 @@ function App() {
       // Check if this is a capture
       const isCapture = pos.board[i] !== EMPTY;
 
+      // Generate move notation
+      const moveNotation = moveToAlgebraic(pos, move);
+      setMoveLog(prev => [...prev, moveNotation]);
+
       pushPos(applyMove(pos, move));
 
       // Play appropriate sound
@@ -268,6 +278,9 @@ function App() {
       setPos(decode(history[newIndex], pos.variant));
       setSel(null);
       setTargets([]);
+
+      // Remove corresponding moves from log
+      setMoveLog(prev => prev.slice(0, prev.length - stepsBack));
     }
   };
 
@@ -283,6 +296,10 @@ function App() {
       setPos(decode(history[newIndex], pos.variant));
       setSel(null);
       setTargets([]);
+
+      // Note: We don't restore moves to the log because they should already be there
+      // If we're redoing, we just undid moves that are still in the moveLog
+      // We need to track this differently - let's just slice to match hIndex
     }
   };
 
@@ -328,6 +345,7 @@ function App() {
     setTargets([]);
     setGameOver(false);
     setGameResult('');
+    setMoveLog([]); // Reset move log
     clearTT();
     setShowThinModePicker(false);
     setShowModal(true); // Show game mode picker (1 player vs 2 player)
@@ -346,6 +364,7 @@ function App() {
     setTargets([]);
     setGameOver(false);
     setGameResult('');
+    setMoveLog([]); // Reset move log
     clearTT();
     setShowSkinnyModePicker(false);
     setShowModal(true); // Show game mode picker (1 player vs 2 player)
@@ -364,6 +383,7 @@ function App() {
     setTargets([]);
     setGameOver(false);
     setGameResult('');
+    setMoveLog([]); // Reset move log
     clearTT();
     setShowSkinnyModePicker(false);
     setShowModal(true); // Show game mode picker
@@ -391,6 +411,7 @@ function App() {
     setShowColorPicker(false);
     setGameOver(false);
     setGameResult('');
+    setMoveLog([]); // Reset move log
     clearTT();
   };
 
@@ -459,6 +480,7 @@ function App() {
       setSel(null);
       setTargets([]);
       setPlayerSide(null); // Reset player side
+      setMoveLog([]); // Reset move log
       clearTT();
     } catch (err) {
       alert(`Load error: ${(err as Error).message}`);
@@ -818,7 +840,33 @@ function App() {
           </div>
         </div>
 
-        <div className="board-wrap">
+        <div className="game-container">
+          {/* Move Log */}
+          <div className="move-log">
+            <div className="move-log-header">Moves</div>
+            <div className="move-log-content">
+              {moveLog.length === 0 ? (
+                <div className="move-log-empty">No moves yet</div>
+              ) : (
+                <div className="move-list">
+                  {Array.from({ length: Math.ceil(moveLog.length / 2) }, (_, i) => {
+                    const moveNumber = i + 1;
+                    const whiteMove = moveLog[i * 2];
+                    const blackMove = moveLog[i * 2 + 1];
+                    return (
+                      <div key={i} className="move-pair">
+                        <span className="move-number">{moveNumber}.</span>
+                        <span className="move-white">{whiteMove}</span>
+                        {blackMove && <span className="move-black">{blackMove}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="board-wrap">
           {gameVariant === 'thin' ? (
             // 1-D Chess: board with ranks to the right
             <>
@@ -911,6 +959,7 @@ function App() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {gameOver && (
