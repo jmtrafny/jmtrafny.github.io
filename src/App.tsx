@@ -45,8 +45,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 function App() {
-  // Default to Original 1-D Chess mode
-  const defaultMode = THIN_MODE_PACK[0]; // Original 1-D Chess
+  // Default to 1-D Chess mode
+  const defaultMode = THIN_MODE_PACK[0]; // 1-D Chess
   const defaultPosition = decode(defaultMode.startPosition, 'thin', defaultMode.boardLength);
 
   // Variant selection
@@ -54,7 +54,7 @@ function App() {
   const [showVariantPicker, setShowVariantPicker] = useState(false); // Don't show on startup
   const [showThinModePicker, setShowThinModePicker] = useState(false); // Show 1-D Chess mode selector
   const [showSkinnyModePicker, setShowSkinnyModePicker] = useState(false); // Show Thin Chess challenges selector
-  const [selectedThinMode, setSelectedThinMode] = useState<ThinMode | null>(defaultMode); // Start with Original 1-D Chess
+  const [selectedThinMode, setSelectedThinMode] = useState<ThinMode | null>(defaultMode); // Start with 1-D Chess
   const [selectedSkinnyMode, setSelectedSkinnyMode] = useState<SkinnyMode | null>(null); // Currently selected Thin Chess mode
 
   // Help modal state
@@ -374,8 +374,8 @@ function App() {
     setShowModal(true); // Show game mode picker (1 player vs 2 player)
   };
 
-  // Handle "Original Thin Chess" selection (standard starting position)
-  const selectOriginalThinChess = () => {
+  // Handle "Thin Chess" selection (standard starting position)
+  const selectStandardThinChess = () => {
     setGameVariant('skinny');
     setSelectedSkinnyMode(null);
     setSelectedThinMode(null);
@@ -592,17 +592,17 @@ function App() {
           <div className="modal mode-pack-modal">
             <h2>Thin Chess - Choose Mode</h2>
             <div className="mode-grid">
-              {/* Original Thin Chess Option */}
+              {/* Standard Thin Chess Option */}
               <div className="mode-card-wrapper">
                 <button
                   className="mode-card"
-                  onClick={selectOriginalThinChess}
+                  onClick={selectStandardThinChess}
                 >
                   <div className="mode-header">
                     <span className="mode-icon">♟️</span>
                     <span className="mode-difficulty-stars">⭐⭐⭐</span>
                   </div>
-                  <div className="mode-name">Original Thin Chess</div>
+                  <div className="mode-name">Thin Chess</div>
                   <div className="mode-description">Standard 2×10 starting position</div>
                   <div className="mode-type-badge">Baseline</div>
                 </button>

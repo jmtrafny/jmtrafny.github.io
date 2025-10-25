@@ -226,7 +226,7 @@ export interface ThinMode {
 export const THIN_MODE_PACK: ThinMode[] = [
   {
     id: 'original-1d-chess',
-    name: 'Original 1-D Chess',
+    name: '1-D Chess',
     description: '12 squares - Full classic setup',
     startPosition: 'bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w',
     boardLength: 12,
@@ -397,7 +397,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
   },
   // 1-D Chess Mode Help Content
   'original-1d-chess': {
-    challenge: 'The original 12-square 1-D Chess setup with a full complement of pieces: 2 rooks, 2 knights, and 1 king per side. This is a rich strategic battle with multiple piece types and complex tactical possibilities.',
+    challenge: 'The 12-square 1-D Chess setup with a full complement of pieces: 2 rooks, 2 knights, and 1 king per side. This is a rich strategic battle with multiple piece types and complex tactical possibilities.',
     solvabilityType: 'COMPETITIVE',
     hints: [],
     strategy: {
