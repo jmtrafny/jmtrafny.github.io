@@ -12,7 +12,8 @@ import type {
 } from './GameModeConfig';
 import { validate } from './validator';
 
-// Cache for loaded configuration
+// Module-level cache for configuration to avoid repeated file fetches
+// These persist across component re-renders and only reset on hot reload or clearConfigCache()
 let configCache: GameModeConfig | null = null;
 let loadError: Error | null = null;
 
@@ -34,6 +35,8 @@ export async function loadGameModeConfig(): Promise<GameModeConfig> {
   }
 
   try {
+    // Fetch from public directory - path is relative to site root
+    // Assumes game-modes.json is in the public/ folder (Vite serves it at root)
     const response = await fetch('/game-modes.json');
 
     if (!response.ok) {

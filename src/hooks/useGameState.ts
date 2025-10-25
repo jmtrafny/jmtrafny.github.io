@@ -62,6 +62,10 @@ export interface GameActions {
 
 /**
  * Create initial state from a game mode
+ *
+ * Returns partial state with position, history, and UI state.
+ * Uses Omit to exclude gameMode, playerSide, and currentMode which are
+ * set separately by the newGame action to avoid circular dependencies.
  */
 function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' | 'playerSide' | 'currentMode'> {
   if (!mode) {
@@ -250,6 +254,7 @@ export function useGameState(): [GameState, GameActions] {
           return prev;
         }
 
+        // In 1-player mode, undo 2 moves (player + AI) to return to player's turn
         const stepsBack = prev.gameMode === '1player' ? Math.min(2, prev.historyIndex) : 1;
         const newIndex = prev.historyIndex - stepsBack;
 
@@ -270,6 +275,7 @@ export function useGameState(): [GameState, GameActions] {
           return prev;
         }
 
+        // In 1-player mode, redo 2 moves (player + AI) to maintain turn consistency
         const stepsForward = prev.gameMode === '1player'
           ? Math.min(2, prev.history.length - 1 - prev.historyIndex)
           : 1;

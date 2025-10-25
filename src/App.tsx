@@ -63,6 +63,8 @@ function App() {
 
   // Game state
   const [gameState, gameActions] = useGameState();
+
+  // Maintain stable reference to gameActions to avoid dependency cycles in AI effect
   const gameActionsRef = useRef(gameActions);
   useEffect(() => {
     gameActionsRef.current = gameActions;
@@ -76,6 +78,8 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+
+  // Track last game result to prevent duplicate sound playback on re-renders
   const lastGameResultRef = useRef<string>('');
 
   // Initialize audio
@@ -108,6 +112,8 @@ function App() {
   }, []);
 
   // Play sounds for game outcomes
+  // Determines win/loss/draw from game result and plays appropriate sound effect.
+  // Uses ref to prevent duplicate playback on component re-renders.
   useEffect(() => {
     if (!gameState.gameOver || !gameState.gameResult) return;
 
@@ -141,6 +147,10 @@ function App() {
   }, [gameState.gameOver, gameState.gameResult, gameState.gameMode, gameState.playerSide]);
 
   // AI move handler
+  // Triggers AI move when it's the AI's turn in 1-player mode.
+  // Uses 500ms delay to provide visual feedback before move appears.
+  // Thin chess (skinny): Random move selection
+  // 1-D chess (thin): Perfect-play solver
   useEffect(() => {
     // Skip if not AI's turn or already thinking
     if (
@@ -157,6 +167,7 @@ function App() {
     console.log('[AI] Starting AI move for position:', gameState.history[gameState.historyIndex]);
     gameActionsRef.current.setAIThinking(true);
 
+    // 500ms delay provides visual feedback that AI is "thinking"
     const timeoutId = setTimeout(() => {
       try {
         let bestMove: Move | undefined;
@@ -203,13 +214,14 @@ function App() {
 
   // Handlers
   const handleSquareClick = (index: number) => {
-    // Check if this will be a move BEFORE calling selectSquare
+    // Pre-check if this click will result in a move (before state updates)
+    // This allows accurate sound playback timing before board changes
     const wasMove = gameState.selectedSquare !== null && gameState.targetSquares.includes(index);
     const isCapture = wasMove ? gameState.position.board[index] !== EMPTY : false;
 
     gameActions.selectSquare(index);
 
-    // Play move sound after state update is queued
+    // Play appropriate sound effect based on pre-checked move type
     if (wasMove) {
       console.log('[Sound] Human move:', isCapture ? 'capture' : 'move');
       if (isCapture) {
@@ -337,6 +349,8 @@ function App() {
     );
   }
 
+  // Get board configuration for current position
+  // Handles variable dimensions (1×N, 2×N, 3×N, etc.) from position metadata
   const boardConfig = getConfig(gameState.position);
 
   return (

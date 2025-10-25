@@ -25,9 +25,9 @@
   ],
   "modes": [
     {
-      "id": "1D12_CLASSIC",
+      "id": "1D12_CHESSTRAPS",
       "categoryId": "1d-chess",
-      "name": "1-D Chess: Full Set",
+      "name": "1-D Chess by ChessTraps",
       "description": "Deep strategy in a single file. Knights and rooks vie for space.",
       "variant": "thin",
       "boardWidth": 1,
@@ -51,6 +51,40 @@
           "Understand rook and knight synergy",
           "Practice long-term strategic planning",
           "Learn endgame transitions with multiple pieces"
+        ]
+      }
+    },
+    {
+      "id": "1D8_MONK",
+      "categoryId": "1d-chess",
+      "name": "Monk 1-D Chess",
+      "description": "A classic 1×8 K+N+R vs K+N+R duel. Surprisingly tactical—white to move from the historical Gardner position.",
+      "variant": "thin",
+      "boardWidth": 1,
+      "boardHeight": 8,
+      "startPosition": "wk,wn,wr,x,x,br,bn,bk:w",
+      "difficulty": "Advanced",
+      "difficultyStars": 4,
+      "icon": "🧘",
+      "help": {
+        "challenge": "Play as White on a 1×8 board with King, Knight (±2 jump), and Rook versus Black’s King, Knight, and Rook. Can White force a win from the famous one-dimensional setup?",
+        "solvabilityType": "COMPETITIVE",
+        "hints": [
+          "Lead with the knight to restrict the enemy king’s flight squares.",
+          "Rook tempo checks can force the black king toward your pieces.",
+          "Try to coordinate K+R to box in the king after the knight drives it."
+        ],
+        "solution": "Try: N4 N5, N6 K7, R4 K6, R2 K7, R5++",
+        "strategy": {
+          "whitePlan": "Use the knight’s ±2 jumps to herd the black king toward your rook. Convert initiative into a mating net with rook checks while keeping your king close enough to cut escape squares.",
+          "blackPlan": "Seek counter-checks and trades that relieve pressure. If possible, aim to exchange rooks or reach a fortress/stalemate motif when driven to the edge.",
+          "keyPositions": "The central empties (squares 4–5) are the corridor. Knight on 5 or 6 often dominates. Rook checks from behind (R4, R5) create the decisive squeeze."
+        },
+        "learningObjectives": [
+          "Coordinate K+R+N in constrained space",
+          "Use tempo checks to drive the king",
+          "Recognize stalemate and repetition traps in 1D",
+          "Build and close a mating net with limited geometry"
         ]
       }
     },
@@ -121,7 +155,7 @@
       "variant": "skinny",
       "boardWidth": 2,
       "boardHeight": 7,
-      "startPosition": "bk,br/x,bb/x,x/x,x/wn,x/wr,wk:w",
+      "startPosition": "bk,br/x,bb/x,x/x,x/x,x/wn,x/wr,wk:w",
       "difficulty": "Intermediate",
       "difficultyStars": 3,
       "icon": "🎯",
@@ -238,7 +272,7 @@
       "variant": "skinny",
       "boardWidth": 2,
       "boardHeight": 8,
-      "startPosition": "x,bk/x,bb/x,x/x,x/wk,x/wr,x/x,x:w",
+      "startPosition": "x,bk/x,bb/x,x/x,x/x,x/wk,x/wr,x/x,x:w",
       "difficulty": "Intermediate",
       "difficultyStars": 3,
       "icon": "🧩",

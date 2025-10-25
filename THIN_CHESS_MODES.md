@@ -55,24 +55,30 @@ Double-knight tactics and tempo pressure. Fast knight tactics with rooks. Double
 
 ---
 
-### 3. Rook & Pawn Endgame (1×8 Board) ⭐
+### 3. Monk 1-D Chess (1×8 Board) ⭐⭐⭐⭐
 
-**Mode ID:** `1D8_ROOK_PAWN_ENDGAME`
+**Mode ID:** `1D8_MONK`
 
-**Starting Position:** `bk,bp,x,x,x,wp,wr,wk:w`
+**Starting Position:** `wk,wn,wr,x,x,br,bn,bk:w`
 
 **Description:**
-Introductory tactical mode to learn rook vs king endgame concepts. Simple rook endgame teaching fundamental patterns.
+A classic 1×8 K+N+R vs K+N+R duel. Surprisingly tactical—white to move from the historical Gardner position. The famous Martin Gardner 1-D chess setup with proven forced win for white.
 
-**Key Concepts:** Rook endgame fundamentals, pawn play, king activity
+**Key Concepts:** K+R+N coordination, tempo checks, mating nets, tactical precision
 
 **Learning Objectives:**
-- Master fundamental rook endgame techniques
-- Practice pawn advancement and protection
-- Learn king activity in endgames
-- Understand zugzwang patterns
+- Coordinate K+R+N in constrained space
+- Use tempo checks to drive the king
+- Recognize stalemate and repetition traps in 1D
+- Build and close a mating net with limited geometry
 
-**Difficulty:** Beginner
+**Strategy Tips:**
+- **White:** Lead with the knight to restrict the enemy king's flight squares. Use rook tempo checks to force the black king toward your pieces. Coordinate K+R to box in the king after the knight drives it.
+- **Black:** Seek counter-checks and trades that relieve pressure. If possible, aim to exchange rooks or reach a fortress/stalemate motif when driven to the edge.
+
+**Solution Hint:** Try: N4 N5, N6 K7, R4 K6, R2 K7, R5++
+
+**Difficulty:** Advanced
 
 ---
 
@@ -103,7 +109,7 @@ A trench-line battlefield with pawn blockades and knight maneuvering. Positional
 
 **Mode ID:** `2X7_BISHOP_VS_KNIGHT`
 
-**Starting Position:** `bk,br/x,bb/x,x/x,x/wn,x/wr,wk:w`
+**Starting Position:** `bk,br/x,bb/x,x/x,x/x,x/wn,x/wr,wk:w`
 
 **Description:**
 Asymmetric piece values challenge players to adapt their tactics. Asymmetric minor piece battle testing understanding of piece strengths.
@@ -164,11 +170,11 @@ Fundamental K+R vs K ladder mate. Perfect for rook ladder training. Short, clean
 
 ---
 
-### 8. Top-Rank Guillotine (2×8) ⭐
+### 8. Top-Rank Guillotine (2×8) ⭐⭐⭐
 
 **Mode ID:** `2X8_TOP_RANK_GUILLOTINE`
 
-**Starting Position:** `x,bk/x,x/x,x/x,x/wk,x/wr,x/x,x/x,x/x,x:w`
+**Starting Position:** `x,bk/x,x/x,x/x,x/wk,x/wr,x/x,x:w`
 
 **Description:**
 Systematic K+R vs K mate on a longer board. Extended ladder sequences reinforce systematic technique.
@@ -187,16 +193,16 @@ Systematic K+R vs K mate on a longer board. Extended ladder sequences reinforce 
 
 **Mode ID:** `2X8_BISHOP_CORRIDOR_SQUEEZE`
 
-**Starting Position:** `x,bk/x,bb/x,bp/x,x/x,x/wp,x/wr,x/wk,x:w`
+**Starting Position:** `x,bk/x,bb/x,x/x,x/x,x/wk,x/wr,x/x,x:w`
 
 **Description:**
-Pawn race where both sides advance on narrow corridors. Use pieces to aid your pawn or block opponent's.
+A test of zugzwang entry and bishop maneuvering through fortress setups. Opposite-color bishops create drawing tendencies.
 
 **Learning Objectives:**
-- Practice counting moves in pawn races
-- Use pieces to delay or block opponent pawns
-- Understand initiative and tempo advantage
-- Learn breakthrough patterns
+- Knight fork tactical patterns
+- Forcing sequences with knights
+- Maximizing knight reach on narrow boards
+- Knights excelling when lines are blocked
 
 **Difficulty:** Intermediate
 
@@ -206,16 +212,16 @@ Pawn race where both sides advance on narrow corridors. Use pieces to aid your p
 
 **Mode ID:** `2X8_FLIP_FORK_LITE`
 
-**Starting Position:** `x,bk/x,bb/x,x/x,br/x,x/wr,x/x,x/wb,x/wk,wn:w`
+**Starting Position:** `x,bk/x,bb/x,x/x,br/x,x/wr,x/x,x/wk,wn:w`
 
 **Description:**
-Knight fork pattern recognition. White's knight starts on Black's side. Find the winning fork in the first few moves.
+Knight fork setup in a tight space. Fast tactical drill. White's knight starts on Black's side for quick fork opportunities.
 
 **Learning Objectives:**
-- Spot knight-fork tactical patterns
-- Calculate forcing sequences with knights
-- Maximize knight's reach on narrow boards
-- Understand knight tactics in cramped spaces
+- Two-knight coordination
+- Asymmetric material handling
+- Mobility vs power trade-offs
+- Rook's need for open lines
 
 **Difficulty:** Intermediate
 
@@ -225,7 +231,7 @@ Knight fork pattern recognition. White's knight starts on Black's side. Find the
 
 **Mode ID:** `3X8_THREE_FILE_SHOWDOWN`
 
-**Starting Position:** `wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,bp/bk,x,x:w`
+**Starting Position:** `wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,bp/bk,x,x:b`
 
 **Description:**
 Queen vs Rook+Knight+Pawn on a 3-file board. Power vs. numbers with diagonal tactics. Highly dynamic and replayable.
@@ -240,20 +246,19 @@ Queen vs Rook+Knight+Pawn on a 3-file board. Power vs. numbers with diagonal tac
 
 ---
 
-### 12. Rook Race (1×9) ⭐⭐
+### 12. Rook Race (1×9) ⭐
 
 **Mode ID:** `1X9_ROOK_RACE`
 
 **Starting Position:** `wk,wr,x,x,x,x,bn,br,bk:w`
 
 **Description:**
-Asymmetric 1-D battle. White's rook vs Black's rook+knight. Power vs. numbers showcase with tempo management.
+A compressed power vs numbers battle. Knight fork threat at the center. White's lone rook faces Black's rook+knight combination.
 
 **Learning Objectives:**
-- Understand material imbalance (power vs. numbers)
-- Practice leveraging superior piece range
-- Defend against knight fork tactics
-- Learn piece cooperation under pressure
+- Rook laddering
+- Opposition
+- Edge mates
 
 **Difficulty:** Intermediate
 
