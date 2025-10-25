@@ -15,10 +15,13 @@ import {
   Side,
   VariantType,
   CONFIGS,
+  getConfig,
   indexToCoords,
   Move,
   SkinnyMode,
   SKINNY_MODE_PACK,
+  ThinMode,
+  THIN_MODE_PACK,
   MODE_HELP_CONTENT,
 } from './engine';
 import { solve, clearTT } from './solver';
@@ -45,8 +48,10 @@ function App() {
   // Variant selection
   const [gameVariant, setGameVariant] = useState<VariantType>('thin'); // Start with thin
   const [showVariantPicker, setShowVariantPicker] = useState(true); // Show on startup
-  const [showModePicker, setShowModePicker] = useState(false); // Show mode pack selector
-  const [selectedMode, setSelectedMode] = useState<SkinnyMode | null>(null); // Currently selected mode
+  const [showThinModePicker, setShowThinModePicker] = useState(false); // Show 1-D Chess mode selector
+  const [showSkinnyModePicker, setShowSkinnyModePicker] = useState(false); // Show Thin Chess challenges selector
+  const [selectedThinMode, setSelectedThinMode] = useState<ThinMode | null>(null); // Currently selected 1-D Chess mode
+  const [selectedSkinnyMode, setSelectedSkinnyMode] = useState<SkinnyMode | null>(null); // Currently selected Thin Chess mode
 
   // Help modal state
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -275,7 +280,8 @@ function App() {
   // New Game - return to variant picker to allow changing variant/mode
   const handleNewGame = () => {
     setShowVariantPicker(true);
-    setShowModePicker(false);
+    setShowThinModePicker(false);
+    setShowSkinnyModePicker(false);
     setShowModal(false);
     setShowColorPicker(false);
   };
@@ -289,10 +295,23 @@ function App() {
     }
   };
 
-  // Handle variant selection
+  // Handle variant selection - navigate to respective mode picker
   const selectVariant = (variant: VariantType) => {
     setGameVariant(variant);
-    const startPos = decode(START_POSITIONS[variant], variant);
+    setShowVariantPicker(false);
+    if (variant === 'thin') {
+      setShowThinModePicker(true);
+    } else {
+      setShowSkinnyModePicker(true);
+    }
+  };
+
+  // Handle 1-D Chess mode selection
+  const selectThinMode = (mode: ThinMode) => {
+    setGameVariant('thin');
+    setSelectedThinMode(mode);
+    setSelectedSkinnyMode(null);
+    const startPos = decode(mode.startPosition, 'thin', mode.boardLength);
     setPos(startPos);
     setHistory([encode(startPos)]);
     setHIndex(0);
@@ -300,22 +319,16 @@ function App() {
     setTargets([]);
     setGameOver(false);
     setGameResult('');
-    setSelectedMode(null); // Clear any selected mode
     clearTT();
-    setShowVariantPicker(false);
-    setShowModal(true); // Show game mode picker
+    setShowThinModePicker(false);
+    setShowModal(true); // Show game mode picker (1 player vs 2 player)
   };
 
-  // Show mode pack selector
-  const selectModePack = () => {
-    setShowVariantPicker(false);
-    setShowModePicker(true);
-  };
-
-  // Handle mode selection from mode pack
-  const selectMode = (mode: SkinnyMode) => {
+  // Handle Thin Chess challenge mode selection
+  const selectSkinnyMode = (mode: SkinnyMode) => {
     setGameVariant('skinny');
-    setSelectedMode(mode);
+    setSelectedSkinnyMode(mode);
+    setSelectedThinMode(null);
     const startPos = decode(mode.startPosition, 'skinny');
     setPos(startPos);
     setHistory([encode(startPos)]);
@@ -325,15 +338,39 @@ function App() {
     setGameOver(false);
     setGameResult('');
     clearTT();
-    setShowModePicker(false);
+    setShowSkinnyModePicker(false);
     setShowModal(true); // Show game mode picker (1 player vs 2 player)
+  };
+
+  // Handle "Original Thin Chess" selection (standard starting position)
+  const selectOriginalThinChess = () => {
+    setGameVariant('skinny');
+    setSelectedSkinnyMode(null);
+    setSelectedThinMode(null);
+    const startPos = decode(START_POSITIONS.skinny, 'skinny');
+    setPos(startPos);
+    setHistory([encode(startPos)]);
+    setHIndex(0);
+    setSel(null);
+    setTargets([]);
+    setGameOver(false);
+    setGameResult('');
+    clearTT();
+    setShowSkinnyModePicker(false);
+    setShowModal(true); // Show game mode picker
   };
 
   // Start game with selected mode and optional player side
   const startGame = (mode: '1player' | '2player', side: Side | null) => {
     // Use selected mode position if available, otherwise use default variant position
-    const startPosString = selectedMode?.startPosition || START_POSITIONS[gameVariant];
-    const startPos = decode(startPosString, gameVariant);
+    let startPos: Position;
+    if (selectedThinMode) {
+      startPos = decode(selectedThinMode.startPosition, 'thin', selectedThinMode.boardLength);
+    } else if (selectedSkinnyMode) {
+      startPos = decode(selectedSkinnyMode.startPosition, 'skinny');
+    } else {
+      startPos = decode(START_POSITIONS[gameVariant], gameVariant);
+    }
     setPos(startPos);
     setHistory([encode(startPos)]);
     setHIndex(0);
@@ -452,34 +489,30 @@ function App() {
             <div className="modal-buttons">
               <button className="modal-btn" onClick={() => selectVariant('thin')}>
                 1-D Chess
-                <div className="modal-subtitle">1×12 board</div>
+                <div className="modal-subtitle">Classic 1-dimensional chess</div>
               </button>
               <button className="modal-btn" onClick={() => selectVariant('skinny')}>
                 Thin Chess
-                <div className="modal-subtitle">2×10 board</div>
-              </button>
-              <button className="modal-btn" onClick={selectModePack}>
-                Thin Chess Challenges
-                <div className="modal-subtitle">Curated challenges</div>
+                <div className="modal-subtitle">2×10 chess variant</div>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Mode Pack Selector Modal */}
-      {showModePicker && (
+      {/* 1-D Chess Mode Selector Modal */}
+      {showThinModePicker && (
         <div className="modal-overlay">
           <div className="modal mode-pack-modal">
-            <h2>Thin Chess - Challenges</h2>
+            <h2>1-D Chess - Choose Scenario</h2>
             <div className="mode-grid">
-              {SKINNY_MODE_PACK.map((mode) => {
+              {THIN_MODE_PACK.map((mode) => {
                 const helpContent = MODE_HELP_CONTENT[mode.id];
                 return (
                   <div key={mode.id} className="mode-card-wrapper">
                     <button
                       className="mode-card"
-                      onClick={() => selectMode(mode)}
+                      onClick={() => selectThinMode(mode)}
                     >
                       <div className="mode-header">
                         <span className="mode-icon">{helpContent.icon}</span>
@@ -508,7 +541,75 @@ function App() {
             <button
               className="modal-btn back-btn"
               onClick={() => {
-                setShowModePicker(false);
+                setShowThinModePicker(false);
+                setShowVariantPicker(true);
+              }}
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Thin Chess Challenges Selector Modal */}
+      {showSkinnyModePicker && (
+        <div className="modal-overlay">
+          <div className="modal mode-pack-modal">
+            <h2>Thin Chess - Choose Mode</h2>
+            <div className="mode-grid">
+              {/* Original Thin Chess Option */}
+              <div className="mode-card-wrapper">
+                <button
+                  className="mode-card"
+                  onClick={selectOriginalThinChess}
+                >
+                  <div className="mode-header">
+                    <span className="mode-icon">♟️</span>
+                    <span className="mode-difficulty-stars">⭐⭐⭐</span>
+                  </div>
+                  <div className="mode-name">Original Thin Chess</div>
+                  <div className="mode-description">Standard 2×10 starting position</div>
+                  <div className="mode-type-badge">Baseline</div>
+                </button>
+              </div>
+
+              {/* Challenge Modes */}
+              {SKINNY_MODE_PACK.map((mode) => {
+                const helpContent = MODE_HELP_CONTENT[mode.id];
+                return (
+                  <div key={mode.id} className="mode-card-wrapper">
+                    <button
+                      className="mode-card"
+                      onClick={() => selectSkinnyMode(mode)}
+                    >
+                      <div className="mode-header">
+                        <span className="mode-icon">{helpContent.icon}</span>
+                        <span className="mode-difficulty-stars">
+                          {'⭐'.repeat(helpContent.difficultyStars)}
+                        </span>
+                      </div>
+                      <div className="mode-name">{mode.name}</div>
+                      <div className="mode-description">{mode.description}</div>
+                      <div className="mode-type-badge">{mode.difficulty}</div>
+                    </button>
+                    <button
+                      className="help-icon-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openHelp(mode.id);
+                      }}
+                      title="Show help for this mode"
+                    >
+                      ?
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              className="modal-btn back-btn"
+              onClick={() => {
+                setShowSkinnyModePicker(false);
                 setShowVariantPicker(true);
               }}
             >
@@ -522,7 +623,7 @@ function App() {
       {showHelpModal && helpMode && MODE_HELP_CONTENT[helpMode] && (
         <div className="modal-overlay" onClick={closeHelp}>
           <div className="modal help-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{SKINNY_MODE_PACK.find(m => m.id === helpMode)?.name}</h2>
+            <h2>{SKINNY_MODE_PACK.find(m => m.id === helpMode)?.name || THIN_MODE_PACK.find(m => m.id === helpMode)?.name}</h2>
 
             <div className="help-section">
               <h3>The Challenge</h3>
@@ -683,10 +784,20 @@ function App() {
             <span className="title-icon title-icon-white">
               <img src="/white-pawn.svg" alt="" />
             </span>
-            {selectedMode ? `${selectedMode.name}` : gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
-            {selectedMode && <span className="mode-badge">{selectedMode.difficulty}</span>}
+            {selectedThinMode ? `${selectedThinMode.name}` : selectedSkinnyMode ? `${selectedSkinnyMode.name}` : gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
+            {selectedThinMode && <span className="mode-badge">{selectedThinMode.difficulty}</span>}
+            {selectedSkinnyMode && <span className="mode-badge">{selectedSkinnyMode.difficulty}</span>}
           </h1>
           <div className="header-buttons">
+            <a
+              href="https://www.youtube.com/shorts/nAO0IsMxveA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="icon-btn"
+              title="Watch on YouTube"
+            >
+              <img src="/youtube.svg" alt="YouTube" style={{ width: '24px', height: '24px' }} />
+            </a>
             <button className="icon-btn" onClick={handleToggleSound} title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}>
               {soundMuted ? '🔇' : '🔊'}
             </button>
@@ -699,9 +810,16 @@ function App() {
         </div>
 
         <div className="board-wrap">
-          <div className={`board board-${gameVariant}`}>
+          <div
+            className={`board board-${gameVariant}`}
+            style={
+              gameVariant === 'thin'
+                ? { gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)` }
+                : undefined
+            }
+          >
             {pos.board.map((cell, i) => {
-              const config = CONFIGS[gameVariant];
+              const config = getConfig(pos);
               const [rank, file] = indexToCoords(i, config);
               const isLight = (rank + file) % 2 === 0;
 
@@ -729,7 +847,7 @@ function App() {
           <div className="coords tiny">
             {gameVariant === 'thin' ? (
               // Thin: vertical rank numbers
-              Array.from({ length: 12 }, (_, i) => (
+              Array.from({ length: getConfig(pos).height }, (_, i) => (
                 <div key={i} className="n">
                   {i + 1}
                 </div>

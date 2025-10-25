@@ -51,10 +51,30 @@ export const CONFIGS: Record<VariantType, BoardConfig> = {
   },
 };
 
+/**
+ * Get board configuration for a position.
+ * Handles variable board lengths for 1-D Chess modes.
+ */
+export function getConfig(pos: Position): BoardConfig {
+  if (pos.variant === 'thin' && pos.boardLength && pos.boardLength !== 12) {
+    // Custom 1-D Chess mode with non-standard length
+    return {
+      variant: 'thin',
+      width: 1,
+      height: pos.boardLength,
+      size: pos.boardLength,
+      files: ['a'],
+      ranks: Array.from({ length: pos.boardLength }, (_, i) => i + 1),
+    };
+  }
+  return CONFIGS[pos.variant];
+}
+
 export interface Position {
   variant: VariantType;
   board: Board;
   turn: Side;
+  boardLength?: number; // Optional: for 1-D Chess modes with custom lengths (6, 7, 8, 10)
 }
 
 export interface Move {
@@ -155,6 +175,68 @@ export const SKINNY_MODE_PACK: SkinnyMode[] = [
     startPosition: 'x,bk/x,bb/x,x/x,br/x,x/x,x/wr,x/x,x/wb,x/wk,wn:w',
     rationale: 'Knight fork pattern: exploit unusual knight position to win material in 3-4 moves.',
     difficulty: 'Puzzle',
+  },
+];
+
+/**
+ * 1-D Chess Mode Pack
+ * Scenarios from "Interesting Starting Conditions for 1D Chess"
+ */
+export interface ThinMode {
+  id: string;
+  name: string;
+  description: string;
+  startPosition: string;
+  boardLength: number;
+  rationale: string;
+  difficulty: 'Puzzle' | 'Classic' | 'Strategic' | 'Asymmetric';
+}
+
+export const THIN_MODE_PACK: ThinMode[] = [
+  {
+    id: 'original-1d-chess',
+    name: 'Original 1-D Chess',
+    description: 'Board length 12 - full classic setup',
+    startPosition: 'bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w',
+    boardLength: 12,
+    rationale: 'Classic 12-square 1-D chess with full piece complement (2 knights, 2 rooks per side). Rich strategic depth.',
+    difficulty: 'Classic',
+  },
+  {
+    id: 'minimal-knights-duel',
+    name: 'Minimal Knights Duel',
+    description: 'Board length 6 - quick tactical battle',
+    startPosition: 'wk,wn,x,x,bn,bk:w',
+    boardLength: 6,
+    rationale: 'Simple symmetric setup with one knight and one king each. Knights must maneuver carefully without leaving kings exposed.',
+    difficulty: 'Puzzle',
+  },
+  {
+    id: 'classic-1d-chess',
+    name: 'Classic 1D Chess',
+    description: 'Board length 8 - Martin Gardner variant',
+    startPosition: 'wk,wn,wr,x,x,bn,br,bk:w',
+    boardLength: 8,
+    rationale: 'The classic one-dimensional chess described by Martin Gardner. White has a forced win with optimal play.',
+    difficulty: 'Classic',
+  },
+  {
+    id: 'multi-piece-battle',
+    name: 'Multi-Piece Battle',
+    description: 'Board length 10 - bishops included',
+    startPosition: 'wk,wr,wn,wb,x,x,bb,bn,br,bk:w',
+    boardLength: 10,
+    rationale: 'Symmetric setup introducing bishops. Bishops move on same-color squares (parity), creating unique tactical opportunities.',
+    difficulty: 'Strategic',
+  },
+  {
+    id: 'asymmetric-challenge',
+    name: 'Two Knights vs Rook',
+    description: 'Board length 7 - unbalanced challenge',
+    startPosition: 'wk,wn,wn,x,x,br,bk:w',
+    boardLength: 7,
+    rationale: 'White has two knights, Black has one rook. Asymmetric challenge testing piece coordination against long-range threats.',
+    difficulty: 'Asymmetric',
   },
 ];
 
@@ -262,6 +344,94 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 3,
     icon: '🧩',
   },
+  // 1-D Chess Mode Help Content
+  'original-1d-chess': {
+    challenge: 'The original 12-square 1-D Chess setup with a full complement of pieces: 2 rooks, 2 knights, and 1 king per side. This is a rich strategic battle with multiple piece types and complex tactical possibilities.',
+    solvabilityType: 'COMPETITIVE',
+    hints: [],
+    strategy: {
+      whitePlan: 'Coordinate your pieces to control key central squares (positions 5-7). Use knights to create forks and tactical threats. Rooks should work together to control long files. Look for opportunities to trap the enemy king between your pieces.',
+      blackPlan: 'Mirror white\'s development with symmetrical piece placement. Counter white\'s tactical threats by maintaining piece coordination. Look for trades that simplify to favorable endgames. Use knights to harass white\'s king while keeping your own king safe.',
+      keyPositions: 'Central control (squares 5-7) is critical. Knight on square 6 can fork multiple pieces. Rook pairs dominate open lines. King safety is paramount - avoid exposing your king to combined attacks.',
+    },
+    learningObjectives: [
+      'Master multi-piece coordination in 1D',
+      'Understand rook and knight synergy',
+      'Practice long-term strategic planning',
+      'Learn endgame transitions with multiple pieces',
+    ],
+    difficultyStars: 4,
+    icon: '📚',
+  },
+  'minimal-knights-duel': {
+    challenge: 'A quick tactical battle on a 6-square board. Each side has one king and one knight. Knights must maneuver carefully to attack the opposing king without leaving their own king exposed.',
+    solvabilityType: 'TACTICAL_PUZZLE',
+    hints: [
+      'Knights need a 2-square jump and cannot attack adjacent squares. Your knight at position 1 can jump to positions 3 or beyond.',
+      'Try to use your knight to control the center while keeping your king safe. Look for ways to check the enemy king while maintaining defense.',
+    ],
+    solution: 'This is a non-trivial tactical puzzle. With perfect play, one side may force a win through precise knight maneuvers. The key is to use your knight to restrict the enemy king\'s movement while advancing your own king into attacking position.\n\nKey Concepts: Knight coordination, king safety, tempo advantage.',
+    learningObjectives: [
+      'Understand knight movement in 1D (jumps ±2)',
+      'Practice king and knight coordination',
+      'Learn minimal material endgame technique',
+    ],
+    difficultyStars: 2,
+    icon: '🎯',
+  },
+  'classic-1d-chess': {
+    challenge: 'The classic one-dimensional chess variant described by Martin Gardner. Each side has a king, a knight, and a rook on an 8-square board. It has been proven that White has a forced win with optimal play.',
+    solvabilityType: 'FORCED_WIN_WHITE',
+    hints: [],
+    strategy: {
+      whitePlan: 'Use your rook to control long-range squares and your knight to create tactical threats. Coordinate both pieces to deliver checkmate. The rook should cut off escape squares while the knight delivers checks.',
+      blackPlan: 'Try to trade pieces to reach a drawn endgame (e.g., K+N vs K is a draw). Defend actively and look for stalemate opportunities if you can eliminate white\'s attacking pieces.',
+      keyPositions: 'Rook on central squares (positions 3-4) dominates the board. Knight forks between king and rook can win material. King must stay protected from combined rook+knight attacks.',
+    },
+    learningObjectives: [
+      'Master the classic 1D chess position',
+      'Practice rook and knight coordination',
+      'Understand forced win techniques',
+      'Learn piece trading strategies',
+    ],
+    difficultyStars: 3,
+    icon: '📚',
+  },
+  'multi-piece-battle': {
+    challenge: 'A complex 10-square battle introducing bishops to 1D chess. Bishops move every other square (staying on the same "color" parity), creating unique tactical opportunities. Both sides have king, rook, knight, and bishop.',
+    solvabilityType: 'COMPETITIVE',
+    hints: [],
+    strategy: {
+      whitePlan: 'Use your bishop to control one parity of squares (odd or even positions). Coordinate rook for long-range attacks and knight for tactical jumps. Create threats on both parities that black cannot defend simultaneously.',
+      blackPlan: 'Develop pieces to active squares quickly. Use your bishop to blockade white\'s bishop. Look for tactical opportunities with knight forks. Keep king centralized and protected.',
+      keyPositions: 'Bishops on opposite parities can never capture each other. Rook on position 5 (center) controls both sides. Knight can exploit weak squares the bishop cannot defend.',
+    },
+    learningObjectives: [
+      'Understand bishop movement in 1D (jumps ±2 on same parity)',
+      'Manage opposite-parity bishop positions',
+      'Coordinate multiple piece types',
+      'Practice complex tactical calculations',
+    ],
+    difficultyStars: 4,
+    icon: '👑',
+  },
+  'asymmetric-challenge': {
+    challenge: 'An unbalanced 7-square battle: White has two knights while Black has one rook. White\'s knights must work together to corner the black king or rook, while Black uses the rook\'s long range to pick off knights from a distance.',
+    solvabilityType: 'COMPETITIVE',
+    hints: [
+      'Two knights can create a fork pattern where one knight attacks the king while the other controls escape squares. Coordinate your knights to approach from different distances.',
+      'Black\'s rook can control an entire line if unobstructed. Try to keep both knights protected from long-range rook attacks while advancing.',
+    ],
+    solution: 'This is a balanced handicap match. White should coordinate both knights to create double threats, while Black must use the rook\'s range to maintain distance.\n\nWhite Strategy: Advance knights together (one at position N, one at N+2 or N-2) to create fork opportunities. Trap the rook or deliver checkmate through knight coordination.\n\nBlack Strategy: Keep rook active on open lines. Pick off exposed knights. Maintain king safety by keeping the rook between king and enemy knights.\n\nKey Concepts: Material imbalance, piece coordination, long-range vs short-range tactics.',
+    learningObjectives: [
+      'Handle material imbalance situations',
+      'Coordinate two knights effectively',
+      'Defend against multiple attackers with one piece',
+      'Understand positional compensation',
+    ],
+    difficultyStars: 3,
+    icon: '⚖️',
+  },
 };
 
 /**
@@ -297,8 +467,22 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
  * cell = 'x' (empty) or '[wb][krnbp]' (piece)
  * side = 'w' or 'b'
  */
-export function decode(code: string, variant: VariantType): Position {
-  const config = CONFIGS[variant];
+export function decode(code: string, variant: VariantType, boardLength?: number): Position {
+  // Determine config - use custom length for 1-D Chess modes if provided
+  let config: BoardConfig;
+  if (variant === 'thin' && boardLength && boardLength !== 12) {
+    config = {
+      variant: 'thin',
+      width: 1,
+      height: boardLength,
+      size: boardLength,
+      files: ['a'],
+      ranks: Array.from({ length: boardLength }, (_, i) => i + 1),
+    };
+  } else {
+    config = CONFIGS[variant];
+  }
+
   const [cellsRaw, turnRaw] = code.trim().split(':');
 
   let items: string[];
@@ -323,11 +507,11 @@ export function decode(code: string, variant: VariantType): Position {
 
   const turn: Side = (turnRaw || 'w').trim() === 'b' ? 'b' : 'w';
 
-  return { variant, board, turn };
+  return { variant, board, turn, boardLength };
 }
 
 export function encode(pos: Position): string {
-  const config = CONFIGS[pos.variant];
+  const config = getConfig(pos);
   const cells = pos.board.map(p => p === EMPTY ? 'x' : p);
 
   let cellsStr: string;
@@ -357,12 +541,12 @@ export function inBounds(i: number, config: BoardConfig): boolean {
 }
 
 export function sideOf(piece: Cell): Side | null {
-  if (piece === EMPTY) return null;
+  if (!piece || piece === EMPTY) return null;
   return piece[0] as Side;
 }
 
 export function typeOf(piece: Cell): PieceType | null {
-  if (piece === EMPTY) return null;
+  if (!piece || piece === EMPTY) return null;
   return piece[1] as PieceType;
 }
 
@@ -485,7 +669,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
  */
 export function legalMoves(pos: Position): Move[] {
   const { board, turn, variant } = pos;
-  const config = CONFIGS[variant];
+  const config = getConfig(pos);
   const moves: Move[] = [];
 
   for (let i = 0; i < config.size; i++) {
@@ -690,6 +874,7 @@ export function applyMove(pos: Position, m: Move): Position {
     variant: pos.variant,
     board: nb,
     turn: pos.turn === 'w' ? 'b' : 'w',
+    boardLength: pos.boardLength,
   };
 }
 
@@ -697,7 +882,7 @@ export function applyMove(pos: Position, m: Move): Position {
  * Check if current side is in check
  */
 export function isCheck(pos: Position): boolean {
-  const config = CONFIGS[pos.variant];
+  const config = getConfig(pos);
   const kIdx = findKing(pos.board, pos.turn, config);
   return attacked(pos.board, pos.turn, kIdx, config);
 }
