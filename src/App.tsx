@@ -260,8 +260,13 @@ function App() {
   // Undo
   const handleUndo = () => {
     if (hIndex > 0) {
-      setHIndex(hIndex - 1);
-      setPos(decode(history[hIndex - 1], pos.variant));
+      // In 1-player mode, undo 2 moves (player + AI) to get back to player's turn
+      // In 2-player mode, undo 1 move
+      const stepsBack = gameMode === '1player' ? Math.min(2, hIndex) : 1;
+      const newIndex = hIndex - stepsBack;
+
+      setHIndex(newIndex);
+      setPos(decode(history[newIndex], pos.variant));
       setSel(null);
       setTargets([]);
     }
@@ -270,8 +275,13 @@ function App() {
   // Redo
   const handleRedo = () => {
     if (hIndex < history.length - 1) {
-      setHIndex(hIndex + 1);
-      setPos(decode(history[hIndex + 1], pos.variant));
+      // In 1-player mode, redo 2 moves (player + AI) to maintain turn consistency
+      // In 2-player mode, redo 1 move
+      const stepsForward = gameMode === '1player' ? Math.min(2, history.length - 1 - hIndex) : 1;
+      const newIndex = hIndex + stepsForward;
+
+      setHIndex(newIndex);
+      setPos(decode(history[newIndex], pos.variant));
       setSel(null);
       setTargets([]);
     }

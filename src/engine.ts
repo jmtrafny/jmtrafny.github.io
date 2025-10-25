@@ -468,7 +468,25 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
  * side = 'w' or 'b'
  */
 export function decode(code: string, variant: VariantType, boardLength?: number): Position {
-  // Determine config - use custom length for 1-D Chess modes if provided
+  const [cellsRaw, turnRaw] = code.trim().split(':');
+
+  // Parse cells first to determine actual board length
+  let items: string[];
+  if (variant === 'thin') {
+    // Thin: flat comma-separated
+    items = cellsRaw.split(',').map(s => s.trim());
+  } else {
+    // Skinny: ranks separated by '/', cells by ','
+    const ranks = cellsRaw.split('/');
+    items = ranks.flatMap(rank => rank.split(',').map(s => s.trim()));
+  }
+
+  // Auto-detect board length for thin variant if not provided
+  if (variant === 'thin' && !boardLength) {
+    boardLength = items.length;
+  }
+
+  // Determine config - use custom length for 1-D Chess modes if needed
   let config: BoardConfig;
   if (variant === 'thin' && boardLength && boardLength !== 12) {
     config = {
@@ -481,18 +499,6 @@ export function decode(code: string, variant: VariantType, boardLength?: number)
     };
   } else {
     config = CONFIGS[variant];
-  }
-
-  const [cellsRaw, turnRaw] = code.trim().split(':');
-
-  let items: string[];
-  if (variant === 'thin') {
-    // Thin: flat comma-separated
-    items = cellsRaw.split(',').map(s => s.trim());
-  } else {
-    // Skinny: ranks separated by '/', cells by ','
-    const ranks = cellsRaw.split('/');
-    items = ranks.flatMap(rank => rank.split(',').map(s => s.trim()));
   }
 
   if (items.length !== config.size) {
