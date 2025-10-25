@@ -819,67 +819,98 @@ function App() {
         </div>
 
         <div className="board-wrap">
-          <div
-            className={`board board-${gameVariant}`}
-            style={
-              gameVariant === 'thin'
-                ? { gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)` }
-                : {
-                    gridTemplateColumns: `repeat(${getConfig(pos).width}, 64px)`,
-                    gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)`,
-                  }
-            }
-          >
-            {pos.board.map((cell, i) => {
-              const config = getConfig(pos);
-              const [rank, file] = indexToCoords(i, config);
-              const isLight = (rank + file) % 2 === 0;
+          {gameVariant === 'thin' ? (
+            // 1-D Chess: board with ranks to the right
+            <>
+              <div
+                className={`board board-${gameVariant}`}
+                style={{ gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)` }}
+              >
+                {pos.board.map((cell, i) => {
+                  const config = getConfig(pos);
+                  const [rank, file] = indexToCoords(i, config);
+                  const isLight = (rank + file) % 2 === 0;
 
-              return (
-                <div
-                  key={i}
-                  className={`sq ${isLight ? 'light' : 'dark'} ${sel === i ? 'selected' : ''} ${
-                    targets.includes(i) ? 'target' : ''
-                  } ${aiThinking ? 'disabled' : ''}`}
-                  onClick={() => handleSquareClick(i)}
-                >
-                  {cell !== EMPTY && (
-                    <img
-                      src={PIECE_IMAGES[cell as Piece]}
-                      alt={cell}
-                      className="piece"
-                      draggable={false}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="coords tiny">
-            {gameVariant === 'thin' ? (
-              // Thin: vertical rank numbers
-              Array.from({ length: getConfig(pos).height }, (_, i) => (
-                <div key={i} className="n">
-                  {i + 1}
-                </div>
-              ))
-            ) : (
-              // Skinny: both files and ranks (use actual config, not hardcoded)
-              <div className="coords-2d">
-                <div className="coords-files">
-                  {getConfig(pos).files.map(f => (
-                    <div key={f} className="n">{f}</div>
-                  ))}
-                </div>
-                <div className="coords-ranks">
-                  {getConfig(pos).ranks.map(r => (
-                    <div key={r} className="n">{r}</div>
-                  ))}
-                </div>
+                  return (
+                    <div
+                      key={i}
+                      className={`sq ${isLight ? 'light' : 'dark'} ${sel === i ? 'selected' : ''} ${
+                        targets.includes(i) ? 'target' : ''
+                      } ${aiThinking ? 'disabled' : ''}`}
+                      onClick={() => handleSquareClick(i)}
+                    >
+                      {cell !== EMPTY && (
+                        <img
+                          src={PIECE_IMAGES[cell as Piece]}
+                          alt={cell}
+                          className="piece"
+                          draggable={false}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+
+              <div className="coords tiny">
+                {Array.from({ length: getConfig(pos).height }, (_, i) => (
+                  <div key={i} className="n">
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            // Thin Chess: board with files below and ranks to the right
+            <div className="coords-2d">
+              <div
+                className={`board board-${gameVariant}`}
+                style={{
+                  gridColumn: '1',
+                  gridRow: '1',
+                  gridTemplateColumns: `repeat(${getConfig(pos).width}, 64px)`,
+                  gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)`,
+                }}
+              >
+                {pos.board.map((cell, i) => {
+                  const config = getConfig(pos);
+                  const [rank, file] = indexToCoords(i, config);
+                  const isLight = (rank + file) % 2 === 0;
+
+                  return (
+                    <div
+                      key={i}
+                      className={`sq ${isLight ? 'light' : 'dark'} ${sel === i ? 'selected' : ''} ${
+                        targets.includes(i) ? 'target' : ''
+                      } ${aiThinking ? 'disabled' : ''}`}
+                      onClick={() => handleSquareClick(i)}
+                    >
+                      {cell !== EMPTY && (
+                        <img
+                          src={PIECE_IMAGES[cell as Piece]}
+                          alt={cell}
+                          className="piece"
+                          draggable={false}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="coords-files">
+                {getConfig(pos).files.map(f => (
+                  <div key={f} className="n">{f}</div>
+                ))}
+              </div>
+
+              <div className="coords-ranks">
+                {getConfig(pos).ranks.map(r => (
+                  <div key={r} className="n">{r}</div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {gameOver && (

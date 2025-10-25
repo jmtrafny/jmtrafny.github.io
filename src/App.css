@@ -222,34 +222,46 @@ body {
   opacity: 0.8;
 }
 
-/* 2D coordinates for skinny */
+/* 2D coordinates for skinny - files below, ranks to the right */
 .coords-2d {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: auto 32px;
+  grid-template-rows: auto auto;
+  gap: 0;
 }
 
 .coords-files {
+  grid-column: 1;
+  grid-row: 2;
   display: flex;
   gap: 0;
+  justify-content: center;
+  margin-top: 4px;
 }
 
 .coords-files .n {
   width: 64px;
-  height: 32px;
+  height: 24px;
   font-size: 14px;
+  display: grid;
+  place-items: center;
 }
 
 .coords-ranks {
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   flex-direction: column-reverse;
   gap: 0;
+  margin-left: 4px;
 }
 
 .coords-ranks .n {
-  width: 32px;
+  width: 24px;
   height: 64px;
   font-size: 12px;
+  display: grid;
+  place-items: center;
 }
 
 .controls {
