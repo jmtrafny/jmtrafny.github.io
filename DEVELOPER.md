@@ -2,15 +2,16 @@
 
 ## Architecture Overview
 
-This project implements two chess variants in a single codebase using a multi-variant architecture:
+This project implements two chess variants in a single codebase using a **fully generalized multi-variant architecture**:
 
-- **1-D Chess (1×12)**: Single-file chess with perfect-play solver
-- **Thin Chess (2×10)**: 2-file chess with 5 curated challenges and progressive hints
+- **1-D Chess (1×N)**: Single-file chess with variable board lengths (6, 7, 8, 9, 12 squares). Perfect-play solver.
+- **Thin Chess (M×N)**: Multi-file narrow-board chess with variable dimensions (2×10, 3×8, etc.). Progressive hint system.
 
 **Key Design Principles:**
 - **Unified engine** with variant parameter for code reuse
-- **Position object** embeds variant type (`'thin'` | `'skinny'`)
-- **BoardConfig** system abstracts board dimensions
+- **Position object** embeds variant type (`'thin'` | `'skinny'`) + optional dimensions
+- **BoardConfig** system dynamically generates board dimensions
+- **Fully generalized** - supports any board size and piece combination
 - **Type-safe** TypeScript throughout
 
 **Internal vs User-Facing Names:**
@@ -37,8 +38,8 @@ The multi-variant game engine handling move generation, position encoding, and g
 
 ```typescript
 export type Side = 'w' | 'b';
-export type PieceType = 'k' | 'r' | 'n' | 'b' | 'p';
-export type Piece = `${Side}${PieceType}`;  // e.g., 'wk', 'br'
+export type PieceType = 'k' | 'r' | 'n' | 'b' | 'p' | 'q';  // Added queen support
+export type Piece = `${Side}${PieceType}`;  // e.g., 'wk', 'br', 'wq'
 export type Cell = Piece | '.';             // '.' = empty (internal)
 export type Board = Cell[];                 // Flat array of cells
 
@@ -46,17 +47,19 @@ export type VariantType = 'thin' | 'skinny';
 
 export interface BoardConfig {
   variant: VariantType;
-  width: number;     // 1 for thin, 2 for skinny
-  height: number;    // 12 for thin, 10 for skinny
+  width: number;     // 1 for thin, 2-N for skinny (dynamic)
+  height: number;    // 6-12 for thin, 8-10 for skinny (dynamic)
   size: number;      // total squares (width × height)
-  files: string[];   // ['a'] or ['a','b']
-  ranks: number[];   // [1..12] or [1..10]
+  files: string[];   // ['a'] or ['a','b','c',...] (auto-generated)
+  ranks: number[];   // [1..N] (auto-generated)
 }
 
 export interface Position {
   variant: VariantType;
   board: Board;
   turn: Side;
+  boardLength?: number;  // Optional: custom height (1-D: 6-12, Thin: 8-10)
+  boardWidth?: number;   // Optional: custom width (Thin Chess only: 2-5)
 }
 
 export interface Move {
@@ -455,43 +458,184 @@ if (piece === 'c') {  // camel
 ```
 
 
-### Adding a New Thin Chess Challenge Mode
+### Adding a New Game Mode (Step-by-Step Guide)
 
-1. **Design the position** - Create starting position string
+The engine supports any board dimensions and piece combinations. Here's how to add new modes:
 
-2. **Add to SKINNY_MODE_PACK** in `engine.ts`:
+#### **Step 1: Design Your Position**
+
+Choose your board dimensions and piece setup:
+- **1-D Chess**: Any length (e.g., 5, 6, 7, 8, 9, 10, 12)
+- **Thin Chess**: Any width × height (e.g., 2×10, 3×8, 4×6, 3×12)
+- **Pieces**: Any combination of k, r, n, b, p, q
+
+#### **Step 2: Create Position String**
+
+**1-D Chess (thin) format:**
+```typescript
+// Format: "cell,cell,cell,...:side"
+// Example: 6-square board
+'wk,wn,x,x,bn,bk:w'
+```
+
+**Thin Chess (skinny) format:**
+```typescript
+// Format: "c1,c2,c3/.../c1,c2,c3:side"  (ranks separated by /)
+// Example: 3×8 board
+'wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,x/bk,x,x:w'
+```
+
+#### **Step 3A: Add 1-D Chess Mode**
+
+Add to `THIN_MODE_PACK` in `src/engine.ts`:
+
 ```typescript
 {
-  id: 'my-new-challenge',
-  name: 'My Challenge',
-  description: 'Short description',
-  startPosition: 'x,bk/x,bb/.../wk,x:w',
-  rationale: 'Why this position is interesting',
-  difficulty: 'Tactical',
+  id: 'my-1d-mode',              // Unique identifier
+  name: 'My 1-D Mode',           // Display name
+  description: '10 squares - Description (7/10)',  // Short description + rating
+  startPosition: 'wk,wr,x,x,x,x,x,x,br,bk:w',     // Position string
+  boardLength: 10,               // Board size
+  rationale: 'Why this mode is fun and educational',
+  difficulty: 'Puzzle',          // Puzzle | Classic | Strategic | Asymmetric
 }
 ```
 
-3. **Add help content to MODE_HELP_CONTENT**:
+#### **Step 3B: Add Thin Chess Mode**
+
+Add to `SKINNY_MODE_PACK` in `src/engine.ts`:
+
 ```typescript
-'my-new-challenge': {
-  challenge: 'Explain the goal...',
-  solvabilityType: 'TACTICAL_PUZZLE',
-  hints: ['Subtle hint', 'Specific hint'],
-  solution: '1. Move notation\n2. Explanation...',
-  learningObjectives: ['What players learn'],
-  difficultyStars: 3,
-  icon: '🎯',
+{
+  id: 'my-thin-mode',            // Unique identifier
+  name: 'My Thin Mode',          // Display name
+  description: 'Description (8/10)',  // Short description + rating
+  startPosition: 'wk,x/wq,x/x,x/bk,x:w',  // Position string
+  rationale: 'Why this mode is fun and educational',
+  difficulty: 'Strategic',       // Baseline | Tactical | Strategic | Endgame | Puzzle
+  boardWidth: 2,                 // Optional: specify if not 2
+  boardLength: 4,                // Optional: specify if not 10
 }
 ```
 
-4. **Update THIN_CHESS_MODES.md** with full documentation
+#### **Step 4: Add Help Content**
 
-5. **Test the mode**:
-   - Click "Thin Chess Challenges"
-   - Select your mode
-   - Verify position loads correctly
-   - Test hint progression
-   - Verify solution is accurate
+Add to `MODE_HELP_CONTENT` in `src/engine.ts`:
+
+```typescript
+'my-mode-id': {
+  challenge: 'Full description of the challenge and goal.',
+  solvabilityType: 'TACTICAL_PUZZLE',  // or FORCED_WIN_WHITE, COMPETITIVE, DRAWISH
+  hints: [
+    'First subtle hint pointing player in right direction',
+    'More specific hint revealing key concept',
+  ],
+  solution: '1. Move notation - Explanation\n2. Next move - Why this works\n\nKey Concepts: List important tactics/strategies.',
+  strategy: {  // Optional: for competitive modes
+    whitePlan: 'Strategy guidance for White',
+    blackPlan: 'Strategy guidance for Black',
+    keyPositions: 'Important positions to understand',
+  },
+  learningObjectives: [
+    'What players learn from this mode',
+    'Specific tactics or concepts',
+    'Endgame or strategic principles',
+  ],
+  difficultyStars: 3,  // 1-5 stars
+  icon: '🎯',          // 🧩 Puzzle | ⚖️ Balanced | 📚 Educational | 🎯 Tactical | 👑 Strategic
+}
+```
+
+#### **Step 5: Test Your Mode**
+
+```bash
+npm run build        # Verify no TypeScript errors
+```
+
+**In the app:**
+1. Start the game
+2. Select your variant (1-D Chess or Thin Chess)
+3. Choose your mode from the mode picker
+4. Verify:
+   - ✅ Board renders with correct dimensions
+   - ✅ All pieces appear in correct positions
+   - ✅ Legal moves work correctly
+   - ✅ Help button shows your content
+   - ✅ Hints progress correctly (Hint 1 → Hint 2 → Solution)
+
+#### **Step 6: Document Your Mode**
+
+Add to `GAME_MODES.md`:
+- Mode name and dimensions
+- Starting position diagram
+- Challenge description
+- Strategic/tactical themes
+- Learning objectives
+
+---
+
+### Quick Reference: Common Board Sizes
+
+**1-D Chess (proven interesting):**
+- 6 squares: Minimal tactical puzzles
+- 7 squares: Asymmetric battles
+- 8 squares: Classic Martin Gardner setup
+- 9 squares: Power vs numbers imbalances
+- 12 squares: Full strategic battles
+
+**Thin Chess (proven interesting):**
+- 2×10: Standard, highly tactical
+- 3×8: Diagonal tactics with queen
+- 2×12: Extended endgames (untested)
+- 4×8: Wider tactical playground (untested)
+
+---
+
+### Example: Adding a 4×6 "Wide Chess" Mode
+
+```typescript
+// 1. Add to SKINNY_MODE_PACK
+{
+  id: 'wide-chess',
+  name: 'Wide Chess',
+  description: 'Four files - open tactics (8/10)',
+  startPosition: 'bk,br,bn,bb/x,x,x,x/x,x,x,x/x,x,x,x/x,x,x,x/wk,wr,wn,wb:w',
+  rationale: 'Four files create open board with more maneuvering room.',
+  difficulty: 'Baseline',
+  boardWidth: 4,
+  boardLength: 6,
+}
+
+// 2. Add help content
+'wide-chess': {
+  challenge: 'Standard opening on 4×6 board...',
+  solvabilityType: 'COMPETITIVE',
+  hints: [],
+  strategy: {
+    whitePlan: '...',
+    blackPlan: '...',
+    keyPositions: '...',
+  },
+  learningObjectives: ['...'],
+  difficultyStars: 3,
+  icon: '📚',
+}
+```
+
+---
+
+### Supported Pieces Reference
+
+| Piece | 1-D Movement | 2-D Movement | Notes |
+|-------|-------------|-------------|-------|
+| King (k) | ±1 | 8 directions | Cannot move into check |
+| Rook (r) | Slides ±1 direction | Orthogonal slides | Long-range power |
+| Knight (n) | Jumps ±2 | L-shape (2+1) | Can jump over pieces |
+| Bishop (b) | N/A* | Diagonal slides | Color-bound in 2-D |
+| Pawn (p) | N/A* | Forward + diagonal captures | Promotes on back rank |
+| Queen (q) | N/A* | Rook + Bishop | Most powerful piece |
+
+*Bishops, pawns, and queens are typically not used in 1-D Chess, but the engine supports them if needed.
 
 
 ### Changing Variant Names (User-Facing)
