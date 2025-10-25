@@ -7,6 +7,7 @@ import {
   legalMoves,
   applyMove,
   terminal,
+  detectRepetition,
   PIECE_IMAGES,
   EMPTY,
   sideOf,
@@ -49,6 +50,7 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [soundMuted, setSoundMuted] = useState(() => getMuted());
+  const [repetitionDetected, setRepetitionDetected] = useState(false);
 
   // Initialize audio on mount
   useEffect(() => {
@@ -129,6 +131,13 @@ function App() {
       makeAIMove(pos);
     }
   }, [gameMode, playerSide, pos.turn, aiThinking, gameOver]);
+
+  // Detect position repetition
+  useEffect(() => {
+    const currentEncoded = encode(pos);
+    const count = detectRepetition(history, currentEncoded);
+    setRepetitionDetected(count >= 2); // Twofold repetition (position appeared 2+ times)
+  }, [pos, history]);
 
   // Capture PWA install prompt
   useEffect(() => {
@@ -275,6 +284,30 @@ function App() {
     setSoundMuted(newMuted);
   };
 
+  // Handle peace treaty button (resign or claim draw)
+  const handlePeaceTreaty = () => {
+    if (repetitionDetected) {
+      // Claim draw by repetition
+      setGameOver(true);
+      setGameResult('Draw by Repetition');
+      playDraw();
+    } else {
+      // Resignation
+      if (window.confirm('Are you sure you want to resign?')) {
+        setGameOver(true);
+        if (gameMode === '1player') {
+          setGameResult('You resigned - AI wins');
+          playDefeat();
+        } else {
+          // 2-player mode
+          const resigner = pos.turn === 'w' ? 'White' : 'Black';
+          const winner = pos.turn === 'w' ? 'Black' : 'White';
+          setGameResult(`${resigner} resigned - ${winner} wins`);
+          playDefeat();
+        }
+      }
+    }
+  };
 
   // Load position from code
   const handleLoad = () => {
@@ -354,7 +387,12 @@ function App() {
 
       <div className="panel">
         <div className="header">
-          <h1 className="title">♟️ Thin Chess</h1>
+          <h1 className="title">
+            <span className="title-icon title-icon-white">
+              <img src="/white-pawn.svg" alt="" />
+            </span>
+            Thin Chess
+          </h1>
           <div className="header-buttons">
             <button className="icon-btn" onClick={handleToggleSound} title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}>
               {soundMuted ? '🔇' : '🔊'}
@@ -411,6 +449,15 @@ function App() {
           </button>
           <button onClick={handleRedo} disabled={hIndex >= history.length - 1 || aiThinking || gameOver}>
             Redo
+          </button>
+          <button
+            className={`peace-btn ${repetitionDetected ? 'active' : ''}`}
+            onClick={handlePeaceTreaty}
+            disabled={aiThinking || gameOver}
+            title={repetitionDetected ? 'Position repeated - claim draw by repetition' : 'Resign this game (you lose)'}
+          >
+            <span className="peace-icon">{repetitionDetected ? '⚖️' : '🏳️'}</span>
+            {repetitionDetected ? 'Draw' : 'Resign'}
           </button>
         </div>
 

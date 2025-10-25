@@ -246,3 +246,12 @@ export function terminal(pos: Position): string | null {
 
   return 'STALEMATE';
 }
+
+/**
+ * Detect position repetition in history
+ * Returns the count of how many times currentPos appears in history
+ * Count >= 2 means twofold repetition (position repeated)
+ */
+export function detectRepetition(history: string[], currentPos: string): number {
+  return history.filter(pos => pos === currentPos).length;
+}

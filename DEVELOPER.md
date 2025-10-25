@@ -65,6 +65,14 @@ interface Move {
 }
 ```
 
+**Key Functions:**
+- `legalMoves(pos)` - Generate all legal moves for current position
+- `applyMove(pos, move)` - Apply a move and return new position
+- `terminal(pos)` - Check if position is terminal (checkmate/stalemate)
+- `detectRepetition(history, currentPos)` - Count position occurrences in history
+- `attacked(board, side, idx)` - Check if square is attacked by opponent
+- `isCheck(pos)` - Check if current side is in check
+
 **Position Encoding:**
 ```
 Format: "cell,cell,...,cell:side"
@@ -163,6 +171,7 @@ gameOver: boolean        // Game ended flag
 gameResult: string       // Game over message
 soundMuted: boolean      // Sound mute state
 showInstallButton: boolean // PWA install button visibility
+repetitionDetected: boolean // Position repetition detected (twofold)
 ```
 
 ---
@@ -357,6 +366,37 @@ npm run preview      # Preview production build
 **Settings Required**:
 - GitHub Pages: Source = "GitHub Actions"
 - No `gh-pages` branch needed
+
+---
+
+## Game Features
+
+### Draw by Repetition
+
+**Detection**: The game automatically detects when a position has repeated (twofold repetition):
+- Uses `detectRepetition(history, currentPos)` to count occurrences
+- Triggers when position appears 2+ times in game history
+- Updates `repetitionDetected` state via `useEffect` on every position change
+
+**UI Indicator**: "Peace Treaty" button in controls:
+- **Normal state**: Shows 🏳️ icon, "Resign" label (gray/muted styling)
+- **Active state**: Shows ⚖️ icon, "Claim Draw" label (cyan glow + pulse animation)
+- **Tooltip**: Explains current action ("Position repeated - claim draw" vs "Resign this game")
+
+**Button Behavior**:
+- When repetition detected → Ends game as "Draw by Repetition", plays draw sound
+- When no repetition → Shows confirmation dialog, ends game as resignation, plays defeat sound
+- Disabled during AI thinking or when game is already over
+
+**Styling**: Located in `App.css` under `.peace-btn` class with `.active` modifier for repetition state
+
+### Resignation
+
+Players can resign at any time using the "Peace Treaty" button:
+- **1-player mode**: "You resigned - AI wins"
+- **2-player mode**: "[Color] resigned - [Winner] wins"
+- Requires confirmation dialog to prevent accidental clicks
+- Plays defeat sound effect on confirmation
 
 ---
 

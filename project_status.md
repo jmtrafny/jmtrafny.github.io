@@ -19,6 +19,8 @@ Thin Chess is a minimalist 1×12 chess variant presented on a single column of s
 - ✅ Two game modes: 1-player (vs AI) and 2-player (local)
 - ✅ Perfect-play AI using tri-valued negamax solver with transposition table
 - ✅ Automatic game over detection (stalemate/checkmate) with visual banner
+- ✅ Draw by repetition detection and claim button
+- ✅ Resignation option with confirmation dialog
 - ✅ Sound effects for moves, captures, and game outcomes
 - ✅ Mute toggle with localStorage persistence
 - ✅ Undo/Redo with full history management
@@ -35,6 +37,7 @@ Thin Chess is a minimalist 1×12 chess variant presented on a single column of s
 - Header: Title (left) + Sound toggle + Install button (right, conditional)
 - Central board with coordinate numbers (1-12) aligned to squares
 - Controls: New Game, Undo, Redo (3-column grid)
+- Peace Treaty button: Dual-purpose resign/draw claim with dynamic styling
 - Position Editor in collapsible details section
 - Modal dialogs for game mode selection and color picker
 - Game-over banner with animation when game ends
@@ -110,7 +113,8 @@ Thin Chess is a minimalist 1×12 chess variant presented on a single column of s
 - **Pieces**: `k`, `r`, `n` with side `w`/`b`
 - **Moves**: `k` moves ±1; `n` jumps ±2 (leaper; color-bound); `r` slides any distance ±1 direction. All captures by displacement. Rooks cannot jump over pieces. Knights ignore intervening squares. Kings may not move into check.
 - **Game end**: no legal moves → if in check = **checkmate** (win for opponent); else **stalemate** (draw)
-- **Repetition**: any cycle discovered by the solver is scored **draw**
+- **Repetition**: twofold repetition (position appears 2+ times) can be claimed as **draw** via UI button
+- **Resignation**: players can resign at any time with confirmation dialog
 
 ## 5) Position Encoding
 - 12 comma-separated tokens, top→bottom. Token set: `x` for empty; otherwise `[wb][krn]`
@@ -209,6 +213,7 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - **No undo during AI turn:** Buttons disabled while AI is thinking
 - **No move animation:** Instant position updates (future enhancement)
 - **Sound effects:** Require manual download from Pixabay/Freesound (not included in repo)
+- **Repetition detection:** Requires manual claim (no automatic draw after threefold repetition)
 
 ## 8) Goals Achieved
 

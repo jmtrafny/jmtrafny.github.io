@@ -65,6 +65,33 @@ body {
   font-size: clamp(24px, 3vw, 32px);
   letter-spacing: 0.2px;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.title-icon-unicode {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.title-icon-white {
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(248deg) brightness(105%) contrast(92%);
 }
 
 .header-buttons {
@@ -189,7 +216,7 @@ body {
 .controls {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .controls button,
@@ -406,5 +433,47 @@ details summary {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Peace Treaty Button (Resign / Draw Claim) */
+.peace-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.peace-icon {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+/* Active state (repetition detected) */
+.peace-btn.active {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.15), rgba(34, 211, 238, 0.05));
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+  animation: peacePulse 2s ease-in-out infinite;
+}
+
+.peace-btn.active:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(34, 211, 238, 0.1));
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.6);
+}
+
+.peace-btn.active .peace-icon {
+  transform: scale(1.05);
+}
+
+@keyframes peacePulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 18px rgba(34, 211, 238, 0.6);
   }
 }
