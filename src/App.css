@@ -477,6 +477,36 @@ details summary {
   margin: 16px 0;
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.4);
   animation: slideDown 0.3s ease;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.game-over-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(34, 211, 238, 0.6);
+  background: linear-gradient(135deg, #17a2b8, #0d9488);
+}
+
+.game-over-banner:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(34, 211, 238, 0.4);
+}
+
+.restart-icon {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) saturate(100%) invert(8%) sepia(10%) saturate(1500%) hue-rotate(169deg) brightness(95%) contrast(93%);
+  transition: transform 0.2s ease;
+}
+
+.game-over-banner:hover .restart-icon {
+  transform: rotate(-180deg);
 }
 
 @keyframes slideDown {

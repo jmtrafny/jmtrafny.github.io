@@ -310,6 +310,33 @@ function App() {
     }
   };
 
+  // Restart current game with same settings
+  const handleRestartGame = () => {
+    let startPos: Position;
+    if (selectedThinMode) {
+      startPos = decode(selectedThinMode.startPosition, 'thin', selectedThinMode.boardLength);
+    } else if (selectedSkinnyMode) {
+      startPos = decode(selectedSkinnyMode.startPosition, 'skinny', selectedSkinnyMode.boardLength, selectedSkinnyMode.boardWidth);
+    } else if (selectedPuzzleMode) {
+      const is2D = 'boardWidth' in selectedPuzzleMode && selectedPuzzleMode.boardWidth !== undefined;
+      startPos = is2D
+        ? decode(selectedPuzzleMode.startPosition, 'skinny', selectedPuzzleMode.boardLength, selectedPuzzleMode.boardWidth)
+        : decode(selectedPuzzleMode.startPosition, 'thin', selectedPuzzleMode.boardLength);
+    } else {
+      startPos = decode(START_POSITIONS[gameVariant], gameVariant);
+    }
+
+    setPos(startPos);
+    setHistory([encode(startPos)]);
+    setHIndex(0);
+    setSel(null);
+    setTargets([]);
+    setGameOver(false);
+    setGameResult('');
+    setMoveLog([]);
+    clearTT();
+  };
+
   // New Game - return to variant picker to allow changing variant/mode
   const handleNewGame = () => {
     setShowVariantPicker(true);
@@ -912,7 +939,7 @@ function App() {
         <div className="header">
           <h1 className="title">
             <span className="title-icon title-icon-white">
-              <img src="/white-pawn.svg" alt="" />
+              <img src="/svg/white-pawn.svg" alt="" />
             </span>
             {selectedThinMode ? `${selectedThinMode.name}` : selectedSkinnyMode ? `${selectedSkinnyMode.name}` : selectedPuzzleMode ? `${selectedPuzzleMode.name}` : gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
             {selectedThinMode && <span className="mode-badge">{selectedThinMode.difficulty}</span>}
@@ -927,7 +954,7 @@ function App() {
               className="icon-btn"
               title="Watch on YouTube"
             >
-              <img src="/youtube.svg" alt="YouTube" style={{ width: '24px', height: '24px' }} />
+              <img src="/svg/youtube.svg" alt="YouTube" style={{ width: '24px', height: '24px' }} />
             </a>
             <button className="icon-btn" onClick={handleToggleSound} title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}>
               {soundMuted ? '🔇' : '🔊'}
@@ -1063,9 +1090,10 @@ function App() {
         </div>
 
         {gameOver && (
-          <div className="game-over-banner">
+          <button className="game-over-banner" onClick={handleRestartGame}>
             {gameResult}
-          </div>
+            <img src="/svg/restart.svg" alt="Restart" className="restart-icon" />
+          </button>
         )}
 
         <div className="controls row">
