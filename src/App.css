@@ -678,6 +678,7 @@ details summary {
 /* Mode card wrapper with help button */
 .mode-card-wrapper {
   position: relative;
+  padding-right: 20px;
 }
 
 .mode-header {
@@ -712,8 +713,9 @@ details summary {
 
 .help-icon-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 50%;
+  right: -14px;
+  transform: translateY(-50%);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -723,7 +725,7 @@ details summary {
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: transform 0.2s, background 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -732,7 +734,7 @@ details summary {
 
 .help-icon-btn:hover {
   background: #7dd3fc;
-  transform: scale(1.1);
+  transform: translateY(-50%) scale(1.1);
 }
 
 /* Help Modal */
