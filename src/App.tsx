@@ -45,12 +45,16 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 function App() {
+  // Default to Original 1-D Chess mode
+  const defaultMode = THIN_MODE_PACK[0]; // Original 1-D Chess
+  const defaultPosition = decode(defaultMode.startPosition, 'thin', defaultMode.boardLength);
+
   // Variant selection
   const [gameVariant, setGameVariant] = useState<VariantType>('thin'); // Start with thin
-  const [showVariantPicker, setShowVariantPicker] = useState(true); // Show on startup
+  const [showVariantPicker, setShowVariantPicker] = useState(false); // Don't show on startup
   const [showThinModePicker, setShowThinModePicker] = useState(false); // Show 1-D Chess mode selector
   const [showSkinnyModePicker, setShowSkinnyModePicker] = useState(false); // Show Thin Chess challenges selector
-  const [selectedThinMode, setSelectedThinMode] = useState<ThinMode | null>(null); // Currently selected 1-D Chess mode
+  const [selectedThinMode, setSelectedThinMode] = useState<ThinMode | null>(defaultMode); // Start with Original 1-D Chess
   const [selectedSkinnyMode, setSelectedSkinnyMode] = useState<SkinnyMode | null>(null); // Currently selected Thin Chess mode
 
   // Help modal state
@@ -61,13 +65,13 @@ function App() {
   // Resignation confirmation modal
   const [showResignConfirm, setShowResignConfirm] = useState(false);
 
-  const [pos, setPos] = useState<Position>(() => decode(START_POSITIONS.thin, 'thin'));
-  const [history, setHistory] = useState<string[]>([encode(decode(START_POSITIONS.thin, 'thin'))]);
+  const [pos, setPos] = useState<Position>(() => defaultPosition);
+  const [history, setHistory] = useState<string[]>([encode(defaultPosition)]);
   const [hIndex, setHIndex] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
   const [targets, setTargets] = useState<number[]>([]);
-  const [gameMode, setGameMode] = useState<GameMode | null>(null); // No mode until variant selected
-  const [playerSide, setPlayerSide] = useState<Side | null>(null);
+  const [gameMode, setGameMode] = useState<GameMode | null>('1player'); // Start with 1-player mode
+  const [playerSide, setPlayerSide] = useState<Side | null>('w'); // Player plays as white
   const [showModal, setShowModal] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
@@ -872,7 +876,7 @@ function App() {
             <>
               <div
                 className={`board board-${gameVariant}`}
-                style={{ gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)` }}
+                style={{ gridTemplateRows: `repeat(${getConfig(pos).height}, var(--square-size))` }}
               >
                 {pos.board.map((cell, i) => {
                   const config = getConfig(pos);
@@ -916,8 +920,8 @@ function App() {
                 style={{
                   gridColumn: '1',
                   gridRow: '1',
-                  gridTemplateColumns: `repeat(${getConfig(pos).width}, 64px)`,
-                  gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)`,
+                  gridTemplateColumns: `repeat(${getConfig(pos).width}, var(--square-size))`,
+                  gridTemplateRows: `repeat(${getConfig(pos).height}, var(--square-size))`,
                 }}
               >
                 {pos.board.map((cell, i) => {
