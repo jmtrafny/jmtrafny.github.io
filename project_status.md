@@ -1,19 +1,22 @@
 # 1-D Chess & Thin Chess — Project Status
 
 **Status: ✅ PRODUCTION READY**
-_Last updated: 2025-10-24_
+_Last updated: 2025-10-25_
 
 ## 1) Overview
-This project features two minimalist chess variants:
-- **1-D Chess (1×N)**: Single-file chess variant with variable board lengths (6, 7, 8, 9, 12 squares). Features Kings, Rooks, and Knights. Includes perfect-play solver.
-- **Thin Chess (M×N)**: Multi-file narrow-board variant with variable dimensions (2×10, 3×8). Features all standard pieces including Queens (K, R, N, B, P, Q). Includes 6 curated tactical challenges.
+This project features two minimalist chess variants with **12 curated game modes** organized into 3 categories:
+- **1-D Chess (1×N)**: Single-file chess variant with perfect-play solver
+- **Thin Chess (M×N)**: Multi-file narrow-board variant
+- **Mini-Board Puzzles**: Tactical & endgame challenges
+
+All game modes are **configuration-driven** via `public/game-modes.json` - no code changes needed to add/modify modes.
 
 Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtrafny.github.io](https://jmtrafny.github.io)).
 
 ## 2) Current Implementation
 
 **Stack:**
-- **React 19** + **TypeScript** + **Vite 7** (~1400 total LOC)
+- **React 19** + **TypeScript** + **Vite 7** (~1500 total LOC)
 - **Vanilla CSS** with CSS custom properties (dark theme with gradient background)
 - **GitHub Pages** deployment via GitHub Actions
 - **PWA** with service worker and manifest.json
@@ -22,55 +25,53 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 
 ### Core Game Engine
 - ✅ Interactive boards for both variants with legal move highlighting
-- ✅ Variant selector on startup (1-D Chess, Thin Chess, Thin Chess Challenges)
+- ✅ JSON-based game mode configuration (no hardcoded modes in code)
 - ✅ Two game modes: 1-player (vs AI) and 2-player (local)
 - ✅ Automatic game over detection (stalemate/checkmate) with visual banner
 - ✅ Draw by repetition detection and claim button
 - ✅ Resignation option with confirmation dialog
-- ✅ Undo/Redo with full history management
+- ✅ Undo/Redo with full history management (2-step in 1-player mode)
 - ✅ Position editor with load/copy functionality
 - ✅ Responsive design optimized for mobile and desktop
 
+### Configuration System
+- ✅ **JSON-driven architecture**: All game modes defined in `public/game-modes.json`
+- ✅ **Runtime validation**: Configuration validated on load with helpful error messages
+- ✅ **Hot-reloadable**: Changes to JSON immediately reflected in UI
+- ✅ **Type-safe**: Full TypeScript interfaces for configuration
+- ✅ **Version tracking**: Configuration file includes semantic version
+- ✅ **Category system**: Modes organized into categories with icons and descriptions
+- ✅ **No code changes needed**: Add modes by editing JSON only
+
 ### 1-D Chess Specific
-- ✅ Variable board lengths (6, 7, 8, 9, 12 squares)
+- ✅ Variable board lengths (6-12 squares supported)
 - ✅ Perfect-play AI using tri-valued negamax solver with transposition table
 - ✅ Instant position evaluation (WIN/LOSS/DRAW with depth)
 - ✅ Cached solver results for repeated positions
-- ✅ **5 Curated Challenge Modes**:
-  1. **📚 Original 1-D Chess** (⭐⭐⭐⭐ Classic) - 12 squares, full setup
-  2. **🎯 Minimal Knights Duel** (⭐⭐ Puzzle) - 6 squares (7/10)
-  3. **📚 Classic 1D Chess** (⭐⭐⭐ Classic) - 8 squares, Martin Gardner (8/10)
-  4. **⚖️ Rook vs Rook & Knight** (⭐⭐⭐ Asymmetric) - 9 squares (7/10)
-  5. **⚖️ Two Knights vs Rook** (⭐⭐⭐ Asymmetric) - 7 squares (8/10)
+- ✅ Pieces: Kings, Rooks, Knights (Q, B, P technically supported but untested)
 
 ### Thin Chess Specific
 - ✅ Full 2D chess movement (King, Rook, Knight, Bishop, Pawn, Queen)
-- ✅ Variable board dimensions (2×10, 3×8 supported)
+- ✅ Variable board dimensions (2×6 to 3×8 tested)
 - ✅ Pawn promotion to any piece
 - ✅ Diagonal queen movement on wider boards
 - ✅ Random-move AI (game tree too large for perfect solver)
-- ✅ **6 Curated Challenges** with progressive hint system:
-  1. **🧩 Top-Rank Guillotine** (⭐ Beginner) - K+R vs K mate puzzle (6/10)
-  2. **📚 Mirror Towers** (⭐⭐⭐ Advanced) - Standard opening (9/10)
-  3. **🎯 Pawn Corridors** (⭐⭐⭐ Intermediate) - Promotion race (7/10)
-  4. **👑 Bishop Duel** (⭐⭐⭐⭐ Advanced) - Opposite-color bishops (8/10)
-  5. **🧩 Flip-Fork** (⭐⭐⭐ Intermediate) - Knight fork tactics (8/10)
-  6. **⚖️ Three-File Showdown** (⭐⭐⭐⭐ Advanced) - Queen vs R+N on 3×8 (8/10)
 
-### Challenge Mode Features
-- ✅ Mode cards with type icons (🧩 Puzzle, 📚 Baseline, 🎯 Tactical, 👑 Endgame)
-- ✅ Difficulty stars (⭐ 1-5 scale)
-- ✅ "?" help button on each mode card
-- ✅ Progressive hint system (Hint 1 → Hint 2 → Full Solution)
-- ✅ Strategic guidance for competitive modes
-- ✅ Learning objectives for each challenge
-- ✅ Solvability indicators (Forced Win, Tactical Puzzle, Competitive, Drawish)
+### Game Mode System
+- ✅ **Category-based organization**: Modes grouped by type (1-D Chess, Thin Chess, Puzzles)
+- ✅ **Rich metadata**: Each mode includes icon, difficulty, stars, description
+- ✅ **Progressive hint system**: 3-level hints (Hint 1 → Hint 2 → Solution)
+- ✅ **Strategic guidance**: Competitive modes include white/black plans
+- ✅ **Learning objectives**: Educational goals for each mode
+- ✅ **Solvability indicators**: FORCED_WIN_WHITE, COMPETITIVE, TACTICAL_PUZZLE, DRAWISH
+- ✅ **Difficulty ratings**: 1-5 star system
+- ✅ **Type badges**: Visual indicators (Beginner, Intermediate, Advanced)
 
 ### Audio & Visual
 - ✅ Sound effects for moves, captures, and game outcomes
 - ✅ Mute toggle with localStorage persistence
-- ✅ SVG chess pieces (10 high-quality graphics with transparent backgrounds)
-- ✅ Alternating checkerboard pattern for 2×10 board
+- ✅ SVG chess pieces (12 high-quality graphics with transparent backgrounds)
+- ✅ Alternating checkerboard pattern for multi-file boards
 - ✅ Coordinate labels for both variants
 
 ### PWA & Deployment
@@ -81,178 +82,250 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 - ✅ Service worker with network-first strategy
 
 **UI Design:**
-- Minimalist single-panel layout (no sidebar, no clutter)
-- Header: Dynamic title showing variant/mode + Sound toggle + Install button (conditional)
-- Central board with coordinate labels (1-12 for 1-D, a-b/1-10 for Thin)
-- Controls: New Game, Undo, Redo (3-column grid)
-- Peace Treaty button: Dual-purpose resign/draw claim with dynamic styling
-- Position Editor in collapsible details section
-- Modal dialogs for variant selection, mode pack, game mode, and help
-- Game-over banner with animation when game ends
-- Help modal with progressive hint reveal system
+- **Two-row header**:
+  - Row 1: Game mode title (centered)
+  - Row 2: Difficulty badge, YouTube link, sound toggle, install button (evenly spaced)
+- **Central board** with coordinate labels
+- **Move log sidebar** showing algebraic notation
+- **Two-row controls**:
+  - Row 1: New Game, Resign/Draw
+  - Row 2: Undo, Redo
+- **Position Editor** in collapsible details section
+- **Modal dialogs** for category selection, mode selection, and help
+- **Game-over banner** with restart option
+- **Help modal** with progressive hint reveal system
+- **Help icons** positioned on right side of mode cards (vertically centered)
 
 **Default State:**
-- Game starts with variant selection modal
-- Three options: 1-D Chess, Thin Chess, Thin Chess Challenges
-- After variant selected, choose 1-player or 2-player mode
-- 1-player mode prompts for color selection
+- Game starts with 1-D Chess: Full Set, player as white
+- Configuration loaded from JSON on startup
+- First load defaults to user-friendly initial game
 
 ## 3) Architecture Decisions
 
+### Configuration-Driven Design
+**Decision:** Move all game mode definitions from TypeScript arrays to JSON configuration file.
+
+**Benefits:**
+- ✅ No code changes needed to add/modify modes
+- ✅ Non-developers can contribute modes
+- ✅ Easier to maintain and version
+- ✅ Configuration can be validated at runtime
+- ✅ UI automatically adapts to configuration changes
+
+**Implementation:**
+- `public/game-modes.json` contains all mode definitions
+- `src/config/loader.ts` loads and caches configuration
+- `src/config/validator.ts` validates structure at runtime
+- `src/hooks/useGameModes.ts` provides React hook for accessing modes
+- UI components read from configuration, not hardcoded arrays
+
+### Game Modes Configuration Schema
+
+**File Structure:**
+```json
+{
+  "version": "2.0.0",
+  "categories": [
+    {
+      "id": "category-id",
+      "name": "Display Name",
+      "description": "Category description",
+      "variant": "thin" | "skinny" | "mixed",
+      "icon": "🎮"
+    }
+  ],
+  "modes": [
+    {
+      "id": "MODE_ID",
+      "categoryId": "category-id",
+      "name": "Mode Name",
+      "description": "Short description",
+      "variant": "thin" | "skinny",
+      "boardWidth": 1-3,
+      "boardHeight": 6-12,
+      "startPosition": "encoded-position",
+      "difficulty": "Beginner" | "Intermediate" | "Advanced",
+      "difficultyStars": 1-5,
+      "icon": "🎯",
+      "help": {
+        "challenge": "Full description",
+        "solvabilityType": "FORCED_WIN_WHITE" | "COMPETITIVE" | "TACTICAL_PUZZLE" | "DRAWISH",
+        "hints": ["hint1", "hint2"],
+        "solution": "solution text or null",
+        "strategy": {
+          "whitePlan": "Strategy for white",
+          "blackPlan": "Strategy for black",
+          "keyPositions": "Key positions to understand"
+        } | null,
+        "learningObjectives": ["objective1", "objective2"]
+      }
+    }
+  ]
+}
+```
+
+**Validation Rules:**
+- Version must be semantic version string
+- All category IDs must be unique
+- All mode IDs must be unique
+- Mode categoryId must reference existing category
+- Board dimensions must match variant type
+- Position string must have correct number of squares
+- Difficulty must be valid enum value
+- Stars must be 1-5
+- Help content must include required fields
+
 ### Multi-Variant System
 **Decision:** Unified engine with variant parameter (`'thin'` | `'skinny'`) supporting different board sizes.
+
 **Rationale:** Code reuse for common logic (check detection, move application) while allowing variant-specific movement generation.
 
 **Internal Naming (Code):**
-- `'thin'` = 1-D Chess (1×12)
-- `'skinny'` = Thin Chess (2×10)
+- `'thin'` = 1-D Chess (1×N boards)
+- `'skinny'` = Thin Chess (M×N boards)
 
 **User-Facing Naming:**
-- "1-D Chess" = 1-D Chess (1×12)
-- "Thin Chess" = Thin Chess (2×10)
-- "Thin Chess Challenges" = Curated mode pack
+- "1-D Chess" = Single-file chess
+- "Thin Chess" = Multi-file narrow chess
+- "Mini-Board Puzzles" = Tactical challenges
 
 **Implementation:**
-- `BoardConfig` interface defines dimensions for each variant
-- `CONFIGS` object maps variant types to configurations
+- `BoardConfig` interface defines dimensions for each mode
+- `getConfig()` function extracts config from position metadata
 - All engine functions accept `Position` with embedded variant field
 - Position encoding/decoding handles both formats (comma-separated vs rank-separated)
 
 ### Thin Chess AI Strategy
-**Problem:** Thin Chess (2×10) has exponentially larger game tree than 1-D Chess (1×12).
+**Problem:** Thin Chess (2×N) has exponentially larger game tree than 1-D Chess (1×N).
+
 **Solution:** Random move selection for Thin Chess instead of perfect solver.
+
 **Rationale:**
 - Branching factor ~11 moves average in Thin Chess vs ~5 in 1-D Chess
 - Depth-20 search hits max depth 47,549 times, freezing browser
 - Random AI provides playable opponent for casual games and mode challenges
 
-### Challenge Mode System
-**Decision:** Built-in help system with progressive hints instead of external documentation.
-**Rationale:**
-- Prevents frustration (users can get help without leaving the app)
-- Progressive disclosure (hints before full solution)
-- Educational value (learning objectives explain concepts)
-- Better UX than forcing users to search for solutions
+### Game Over Detection
+**Decision:** Check for terminal state only when valid game mode is loaded.
 
-**Data Structure:**
-```typescript
-interface ModeHelp {
-  challenge: string;
-  solvabilityType: 'FORCED_WIN_WHITE' | 'TACTICAL_PUZZLE' | 'COMPETITIVE' | 'DRAWISH';
-  hints: string[];
-  solution?: string;
-  strategy?: { whitePlan, blackPlan, keyPositions };
-  learningObjectives: string[];
-  difficultyStars: 1 | 2 | 3 | 4 | 5;
-  icon: '🧩' | '⚖️' | '📚' | '🎯' | '👑';
-}
-```
+**Critical Fix:** Added `!state.currentMode` check to prevent false stalemate detection on initial dummy position (1×1 empty board created before config loads).
 
-### UI Simplification
-**Decision:** Removed right instruction panel, solver display (for Thin Chess), side-to-move indicator.
-**Rationale:** Keep experience clean and game-focused. Users learn by playing. Board state is self-explanatory.
+**Prevents:** Draw sound playing on startup, incorrect game state on initial render.
 
-### Game Flow
-1. **Startup** → Variant selection modal (1-D Chess / Thin Chess / Thin Chess Challenges)
-2. **Mode Pack** (optional) → Grid of 5 challenge cards with help buttons
-3. **Game Mode** → 1-player or 2-player selection
-4. **1-player Mode** → Color picker modal (white / black)
-5. **Gameplay** → Click piece to select, click target to move
-6. **Game Over** → Banner displays result, board/buttons disabled
+### Sound Effect Management
+**Decision:** Use refs to track last game result and prevent duplicate sound playback.
+
+**Implementation:**
+- `lastGameResultRef` stores previous result
+- Ref is reset when new game starts (`!gameState.gameOver`)
+- Prevents sound from playing multiple times for same result
+- Prevents sound on initial load when transitioning from null → actual game
 
 ### Service Worker Strategy
 **Problem:** Initial cache-first strategy caused stale cache issues (white screen on updates).
-**Solution:** **Network First** for HTML/JS/CSS/JSON (always fetch fresh, cache as fallback) and **Cache First** for static assets (SVG, images).
-**Cache versions:** `thin-chess-v2` and `thin-chess-static-v2` (bumped from v1 to force invalidation).
-**Dev mode:** Service worker disabled in development (`import.meta.env.PROD` check in main.tsx).
 
-### GitHub Pages Deployment
-**Site Type:** User GitHub Pages (username.github.io)
-**Custom Domain:** thinchess.com (configured via CNAME file in public/)
-**Base Path:** `'/'` (root, not `/jmtrafny.github.io/`)
-**Why:** User/org pages are served at root domain, not in subdirectories like project pages.
-**CI/CD:** GitHub Actions workflow builds on push to main, deploys via `actions/deploy-pages@v4`.
-**DNS Configuration:**
-- 4× A records pointing to GitHub Pages IPs (185.199.108-111.153)
-- CNAME record for www subdomain → jmtrafny.github.io
-- HTTPS automatically provisioned via Let's Encrypt
+**Solution:** **Network First** for HTML/JS/CSS/JSON (always fetch fresh, cache as fallback) and **Cache First** for static assets (SVG, images).
+
+**Cache versions:** `thin-chess-v2` and `thin-chess-static-v2`
+
+**Dev mode:** Service worker disabled in development (`import.meta.env.PROD` check in main.tsx).
 
 ### State Management
 - **React hooks** for all state (no Redux/context needed for this scale)
 - **History management:** Array of encoded positions with index pointer for undo/redo
-- **Variant tracking:** Current variant stored in position object
-- **Mode selection:** Selected mode stored in state, displayed in header
-- **Help modal:** Progressive hint level state (0 = no hints, 1/2 = hints revealed, 3 = solution)
+- **2-step undo/redo:** In 1-player mode, undo/redo moves 2 steps (player + AI) to maintain turn consistency
+- **Configuration state:** Loaded once at startup, cached in memory
+- **Modal state:** Centralized via `useModalState` hook
+- **Game state:** Managed via `useGameState` hook with granular actions
 
 ## 4) Rules (source of truth for engine)
 
-### 1-D Chess (1×12)
-- **Board**: 1 file of 12 ranks (indexed 0..11 internally, displayed as 1..12 top→bottom)
+### 1-D Chess (1×N)
+- **Board**: 1 file of N ranks (6-12 supported)
 - **Pieces**: `k`, `r`, `n` with side `w`/`b`
-- **Moves**: `k` moves ±1; `n` jumps ±2 (leaper; color-bound); `r` slides any distance ±1 direction. All captures by displacement. Rooks cannot jump over pieces. Knights ignore intervening squares. Kings may not move into check.
-- **Game end**: no legal moves → if in check = **checkmate** (win for opponent); else **stalemate** (draw)
-- **Repetition**: twofold repetition (position appears 2+ times) can be claimed as **draw** via UI button
-- **Resignation**: players can resign at any time with confirmation dialog
+- **Moves**:
+  - King moves ±1
+  - Knight jumps ±2 (leaper; color-bound; ignores intervening squares)
+  - Rook slides any distance ±1 direction (cannot jump)
+- **Captures**: By displacement (all pieces)
+- **Check/Checkmate**: Kings may not move into check; no legal moves in check = checkmate
+- **Game end**: No legal moves → if in check = **checkmate** (win for opponent); else **stalemate** (draw)
+- **Repetition**: Twofold repetition (position appears 2+ times) can be claimed as **draw** via UI button
+- **Resignation**: Players can resign at any time with confirmation dialog
 
-### Thin Chess (2×10)
-- **Board**: 2 files (a, b) of 10 ranks = 20 squares (indexed row-major 0..19)
-- **Pieces**: `k`, `r`, `n`, `b`, `p` with side `w`/`b`
-- **Moves**: Standard chess movement adapted to 2D board
+### Thin Chess (M×N)
+- **Board**: M files × N ranks (2×6 to 3×8 tested)
+- **Pieces**: `k`, `r`, `n`, `b`, `p`, `q` with side `w`/`b`
+- **Moves**: Standard chess movement adapted to narrow boards
   - King: 8 directions (±1 orthogonal, ±1 diagonal)
   - Rook: Orthogonal sliding (up/down/left/right)
   - Knight: L-shape (2 in one direction, 1 perpendicular)
   - Bishop: Diagonal sliding (4 diagonal directions)
   - Pawn: Forward 1, captures diagonally forward, promotes on opposite rank
+  - Queen: Combination of rook + bishop movement
 - **Same rules**: Check, checkmate, stalemate, repetition, resignation
 
 ## 5) Position Encoding
 
-### 1-D Chess (1×12)
-- 12 comma-separated tokens, top→bottom. Token set: `x` for empty; otherwise `[wb][krn]`
+### 1-D Chess (1×N)
+- N comma-separated tokens, top→bottom
+- Token set: `x` for empty; otherwise `[wb][krn]`
 - Append the side to move as `:w` or `:b`
-- Example (default start): `bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w`
+- Example (1×12): `bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w`
 - **Internal representation:** `.` used for empty cells (converted from/to `x` in encode/decode)
 
-### Thin Chess (2×10)
-- Ranks separated by `/`, each rank has two cells separated by `,`
-- Token set: `x` for empty; otherwise `[wb][krnbp]`
+### Thin Chess (M×N)
+- Ranks separated by `/`, each rank has M cells separated by `,`
+- Token set: `x` for empty; otherwise `[wb][krnbpq]`
 - Append side to move as `:w` or `:b`
-- Example: `x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w`
+- Example (2×8): `x,bk/x,bb/x,x/x,x/wk,x/wr,x/x,x:w`
+- **Board indexing**: Row-major (index = rank × width + file)
 
 ## 6) Files & Structure
 
 ```
 jmtrafny.github.io/
 ├── src/
-│   ├── engine.ts          # Multi-variant move generation, encoding, terminal detection
-│   ├── solver.ts          # Tri-valued negamax with TT (used for 1-D Chess)
-│   ├── audio.ts           # Sound effects management
-│   ├── App.tsx            # Main React component (~650 lines)
-│   ├── App.css            # Styling with variant-specific layouts (~730 lines)
-│   ├── main.tsx           # React entry point, PWA service worker registration
-│   └── vite-env.d.ts      # TypeScript environment definitions
+│   ├── engine.ts              # Multi-variant move generation, encoding, terminal detection
+│   ├── solver.ts              # Tri-valued negamax with TT (used for 1-D Chess)
+│   ├── audio.ts               # Sound effects management
+│   ├── App.tsx                # Main React component (~650 lines)
+│   ├── App.css                # Styling with variant-specific layouts (~800 lines)
+│   ├── main.tsx               # React entry point, PWA service worker registration
+│   ├── vite-env.d.ts          # TypeScript environment definitions
+│   ├── config/
+│   │   ├── GameModeConfig.ts  # TypeScript interfaces for configuration
+│   │   ├── loader.ts          # Configuration loading and caching
+│   │   └── validator.ts       # Runtime validation of configuration
+│   ├── hooks/
+│   │   ├── useGameModes.ts    # React hook for accessing game modes
+│   │   ├── useGameState.ts    # Game state management hook
+│   │   └── useModalState.ts   # Modal state management hook
+│   └── components/
+│       └── modals/            # Modal components (VariantPicker, ModePicker, HelpModal, etc.)
 ├── public/
-│   ├── pieces/            # SVG chess piece graphics (12 files: wk,wq,wr,wn,wb,wp,bk,bq,br,bn,bb,bp)
-│   ├── sounds/            # Sound effects (move, capture, victory, defeat, draw MP3s)
-│   ├── chess.svg          # App icon
-│   ├── white-pawn.svg     # Title icon
-│   ├── banner.png         # Social media Open Graph banner (1200×630px)
-│   ├── manifest.json      # PWA manifest
-│   ├── sw.js              # Service worker with network-first strategy
-│   └── CNAME              # Custom domain file (thinchess.com)
+│   ├── game-modes.json        # 🎯 Game mode configuration (all modes defined here)
+│   ├── pieces/                # SVG chess piece graphics (12 files)
+│   ├── svg/                   # UI icons (YouTube, restart, etc.)
+│   ├── sounds/                # Sound effects (move, capture, victory, defeat, draw)
+│   ├── manifest.json          # PWA manifest
+│   ├── sw.js                  # Service worker
+│   └── CNAME                  # Custom domain file (thinchess.com)
 ├── .github/workflows/
-│   └── deploy.yml         # GitHub Actions deployment workflow
-├── README.md              # Project overview and usage
-├── DEVELOPER.md           # Developer documentation
-├── THIN_CHESS_MODES.md    # Detailed challenge mode documentation
-├── project_status.md      # This file
-├── index.html             # HTML entry point with Open Graph meta tags
-├── vite.config.ts         # Vite configuration
-├── package.json           # Dependencies
-└── tsconfig.json          # TypeScript configuration
+│   └── deploy.yml             # GitHub Actions deployment workflow
+├── README.md                  # Project overview and usage
+├── DEVELOPER.md               # Developer documentation (how to add modes)
+├── GAME_MODES.md              # Technical reference for all modes
+├── THIN_CHESS_MODES.md        # Player-facing mode documentation
+├── project_status.md          # This file
+├── index.html                 # HTML entry point with Open Graph meta tags
+├── vite.config.ts             # Vite configuration
+├── package.json               # Dependencies
+└── tsconfig.json              # TypeScript configuration
 ```
 
-**Total codebase:** ~1400 lines of TypeScript/TSX/CSS (excluding config/deps)
+**Total codebase:** ~1500 lines of TypeScript/TSX/CSS (excluding config/deps)
 
 ## 7) Development Notes
 
@@ -264,7 +337,7 @@ npm run dev        # Start dev server (http://localhost:5173)
 
 ### Building for Production
 ```bash
-npm run build      # Creates dist/ directory
+npm run build      # Creates dist/ directory (includes TypeScript check)
 npm run preview    # Preview production build locally
 ```
 
@@ -290,50 +363,69 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - ✅ PWA with offline support
 - ✅ GitHub Pages hosting with automated CI/CD
 
-### Thin Chess Challenges ✅
-- ✅ 5 curated tactical/strategic positions
+### Configuration System ✅
+- ✅ JSON-based game mode definitions
+- ✅ Runtime validation with helpful error messages
+- ✅ Hot-reloadable configuration
+- ✅ Type-safe interfaces
+- ✅ Category-based organization
+- ✅ Rich metadata support
+- ✅ No code changes needed to add modes
+
+### Game Mode Features ✅
+- ✅ 12 curated modes across 3 categories
 - ✅ Progressive hint system (3 levels)
-- ✅ Full solutions with move explanations
+- ✅ Full solutions with explanations
 - ✅ Solvability indicators
 - ✅ Learning objectives
 - ✅ Difficulty ratings (1-5 stars)
-- ✅ Type icons and badges
+- ✅ Type badges and icons
 - ✅ In-app help modal
 
-### Additional Features Implemented
-- ✅ Multi-variant architecture
-- ✅ Variant selector on startup
-- ✅ Dynamic board rendering (1×12 and 2×10)
-- ✅ Sound effects with mute toggle
-- ✅ Custom domain with HTTPS
-- ✅ Open Graph social media tags
-- ✅ Undo/Redo system
-- ✅ Draw by repetition detection
-- ✅ Resignation with confirmation
-- ✅ Responsive mobile design
+### UI/UX Improvements ✅
+- ✅ Two-row header layout (title + buttons)
+- ✅ Two-row controls layout (New/Resign + Undo/Redo)
+- ✅ Consistent help icon positioning (right side, vertically centered)
+- ✅ Sound effects with proper timing
+- ✅ Responsive design for all screen sizes
+- ✅ Default game on startup (1-D Chess: Full Set)
+
+### Bug Fixes ✅
+- ✅ Fixed draw sound playing on startup
+- ✅ Fixed AI infinite loop issue
+- ✅ Fixed position string validation errors
+- ✅ Fixed game over detection on initial load
+- ✅ Fixed help icon positioning in stacked layouts
 
 ### Future Enhancements (Stretch Goals)
-- ⏳ Additional Thin Chess challenge modes
+- ⏳ Additional game modes (easy to add via JSON)
 - ⏳ Opening trainer mode for 1-D Chess
 - ⏳ Move animation
-- ⏳ Move history display
 - ⏳ Position sharing via URL
 - ⏳ Theme toggle (light/dark modes)
-- ⏳ Export game notation
+- ⏳ Export game notation (PGN-like format)
 
 ## 9) Technical Decisions Log
 
-### Why multi-variant architecture?
-- Maximizes code reuse for common logic (check detection, move application)
-- Single codebase easier to maintain than separate apps
-- Unified UI/UX reduces learning curve
-- Position encoding format easily extensible
+### Why configuration-driven architecture?
+- Maximizes flexibility without code changes
+- Enables non-developers to contribute modes
+- Easier to maintain and version
+- Type-safe with runtime validation
+- Single source of truth for all mode data
 
-### Why random AI for Thin Chess?
-- Game tree 10-20× larger than 1-D Chess
-- Perfect solver would freeze browser for minutes
-- Random AI provides adequate challenge for casual play
-- Allows focus on curated challenge modes for serious study
+### Why JSON instead of TypeScript for modes?
+- Can be edited without rebuilding
+- Non-developers can contribute
+- Can be validated at runtime
+- Easier to version and track changes
+- Could potentially be loaded from API in future
+
+### Why category-based organization?
+- Better UX (logical grouping)
+- Scalable (can add more categories)
+- Flexible (modes can be reorganized)
+- Clear mental model for users
 
 ### Why progressive hints?
 - Reduces frustration (users don't get stuck)
@@ -341,40 +433,107 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - Maintains challenge (users can choose to solve without hints)
 - Better UX than forcing users to search external documentation
 
-### Why 5 challenges instead of 10?
+### Why 12 modes instead of more?
 - Quality over quantity (well-tested, interesting positions)
-- Better difficulty curve (beginner → advanced)
-- Less overwhelming for new players
-- Room to add more challenges in future
+- Good difficulty curve (beginner → advanced)
+- Not overwhelming for new players
+- Easy to add more via JSON as needed
 
 ---
 
 ## For Future Contributors / Coding Agents
 
-### Making Changes to Variants
+### Adding New Game Modes
+
+**No code changes needed!** Simply edit `public/game-modes.json`:
+
+1. ✅ Add new mode object to `modes` array
+2. ✅ Ensure `categoryId` matches existing category
+3. ✅ Provide valid position string for board dimensions
+4. ✅ Include help content with hints, solution, learning objectives
+5. ✅ Run `npm run build` to verify (validation will catch errors)
+6. ✅ Test in browser (board renders, hints work)
+7. ✅ Update `GAME_MODES.md` and `THIN_CHESS_MODES.md` documentation
+
+**Example Mode:**
+```json
+{
+  "id": "MY_NEW_MODE",
+  "categoryId": "1d-chess",
+  "name": "My Custom Mode",
+  "description": "A brief description",
+  "variant": "thin",
+  "boardWidth": 1,
+  "boardHeight": 8,
+  "startPosition": "bk,br,bn,x,wn,wr,wk:w",
+  "difficulty": "Intermediate",
+  "difficultyStars": 3,
+  "icon": "🎯",
+  "help": {
+    "challenge": "Full description of the challenge",
+    "solvabilityType": "COMPETITIVE",
+    "hints": ["Hint 1", "Hint 2"],
+    "solution": "Detailed solution",
+    "strategy": {
+      "whitePlan": "What white should do",
+      "blackPlan": "What black should do",
+      "keyPositions": "Important positions"
+    },
+    "learningObjectives": [
+      "What players will learn"
+    ]
+  }
+}
+```
+
+### Adding New Categories
+
+Edit `categories` array in `public/game-modes.json`:
+
+```json
+{
+  "id": "new-category",
+  "name": "Display Name",
+  "description": "Category description",
+  "variant": "thin" | "skinny" | "mixed",
+  "icon": "🎮"
+}
+```
+
+Then add modes with `"categoryId": "new-category"`.
+
+### Making Changes to Engine
+
 - Edit `src/engine.ts` for game rules and movement logic
-- BoardConfig system handles dimension differences
+- `getConfig()` extracts board dimensions from position
 - All functions accept variant parameter via Position object
 - Test both variants after any engine changes
-
-### Adding New Challenges
-1. Add mode to `SKINNY_MODE_PACK` or `THIN_MODE_PACK` array in `src/engine.ts`
-2. For non-standard dimensions, specify: `boardWidth: 3, boardLength: 8` (Thin Chess) or `boardLength: 9` (1-D Chess)
-3. Add help content to `MODE_HELP_CONTENT` object
-4. Include: challenge, hints, solution, learning objectives, difficulty, icon
-5. Update `THIN_CHESS_MODES.md` documentation
-6. Test mode loads correctly with proper board size and hints work
-
-### Updating Variant Names
-- User-facing: Update strings in `App.tsx`, `index.html`, `README.md`
-- Internal: Keep `'thin'` and `'skinny'` unchanged (avoids breaking positions)
-- Comments: Update in `engine.ts` header
+- Run `npm run build` to catch TypeScript errors
 
 ### Common Pitfalls
-- **Don't change internal variant names** (`'thin'`/`'skinny'`) - breaks position encoding
-- **Don't forget to test both variants** after engine changes
-- **Don't skip hint testing** - ensure progressive reveal works correctly
-- **Don't use cache-first for HTML/JS** - causes white screen on updates
+
+- ❌ **Don't change internal variant names** (`'thin'`/`'skinny'`) - breaks position encoding
+- ❌ **Don't forget position string validation** - must match boardWidth × boardHeight
+- ❌ **Don't skip testing both variants** after engine changes
+- ❌ **Don't hardcode mode IDs in code** - use configuration system
+- ❌ **Don't use cache-first for HTML/JS** - causes white screen on updates
+- ✅ **Do update documentation** when adding modes
+- ✅ **Do run build** to validate configuration
+- ✅ **Do test on mobile** for responsive layout
+
+### Configuration Validation
+
+The validator checks:
+- ✅ Version is semantic version string
+- ✅ All category IDs are unique
+- ✅ All mode IDs are unique
+- ✅ Mode categoryId references exist
+- ✅ Board dimensions match squares in position
+- ✅ Difficulty is valid enum
+- ✅ Stars are 1-5
+- ✅ Required help fields present
+
+Run `npm run build` - validation errors will show helpful messages.
 
 ---
 
