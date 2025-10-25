@@ -12,19 +12,24 @@ The project follows a clean separation of concerns:
 src/
 ├── engine.ts      # Game rules and move generation
 ├── solver.ts      # Perfect-play solver with TT
+├── audio.ts       # Sound effects management
 ├── App.tsx        # React UI component
 ├── App.css        # Styles
-├── main.tsx       # Entry point + SW registration
-├── engine.test.ts # Engine test suite
-└── solver.test.ts # Solver test suite
+└── main.tsx       # Entry point + SW registration
 
 public/
+├── pieces/        # SVG chess piece graphics (6 files)
+├── sounds/        # Sound effects (MP3: move, capture, victory, defeat, draw)
 ├── manifest.json  # PWA manifest
-├── sw.js          # Service worker
-└── chess.svg      # Favicon
+├── sw.js          # Service worker (network-first strategy)
+├── banner.png     # Social media Open Graph image
+├── chess.svg      # Favicon
+└── CNAME          # Custom domain configuration
 
 .github/workflows/
 └── deploy.yml     # GitHub Actions CI/CD
+
+index.html         # Entry point with Open Graph meta tags
 ```
 
 ---
@@ -105,6 +110,33 @@ function solve(pos: Position, path: Set<string>): SolveResult {
 
 ---
 
+### `audio.ts`
+
+**Responsibilities:**
+- Preload sound effects on app initialization
+- Play sounds for moves, captures, and game outcomes
+- Mute toggle with localStorage persistence
+- Graceful error handling for missing files
+
+**Key Functions:**
+```typescript
+initAudio()          // Preload all sounds, load mute state
+playMove()           // Play piece movement sound
+playCapture()        // Play capture sound
+playVictory()        // Play win sound
+playDefeat()         // Play loss sound
+playDraw()           // Play draw/stalemate sound
+toggleMute()         // Toggle mute state, save to localStorage
+```
+
+**Sound Files:**
+- Located in `public/sounds/`
+- Format: MP3
+- Recommended size: < 100KB each
+- Sources: Pixabay (CC0), Freesound.org (Creative Commons)
+
+---
+
 ### `App.tsx`
 
 **Responsibilities:**
@@ -112,17 +144,25 @@ function solve(pos: Position, path: Set<string>): SolveResult {
 - User interaction handlers
 - Board rendering
 - Move history (undo/redo)
-- UI controls (buttons, position editor)
+- Game mode selection (1-player vs 2-player)
+- AI move triggering
+- Sound effect integration
+- UI controls (buttons, position editor, mute toggle)
 
 **State:**
 ```typescript
-pos: Position           // Current position
-history: string[]       // Position codes history
-hIndex: number          // Current history index
-sel: number | null      // Selected square
-targets: number[]       // Legal target squares
-statusText: string      // Status message
-statusClass: string     // Status color class
+pos: Position            // Current position
+history: string[]        // Position codes history
+hIndex: number           // Current history index
+sel: number | null       // Selected square
+targets: number[]        // Legal target squares
+gameMode: GameMode       // '1player' | '2player' | null
+playerSide: Side | null  // Player's color in 1-player mode
+aiThinking: boolean      // AI move in progress flag
+gameOver: boolean        // Game ended flag
+gameResult: string       // Game over message
+soundMuted: boolean      // Sound mute state
+showInstallButton: boolean // PWA install button visibility
 ```
 
 ---
@@ -151,8 +191,37 @@ npm run preview      # Preview production build
 ```
 
 ### Deployment
-- **Automatic**: Push to `main` triggers GitHub Actions workflow
+- **Automatic**: Push to `main` triggers GitHub Actions workflow → deploys to **thinchess.com**
 - **Manual**: Run `npm run build:gh`, commit `dist/` (not recommended)
+
+### Custom Domain Setup
+1. Purchase domain (e.g., thinchess.com via GoDaddy)
+2. Add `public/CNAME` file with domain name
+3. Configure DNS in registrar:
+   - 4× A records → GitHub Pages IPs (185.199.108-111.153)
+   - CNAME for www → jmtrafny.github.io
+4. Enable "Enforce HTTPS" in GitHub Pages settings
+5. Wait for Let's Encrypt SSL provisioning (~30-60 min)
+
+### Adding Sound Effects
+1. Download MP3 files from [Pixabay](https://pixabay.com/sound-effects/) or [Freesound.org](https://freesound.org)
+2. Save to `public/sounds/`:
+   - `move.mp3` - Piece movement sound
+   - `capture.mp3` - Capture sound
+   - `victory.mp3` - Win sound (~1-2 sec)
+   - `defeat.mp3` - Loss sound (~1-2 sec)
+   - `draw.mp3` - Draw/stalemate sound (~1-2 sec)
+3. Files are preloaded on app init
+4. Graceful fallback if files missing (console.debug only)
+
+### Social Media Preview
+1. Update `public/banner.png` (1200×630px recommended)
+2. Edit Open Graph meta tags in `index.html`
+3. Test with:
+   - [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
+   - [Twitter Card Validator](https://cards-dev.twitter.com/validator)
+   - [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/)
+4. Force re-scrape to clear cache
 
 ---
 
@@ -252,15 +321,17 @@ npm run preview      # Preview production build
 - Icons: 192×192, 512×512 (need to generate actual PNGs)
 
 ### Service Worker (`public/sw.js`)
-- **Strategy**: Cache-first with network fallback
-- **Caches**: HTML, JS, CSS, manifest, icons
-- **Versioning**: `CACHE_NAME` updated on changes
+- **Strategy**: Network-first for HTML/JS/CSS/JSON, Cache-first for static assets (images, SVG)
+- **Caches**: Two caches - `thin-chess-v2` (app code) and `thin-chess-static-v2` (assets)
+- **Versioning**: Bump `CACHE_NAME` to force cache invalidation on updates
 - **Cleanup**: Old caches deleted on activate
+- **Development**: Disabled in dev mode (only registers when `import.meta.env.PROD`)
 
 ### Installation
-- PWA installable on all modern browsers
+- PWA installable on all modern browsers (Chrome, Edge, Safari 16.4+)
 - Works fully offline after first load
 - Updates automatically when new version deployed
+- Install button appears in header when `beforeinstallprompt` fires
 
 ---
 
@@ -364,9 +435,24 @@ npm run preview      # Preview production build
 - Unregister SW in DevTools → Application
 
 ### GitHub Pages 404
-- Check base path in `vite.config.ts`
+- Check base path in `vite.config.ts` (should be `'/'` for user pages)
 - Verify GitHub Pages source = "Actions"
 - Check workflow run logs
+- Verify `CNAME` file exists in `public/` directory
+- Check DNS propagation with [whatsmydns.net](https://www.whatsmydns.net)
+
+### Custom Domain Issues
+- **www not working**: Verify CNAME record points to `jmtrafny.github.io`
+- **HTTPS errors**: Wait for Let's Encrypt certificate (30-60 min after DNS setup)
+- **404 on custom domain**: Check `public/CNAME` file is being deployed to `dist/`
+- **DNS not propagating**: Can take up to 48 hours (usually 1 hour)
+
+### Sound Not Playing
+- Check files exist in `public/sounds/`
+- Check browser console for file not found errors
+- Verify file names match exactly (move.mp3, capture.mp3, etc.)
+- Check browser autoplay policy (sounds triggered by user actions should work)
+- Mute button working? Check localStorage `thin-chess-muted` value
 
 ---
 

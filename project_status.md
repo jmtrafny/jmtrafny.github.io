@@ -1,10 +1,10 @@
 # Thin Chess — Project Status
 
-**Status: ✅ MVP COMPLETE**
+**Status: ✅ PRODUCTION READY**
 _Last updated: 2025-10-24_
 
 ## 1) Overview
-Thin Chess is a minimalist 1×12 chess variant presented on a single column of squares. Pieces: king (±1), rook (any distance), knight (±2 jump). Kings cannot move into check. This web app provides an interactive board, perfect-play AI opponent, game over detection, position editor, and full PWA offline support. Deployed at [jmtrafny.github.io](https://jmtrafny.github.io).
+Thin Chess is a minimalist 1×12 chess variant presented on a single column of squares. Pieces: king (±1), rook (any distance), knight (±2 jump). Kings cannot move into check. This web app provides an interactive board, perfect-play AI opponent, game over detection, position editor, sound effects, and full PWA offline support. Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtrafny.github.io](https://jmtrafny.github.io)).
 
 ## 2) Current Implementation
 
@@ -19,21 +19,26 @@ Thin Chess is a minimalist 1×12 chess variant presented on a single column of s
 - ✅ Two game modes: 1-player (vs AI) and 2-player (local)
 - ✅ Perfect-play AI using tri-valued negamax solver with transposition table
 - ✅ Automatic game over detection (stalemate/checkmate) with visual banner
+- ✅ Sound effects for moves, captures, and game outcomes
+- ✅ Mute toggle with localStorage persistence
 - ✅ Undo/Redo with full history management
 - ✅ Position editor with load/copy functionality
 - ✅ SVG chess pieces (6 high-quality graphics with transparent backgrounds)
 - ✅ PWA install button (appears when app is installable)
+- ✅ Custom domain (thinchess.com) with HTTPS
+- ✅ Open Graph meta tags for rich social media previews
 - ✅ Fully offline-capable after first load
 - ✅ Responsive design optimized for mobile and desktop
 
 **UI Design:**
 - Minimalist single-panel layout (no sidebar, no clutter)
-- Header: Title (left) + Install button (right, conditional)
+- Header: Title (left) + Sound toggle + Install button (right, conditional)
 - Central board with coordinate numbers (1-12) aligned to squares
 - Controls: New Game, Undo, Redo (3-column grid)
 - Position Editor in collapsible details section
 - Modal dialogs for game mode selection and color picker
 - Game-over banner with animation when game ends
+- Sound effects enhance gameplay feedback
 
 **Default State:**
 - Game starts immediately in 1-player mode
@@ -68,15 +73,37 @@ Thin Chess is a minimalist 1×12 chess variant presented on a single column of s
 
 ### GitHub Pages Deployment
 **Site Type:** User GitHub Pages (username.github.io)
+**Custom Domain:** thinchess.com (configured via CNAME file in public/)
 **Base Path:** `'/'` (root, not `/jmtrafny.github.io/`)
 **Why:** User/org pages are served at root domain, not in subdirectories like project pages.
 **CI/CD:** GitHub Actions workflow builds on push to main, deploys via `actions/deploy-pages@v4`.
+**DNS Configuration:**
+- 4× A records pointing to GitHub Pages IPs (185.199.108-111.153)
+- CNAME record for www subdomain → jmtrafny.github.io
+- HTTPS automatically provisioned via Let's Encrypt
+
+### Sound System
+**Audio Management:** Preloaded HTML5 Audio with volume control (default 0.5)
+**Sound Effects:**
+- Move sound: Plays when piece moves to empty square
+- Capture sound: Plays when piece takes another piece
+- Victory/Defeat/Draw sounds: Play based on game outcome and player side
+**Mute Toggle:** 🔊/🔇 button in header, state persists in localStorage
+**Error Handling:** Graceful fallback if sounds missing or autoplay blocked
+**Files:** 5 MP3 files in public/sounds/ (move, capture, victory, defeat, draw)
+
+### Social Media Integration
+**Open Graph Tags:** Full meta tags for Facebook, Twitter, LinkedIn rich previews
+**Banner Image:** Custom 1200×630px banner at public/banner.png
+**Description:** "Play Thin Chess - a 1×12 chess variant... can you beat the perfect-play AI? (hint: yes)"
+**Testing:** Use Facebook Sharing Debugger, Twitter Card Validator to verify
 
 ### State Management
 - **React hooks** for all state (no Redux/context needed for this scale)
 - **History management:** Array of encoded positions with index pointer for undo/redo
 - **Game modes:** TypeScript union type `'1player' | '2player' | null`
 - **PWA install:** Captures `beforeinstallprompt` event, shows install button conditionally
+- **Sound muted:** Boolean state synced with localStorage
 
 ## 4) Rules (source of truth for engine)
 - **Board**: 1 file of 12 ranks (indexed 0..11 internally, displayed as 1..12 top→bottom)
@@ -98,17 +125,22 @@ jmtrafny.github.io/
 ├── src/
 │   ├── engine.ts          # Move generation, legality, terminal detection, encode/decode
 │   ├── solver.ts          # Tri-valued negamax with TT and cycle detection
-│   ├── App.tsx            # Main React component (~370 lines)
-│   ├── App.css            # Styling with CSS custom properties (~360 lines)
+│   ├── audio.ts           # Sound effects management (preload, play, mute control)
+│   ├── App.tsx            # Main React component (~420 lines)
+│   ├── App.css            # Styling with CSS custom properties (~400 lines)
 │   ├── main.tsx           # React entry point, PWA service worker registration
 │   └── vite-env.d.ts      # TypeScript environment definitions
 ├── public/
 │   ├── pieces/            # SVG chess piece graphics (6 files: wk,wr,wn,bk,br,bn)
+│   ├── sounds/            # Sound effects (move, capture, victory, defeat, draw MP3s)
 │   ├── chess.svg          # App icon (used in manifest)
+│   ├── banner.png         # Social media Open Graph banner (1200×630px)
 │   ├── manifest.json      # PWA manifest
-│   └── sw.js              # Service worker with network-first strategy
+│   ├── sw.js              # Service worker with network-first strategy
+│   └── CNAME              # Custom domain file (thinchess.com)
 ├── .github/workflows/
 │   └── deploy.yml         # GitHub Actions deployment workflow
+├── index.html             # HTML entry point with Open Graph meta tags
 ├── vite.config.ts         # Vite configuration (base: '/', terser minify)
 ├── package.json           # Dependencies (React 19, TypeScript, Vite)
 ├── tsconfig.json          # TypeScript configuration
@@ -132,7 +164,14 @@ npm run preview    # Preview production build locally
 ```
 
 ### Deployment
-Push to `main` branch → GitHub Actions automatically builds and deploys to GitHub Pages.
+Push to `main` branch → GitHub Actions automatically builds and deploys to GitHub Pages → Live at **thinchess.com**
+
+**Custom Domain Setup:**
+1. Create `public/CNAME` with domain name
+2. Configure DNS A records (4× GitHub Pages IPs)
+3. Configure DNS CNAME for www subdomain
+4. Enable "Enforce HTTPS" in GitHub Pages settings
+5. Wait for Let's Encrypt SSL certificate provisioning
 
 ### Service Worker Behavior
 - **Development:** SW disabled (only registers in production)
@@ -140,11 +179,23 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - **Cache invalidation:** Bump `CACHE_NAME` version in `public/sw.js` to force updates
 - **Testing:** Use "Unregister" in DevTools > Application > Service Workers if needed
 
+### Sound System
+- **Adding sounds:** Place MP3 files in `public/sounds/` (move, capture, victory, defeat, draw)
+- **Sources:** Pixabay (CC0), Freesound.org (Creative Commons)
+- **Recommended sizes:** < 100KB per file
+- **Testing:** Sound gracefully fails if files missing (console.debug only)
+- **Mute persistence:** Stored in localStorage as `thin-chess-muted`
+
 ### PWA Install Button
 - Only shows when browser fires `beforeinstallprompt` event
 - Hidden in dev mode since SW is disabled
 - Works on Chrome, Edge, Safari (iOS 16.4+), and other Chromium browsers
 - Disappears after successful installation
+
+### Social Media Sharing
+- **Testing previews:** Use Facebook Sharing Debugger, Twitter Card Validator
+- **Updating banner:** Replace `public/banner.png` (1200×630px recommended)
+- **Force refresh:** Use social platform debuggers to clear cache and re-scrape
 
 ### Position Editor
 - Access via "Position Editor" details section
@@ -157,6 +208,7 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - **No opening book:** Solver computes from scratch each move (cached in TT during game)
 - **No undo during AI turn:** Buttons disabled while AI is thinking
 - **No move animation:** Instant position updates (future enhancement)
+- **Sound effects:** Require manual download from Pixabay/Freesound (not included in repo)
 
 ## 8) Goals Achieved
 
@@ -172,6 +224,10 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - ✅ AI opponent with configurable player color
 - ✅ 2-player local mode
 - ✅ Game over detection with visual feedback
+- ✅ Sound effects for moves, captures, and game outcomes
+- ✅ Mute toggle with localStorage persistence
+- ✅ Custom domain (thinchess.com) with HTTPS
+- ✅ Open Graph meta tags for rich social media sharing
 - ✅ Undo/Redo with full history
 - ✅ High-quality SVG chess pieces
 - ✅ Responsive design optimized for mobile
