@@ -3,7 +3,7 @@ import {
   Position,
   decode,
   encode,
-  START_CODE,
+  START_POSITIONS,
   legalMoves,
   applyMove,
   terminal,
@@ -13,6 +13,9 @@ import {
   sideOf,
   Piece,
   Side,
+  VariantType,
+  CONFIGS,
+  indexToCoords,
 } from './engine';
 import { solve, clearTT } from './solver';
 import {
@@ -35,13 +38,17 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 function App() {
-  const [pos, setPos] = useState<Position>(() => decode(START_CODE));
-  const [history, setHistory] = useState<string[]>([encode(decode(START_CODE))]);
+  // Variant selection
+  const [gameVariant, setGameVariant] = useState<VariantType>('thin'); // Start with thin
+  const [showVariantPicker, setShowVariantPicker] = useState(true); // Show on startup
+
+  const [pos, setPos] = useState<Position>(() => decode(START_POSITIONS.thin, 'thin'));
+  const [history, setHistory] = useState<string[]>([encode(decode(START_POSITIONS.thin, 'thin'))]);
   const [hIndex, setHIndex] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
   const [targets, setTargets] = useState<number[]>([]);
-  const [gameMode, setGameMode] = useState<GameMode>('1player'); // Default to 1-player
-  const [playerSide, setPlayerSide] = useState<Side | null>('w'); // Default to white
+  const [gameMode, setGameMode] = useState<GameMode | null>(null); // No mode until variant selected
+  const [playerSide, setPlayerSide] = useState<Side | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
@@ -216,7 +223,7 @@ function App() {
   const handleUndo = () => {
     if (hIndex > 0) {
       setHIndex(hIndex - 1);
-      setPos(decode(history[hIndex - 1]));
+      setPos(decode(history[hIndex - 1], pos.variant));
       setSel(null);
       setTargets([]);
     }
@@ -226,7 +233,7 @@ function App() {
   const handleRedo = () => {
     if (hIndex < history.length - 1) {
       setHIndex(hIndex + 1);
-      setPos(decode(history[hIndex + 1]));
+      setPos(decode(history[hIndex + 1], pos.variant));
       setSel(null);
       setTargets([]);
     }
@@ -247,9 +254,25 @@ function App() {
     }
   };
 
+  // Handle variant selection
+  const selectVariant = (variant: VariantType) => {
+    setGameVariant(variant);
+    const startPos = decode(START_POSITIONS[variant], variant);
+    setPos(startPos);
+    setHistory([encode(startPos)]);
+    setHIndex(0);
+    setSel(null);
+    setTargets([]);
+    setGameOver(false);
+    setGameResult('');
+    clearTT();
+    setShowVariantPicker(false);
+    setShowModal(true); // Show game mode picker
+  };
+
   // Start game with selected mode and optional player side
   const startGame = (mode: '1player' | '2player', side: Side | null) => {
-    const startPos = decode(START_CODE);
+    const startPos = decode(START_POSITIONS[gameVariant], gameVariant);
     setPos(startPos);
     setHistory([encode(startPos)]);
     setHIndex(0);
@@ -313,7 +336,7 @@ function App() {
   const handleLoad = () => {
     const input = (document.getElementById('posCode') as HTMLInputElement)?.value || '';
     try {
-      const newPos = decode(input.trim());
+      const newPos = decode(input.trim(), pos.variant);
       setPos(newPos);
       setHistory([encode(newPos)]);
       setHIndex(0);
@@ -334,6 +357,25 @@ function App() {
 
   return (
     <div className="app">
+      {/* Variant Picker Modal */}
+      {showVariantPicker && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Choose Game Variant</h2>
+            <div className="modal-buttons">
+              <button className="modal-btn" onClick={() => selectVariant('thin')}>
+                Thin Chess
+                <div className="modal-subtitle">1×12 board - Classic</div>
+              </button>
+              <button className="modal-btn" onClick={() => selectVariant('skinny')}>
+                Skinny Chess
+                <div className="modal-subtitle">2×10 board - NEW!</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New Game Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -406,33 +448,56 @@ function App() {
         </div>
 
         <div className="board-wrap">
-          <div className="board">
-            {pos.board.map((cell, i) => (
-              <div
-                key={i}
-                className={`sq ${i % 2 === 0 ? 'dark' : 'light'} ${sel === i ? 'selected' : ''} ${
-                  targets.includes(i) ? 'target' : ''
-                } ${aiThinking ? 'disabled' : ''}`}
-                onClick={() => handleSquareClick(i)}
-              >
-                {cell !== EMPTY && (
-                  <img
-                    src={PIECE_IMAGES[cell as Piece]}
-                    alt={cell}
-                    className="piece"
-                    draggable={false}
-                  />
-                )}
-              </div>
-            ))}
+          <div className={`board board-${gameVariant}`}>
+            {pos.board.map((cell, i) => {
+              const config = CONFIGS[gameVariant];
+              const [rank, file] = indexToCoords(i, config);
+              const isLight = (rank + file) % 2 === 0;
+
+              return (
+                <div
+                  key={i}
+                  className={`sq ${isLight ? 'light' : 'dark'} ${sel === i ? 'selected' : ''} ${
+                    targets.includes(i) ? 'target' : ''
+                  } ${aiThinking ? 'disabled' : ''}`}
+                  onClick={() => handleSquareClick(i)}
+                >
+                  {cell !== EMPTY && (
+                    <img
+                      src={PIECE_IMAGES[cell as Piece]}
+                      alt={cell}
+                      className="piece"
+                      draggable={false}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div className="coords tiny">
-            {Array.from({ length: 12 }, (_, i) => (
-              <div key={i} className="n">
-                {i + 1}
+            {gameVariant === 'thin' ? (
+              // Thin: vertical rank numbers
+              Array.from({ length: 12 }, (_, i) => (
+                <div key={i} className="n">
+                  {i + 1}
+                </div>
+              ))
+            ) : (
+              // Skinny: both files and ranks
+              <div className="coords-2d">
+                <div className="coords-files">
+                  {CONFIGS.skinny.files.map(f => (
+                    <div key={f} className="n">{f}</div>
+                  ))}
+                </div>
+                <div className="coords-ranks">
+                  {CONFIGS.skinny.ranks.map(r => (
+                    <div key={r} className="n">{r}</div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
