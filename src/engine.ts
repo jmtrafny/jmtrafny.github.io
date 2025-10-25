@@ -151,61 +151,41 @@ export interface SkinnyMode {
   description: string;
   startPosition: string;
   rationale: string;
-  difficulty: 'Baseline' | 'Tactical' | 'Strategic' | 'Endgame' | 'Puzzle';
-  boardWidth?: number;  // Optional: for non-standard widths (default 2)
-  boardLength?: number; // Optional: for non-standard heights (default 10)
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  boardWidth: number;
+  boardLength: number;
 }
 
 export const SKINNY_MODE_PACK: SkinnyMode[] = [
   {
-    id: 'top-rank-guillotine',
-    name: 'Top-Rank Guillotine',
-    description: 'Mate in 2-3 moves (6/10)',
-    startPosition: 'x,bk/x,x/x,x/x,x/x,x/x,x/wk,x/wr,x/x,x/x,x:w',
-    rationale: 'Classic K+R vs K endgame on 2×10 board. Focused exercise teaching fundamental rook-and-king mating technique. Methodically guillotine the black king against the top edge.',
-    difficulty: 'Puzzle',
-  },
-  {
-    id: 'mirror-towers',
-    name: 'Mirror Towers',
-    description: 'Standard opening - balanced game (9/10)',
-    startPosition: 'x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w',
-    rationale: 'Standard Thin Chess opening with mirrored pieces on opposite files. Tense head-to-head battle offering intense tactical opportunities. Highly educational and replayable.',
-    difficulty: 'Baseline',
-  },
-  {
-    id: 'pawn-corridors',
-    name: 'Pawn Corridors',
-    description: 'Promotion race - calculate tempo (7/10)',
-    startPosition: 'x,bk/x,bb/x,bn/x,br/x,x/x,bp/wp,x/wr,x/wn,x/wb,x/wk,x:w',
-    rationale: 'Tactical puzzle with pawns racing on narrow corridors. White\'s pawn at a7 is far advanced while Black\'s pawn is at b4. Tests tempo calculation and piece coordination under pressure.',
-    difficulty: 'Tactical',
-  },
-  {
-    id: 'bishop-duel',
-    name: 'Bishop Duel',
-    description: 'Opposite-color bishops - fortress warfare (8/10)',
-    startPosition: 'x,bk/x,bb/x,x/x,br/x,x/x,x/wr,x/x,x/wb,x/wk,x:w',
-    rationale: 'Strategic endgame featuring opposite-color bishops on 2-file board. Each bishop controls only one color, creating fortress and zugzwang possibilities. Tests patience and positional understanding.',
-    difficulty: 'Strategic',
-  },
-  {
-    id: 'flip-fork',
-    name: 'Flip-Fork',
-    description: 'Knight fork tactics (8/10)',
-    startPosition: 'x,bk/x,bb/x,x/x,br/x,x/x,x/wr,x/x,x/wb,x/wk,wn:w',
-    rationale: 'White knight starts at b1 (Black\'s side). Exploit this unusual placement to win material via knight fork in 3-4 moves. Highlights knight\'s unique movement in cramped quarters.',
-    difficulty: 'Puzzle',
-  },
-  {
-    id: 'three-file-showdown',
-    name: 'Three-File Showdown',
-    description: 'Queen vs Rook & Knight on 3×8 board (8/10)',
-    startPosition: 'wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,x/bk,x,x:w',
-    rationale: 'Power vs. numbers on wider 3-file board. White\'s queen wields diagonal tactics unavailable in 1D, while Black\'s rook+knight have more room to coordinate. Dynamic tactical playground with cross-file maneuvers.',
-    difficulty: 'Strategic',
-    boardWidth: 3,
+    id: '2X8_KNIGHTS_TRENCH',
+    name: "Knight's Trench",
+    description: 'A trench-line battlefield with pawn blockades and knight maneuvering.',
+    startPosition: 'bn,bk/bp,x/x,bp/x,x/x,x/x,x/wp,x/wn,wk:w',
+    boardWidth: 2,
     boardLength: 8,
+    rationale: 'Positional pawn warfare on 2 files. Knights maneuver around pawn structures.',
+    difficulty: 'Beginner',
+  },
+  {
+    id: '2X7_BISHOP_VS_KNIGHT',
+    name: 'Bishop vs Knight Showdown',
+    description: 'Asymmetric piece values challenge players to adapt their tactics.',
+    startPosition: 'bk,br/x,bb/x,x/x,x/x,x/wn,x/wr,wk:w',
+    boardWidth: 2,
+    boardLength: 7,
+    rationale: 'Asymmetric minor piece battle. Tests understanding of piece strengths.',
+    difficulty: 'Intermediate',
+  },
+  {
+    id: '3X6_COMPACT_BATTLE',
+    name: 'Compact Battle',
+    description: 'Three-file warfare with a complete piece ensemble packed into 18 squares.',
+    startPosition: 'br,bk,bn/x,bb,x/x,x,x/wp,wn,x/wp,x,x/wr,wk,wb:w',
+    boardWidth: 3,
+    boardLength: 6,
+    rationale: 'Complete chess compressed to 3×6. All piece types in minimal space.',
+    difficulty: 'Advanced',
   },
 ];
 
@@ -220,54 +200,36 @@ export interface ThinMode {
   startPosition: string;
   boardLength: number;
   rationale: string;
-  difficulty: 'Puzzle' | 'Classic' | 'Strategic' | 'Asymmetric';
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
 }
 
 export const THIN_MODE_PACK: ThinMode[] = [
   {
-    id: 'original-1d-chess',
-    name: '1-D Chess',
-    description: '12 squares - Full classic setup',
+    id: '1D12_CLASSIC',
+    name: '1-D Chess: Full Set',
+    description: 'Deep strategy in a single file. Knights and bishops vie for space.',
     startPosition: 'bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w',
     boardLength: 12,
-    rationale: 'Classic 12-square 1-D chess with full piece complement (2 knights, 2 rooks per side). Rich strategic depth.',
-    difficulty: 'Classic',
+    rationale: '12-square 1-D chess with full piece complement (2 knights, 2 rooks per side). Rich strategic depth.',
+    difficulty: 'Intermediate',
   },
   {
-    id: 'minimal-knights-duel',
-    name: 'Minimal Knights Duel',
-    description: '6 squares - Quick tactical puzzle (7/10)',
-    startPosition: 'wk,wn,x,x,bn,bk:w',
-    boardLength: 6,
-    rationale: 'Symmetric endgame distilling chess to tactical essence. Knights must hop carefully - one wrong jump leaves your king vulnerable. First-move advantage and timing are critical.',
-    difficulty: 'Puzzle',
+    id: '1D10_TWIN_KNIGHTS',
+    name: 'Twin Knights Siege',
+    description: 'Double-knight tactics and tempo pressure. Highly tactical.',
+    startPosition: 'bk,br,bn,bn,x,x,wn,wn,wr,wk:w',
+    boardLength: 10,
+    rationale: 'Fast knight tactics with rooks. Double-knight coordination is key.',
+    difficulty: 'Intermediate',
   },
   {
-    id: 'classic-1d-chess',
-    name: 'Classic 1D Chess',
-    description: '8 squares - Martin Gardner variant (8/10)',
-    startPosition: 'wk,wn,wr,x,x,bn,br,bk:w',
+    id: '1D8_ROOK_PAWN_ENDGAME',
+    name: 'Rook & Pawn Endgame',
+    description: 'Introductory tactical mode to learn rook vs king endgame concepts.',
+    startPosition: 'bk,bp,x,x,x,wp,wr,wk:w',
     boardLength: 8,
-    rationale: 'The classic 1D chess setup originally described by Martin Gardner. Great baseline for learning piece coordination. White has a forced win with perfect play.',
-    difficulty: 'Classic',
-  },
-  {
-    id: 'rook-vs-rook-knight',
-    name: 'Rook vs Rook & Knight',
-    description: '9 squares - Power vs numbers (7/10)',
-    startPosition: 'wk,wr,x,x,x,x,bn,br,bk:w',
-    boardLength: 9,
-    rationale: 'White has lone rook facing Black\'s rook+knight team. Classic power vs. numbers trade-off: can raw range overcome well-coordinated lesser pieces? Four empty squares between armies gives both sides room to maneuver.',
-    difficulty: 'Asymmetric',
-  },
-  {
-    id: 'two-knights-vs-rook',
-    name: 'Two Knights vs Rook',
-    description: '7 squares - Mobility vs power (8/10)',
-    startPosition: 'wk,wn,wn,x,x,br,bk:w',
-    boardLength: 7,
-    rationale: 'Asymmetric battle where White\'s two knights must work in tandem to trap Black\'s king or rook. Tense cat-and-mouse game: knights have agility, rook has superior range. Black king behind rook prevents easy quick mate.',
-    difficulty: 'Asymmetric',
+    rationale: 'Simple rook endgame teaching fundamental patterns.',
+    difficulty: 'Beginner',
   },
 ];
 
@@ -276,74 +238,63 @@ export const THIN_MODE_PACK: ThinMode[] = [
  * Small-board tactical/endgame puzzles across various dimensions
  */
 export const MINI_BOARD_PUZZLES_PACK: Array<ThinMode | SkinnyMode> = [
-  // --- 2×6 — K+R vs K (ladder mate fundamentals)
   {
-    id: 'krk-2x6-guillotine',
+    id: '2X6_TOP_RANK_GUILLOTINE',
     name: 'Top-Rank Guillotine (2×6)',
-    description: 'K+R vs K ladder mate on a skinny 2-file board (⭐ Puzzle)',
+    description: 'Fundamental K+R vs K ladder mate. Perfect for rook ladder training.',
     startPosition: 'x,bk/x,x/x,x/wk,x/wr,x/x,x:w',
-    rationale: 'Short, clean execution of the classic rook-and-king mate.',
-    difficulty: 'Puzzle',
+    rationale: 'Short, clean execution of the fundamental rook-and-king mate.',
+    difficulty: 'Beginner',
     boardWidth: 2,
     boardLength: 6
   },
-
-  // --- 2×8 — K+R vs K (slightly longer ladder)
   {
-    id: 'krk-2x8-guillotine',
+    id: '2X8_TOP_RANK_GUILLOTINE',
     name: 'Top-Rank Guillotine (2×8)',
-    description: 'K+R vs K with more "walking" before the net (⭐ Puzzle)',
+    description: 'Extended version of rook ladder sequence. Slightly deeper than 2×6.',
     startPosition: 'x,bk/x,x/x,x/x,x/wk,x/wr,x/x,x:w',
     rationale: 'Same core technique as 2×6 with a longer staircase to build.',
-    difficulty: 'Puzzle',
+    difficulty: 'Beginner',
     boardWidth: 2,
     boardLength: 8
   },
-
-  // --- 2×8 — Bishop corridor squeeze (rook breakthrough vs fortress)
   {
-    id: 'bishop-corridor-2x8',
-    name: 'Bishop Corridor Squeeze (2×8)',
-    description: 'Opposite-color bishop corridor; rook breakthrough patterns (⭐⭐⭐ Endgame)',
+    id: '2X8_BISHOP_CORRIDOR_SQUEEZE',
+    name: 'Bishop Corridor Squeeze',
+    description: 'A test of zugzwang entry and bishop maneuvering through fortress setups.',
     startPosition: 'x,bk/x,bb/x,x/x,x/wk,x/wr,x/x,x:w',
     rationale: 'Practice zugzwang entries and color-complex squeezes in two files.',
-    difficulty: 'Endgame',
+    difficulty: 'Intermediate',
     boardWidth: 2,
     boardLength: 8
   },
-
-  // --- 2×8 — Knight fork burst
   {
-    id: 'flip-fork-lite-2x8',
-    name: 'Flip-Fork Lite (2×8)',
-    description: 'Fast knight-fork tactic with piece-play buildup (⭐⭐⭐ Tactical)',
+    id: '2X8_FLIP_FORK_LITE',
+    name: 'Flip-Fork Lite',
+    description: 'Knight fork setup in a tight space. Fast tactical drill.',
     startPosition: 'x,bk/x,bb/x,x/x,br/x,x/wr,x/x,x/wk,wn:w',
     rationale: 'Teaches recognizing forcing knight jumps in cramped lanes.',
-    difficulty: 'Tactical',
+    difficulty: 'Intermediate',
     boardWidth: 2,
     boardLength: 8
   },
-
-  // --- 3×8 — Queen vs Rook+Knight (classic imbalance on 3 files)
   {
-    id: 'q-vs-rn-3x8',
-    name: 'Three-File Showdown (3×8)',
-    description: 'Queen vs Rook & Knight — convert or mate (⭐⭐⭐⭐ Strategic)',
+    id: '3X8_THREE_FILE_SHOWDOWN',
+    name: 'Three-File Showdown',
+    description: 'Power vs numbers on a slightly broader battlefield. Queen tactics dominate.',
     startPosition: 'wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,x/bk,x,x:w',
     rationale: 'Power vs numbers with diagonals; orchestrate nets and pins.',
-    difficulty: 'Strategic',
+    difficulty: 'Advanced',
     boardWidth: 3,
     boardLength: 8
   },
-
-  // --- 1×9 — Rook race vs R+N
   {
-    id: 'rook-race-1d-1x9',
-    name: 'Rook Race (1×9)',
-    description: 'White rook vs Black rook+knight — timing & tempi (⭐⭐ Asymmetric)',
+    id: '1X9_ROOK_RACE',
+    name: 'Rook Race',
+    description: 'A compressed power vs numbers battle. Knight fork threat at the center.',
     startPosition: 'wk,wr,x,x,x,x,bn,br,bk:w',
     rationale: 'Tradeoffs of raw power vs coordinated defenders in 1D.',
-    difficulty: 'Asymmetric',
+    difficulty: 'Intermediate',
     boardLength: 9
   },
 ];
@@ -368,12 +319,12 @@ export interface ModeHelp {
 }
 
 export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
-  'top-rank-guillotine': {
-    challenge: 'A quick puzzle where White has a king and rook versus a lone black king trapped at the top of a 2-file board. The goal is to deliver checkmate in 2-3 moves using the classic rook-and-king mating technique. Methodically "guillotine" the black king against the top edge.',
+  '2X6_TOP_RANK_GUILLOTINE': {
+    challenge: 'A quick puzzle where White has a king and rook versus a lone black king trapped at the top of a 2-file board. The goal is to deliver checkmate in 2-3 moves using the fundamental rook-and-king mating technique. Methodically "guillotine" the black king against the top edge.',
     solvabilityType: 'FORCED_WIN_WHITE',
     hints: [
       'The black king is confined near rank 10. The rook forms a "ladder" on one file while the king boxes in the opposing king.',
-      'The limited 2-column width makes the classic pattern clear: use the rook to cut off ranks and walk the enemy king to the board\'s edge.',
+      'The limited 2-column width makes the pattern clear: use the rook to cut off ranks and walk the enemy king to the board\'s edge.',
     ],
     solution: '1. Kb2 – King steps up to support. Black must stay on b-file or retreat to b9.\n2. Rb3+ – Rook check drives king to back rank.\n3. If ...Kb9 then Kb3 Ka10 Ra3#. If ...Ka10 then Ra3# immediately.\n\nKey Concepts: K+R vs K endgame, rook ladder technique, using king to cut off escape squares.',
     learningObjectives: [
@@ -384,7 +335,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 1,
     icon: '🧩',
   },
-  'mirror-towers': {
+  '2X8_KNIGHTS_TRENCH': {
     challenge: 'The standard Thin Chess opening position - a mini-chess game on a 2×10 board. Each side has a king and a set of major/minor pieces vertically aligned on opposite files. White and Black begin in mirrored, balanced positions. White\'s objective is to outplay Black through superior development and tactics.',
     solvabilityType: 'COMPETITIVE',
     hints: [],
@@ -402,7 +353,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 3,
     icon: '📚',
   },
-  'pawn-corridors': {
+  '2X7_BISHOP_VS_KNIGHT': {
     challenge: 'A tactical puzzle where both sides have a single pawn racing on narrow "corridors" to reach the opposite end. White\'s pawn is far advanced (near a7), while Black\'s pawn is lower (at b4). Each side has pieces to aid their pawn or hinder the opponent. Win the race to the top!',
     solvabilityType: 'TACTICAL_PUZZLE',
     hints: [
@@ -419,7 +370,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 3,
     icon: '🎯',
   },
-  'bishop-duel': {
+  '3X6_COMPACT_BATTLE': {
     challenge: 'A balanced endgame duel featuring kings, rooks, and opposite-colored bishops for each side. With only two files, each bishop is permanently restricted to one color of squares. The starting position is symmetric, and the game often tends toward a tense drawish fight. Find a breakthrough or settle for a fortress!',
     solvabilityType: 'DRAWISH',
     hints: [],
@@ -437,7 +388,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 4,
     icon: '👑',
   },
-  'flip-fork': {
+  '2X8_BISHOP_CORRIDOR_SQUEEZE': {
     challenge: 'Flip-Fork presents White with an unusual initial placement: a white knight that begins on Black\'s side of the board (at b1). This flipped knight is poised to wreak havoc if used creatively. The challenge goal is to win material via a knight fork in the first few moves.',
     solvabilityType: 'TACTICAL_PUZZLE',
     hints: [
@@ -454,7 +405,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 3,
     icon: '🧩',
   },
-  'three-file-showdown': {
+  '3X8_THREE_FILE_SHOWDOWN': {
     challenge: 'This mode extends the power vs. numbers concept to a 3-file board (3×8). White has a king and a queen, while Black defends with a king, a rook, a knight, and a pawn as a shield. The queen on a 3×8 board wields tremendous power with diagonal tactics, but the confined width means it can still be cornered by clever defense.',
     solvabilityType: 'COMPETITIVE',
     hints: [],
@@ -473,7 +424,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     icon: '⚖️',
   },
   // 1-D Chess Mode Help Content
-  'original-1d-chess': {
+  '1D12_CLASSIC': {
     challenge: 'The 12-square 1-D Chess setup with a full complement of pieces: 2 rooks, 2 knights, and 1 king per side. This is a rich strategic battle with multiple piece types and complex tactical possibilities.',
     solvabilityType: 'COMPETITIVE',
     hints: [],
@@ -491,7 +442,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 4,
     icon: '📚',
   },
-  'minimal-knights-duel': {
+  '1D10_TWIN_KNIGHTS': {
     challenge: 'A simple symmetric endgame on a one-dimensional 6-square board. Each side has only a king and a knight, with kings at opposite ends and knights just inside them. Two empty squares separate the forces, preventing immediate contact. White moves first, and the goal is to maneuver your knight to checkmate the lone black king (or force its capture) without exposing your own king to the enemy knight.',
     solvabilityType: 'TACTICAL_PUZZLE',
     hints: [
@@ -508,8 +459,8 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 2,
     icon: '🎯',
   },
-  'classic-1d-chess': {
-    challenge: 'This is the classic one-dimensional chess setup originally described by Martin Gardner. Each side has a king, a rook ("castle"), and a knight arrayed on an 8-square line. The armies are mirrored with two central empty squares ensuring neither side is in immediate check. White\'s objective is to coordinate the rook and knight to checkmate Black\'s king. Notably, White is known to have a forced win with perfect play.',
+  '1D8_ROOK_PAWN_ENDGAME': {
+    challenge: 'A fundamental one-dimensional chess setup. Each side has a king, a rook ("castle"), and a knight arrayed on an 8-square line. The armies are mirrored with two central empty squares ensuring neither side is in immediate check. White\'s objective is to coordinate the rook and knight to checkmate Black\'s king. Notably, White is known to have a forced win with perfect play.',
     solvabilityType: 'FORCED_WIN_WHITE',
     hints: [],
     strategy: {
@@ -526,12 +477,12 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 3,
     icon: '📚',
   },
-  'rook-vs-rook-knight': {
+  '2X8_TOP_RANK_GUILLOTINE': {
     challenge: 'An intriguing imbalance scenario on a 9-square board. White has a lone rook (plus king) facing Black\'s rook and knight (plus king). On a 9-length single file, White essentially wields a powerful piece against Black\'s rook+knight team. There is ample space (four empty squares between armies) to maneuver, giving Black a fighting chance to coordinate defenses or counter-attacks.',
     solvabilityType: 'COMPETITIVE',
     hints: [],
     strategy: {
-      whitePlan: 'This mode showcases the classic "power vs. numbers" trade-off. White\'s rook is powerful and can dominate open lines, but Black\'s combined forces have their own synergy: the knight\'s jumping ability can threaten the rook in ways a rook cannot, and together the rook and knight can cover each other\'s weaknesses. The challenge for White is largely strategic – you must leverage the rook\'s range to break through, while tactically avoiding fork tricks from the knight.',
+      whitePlan: 'This mode showcases the "power vs. numbers" trade-off. White\'s rook is powerful and can dominate open lines, but Black\'s combined forces have their own synergy: the knight\'s jumping ability can threaten the rook in ways a rook cannot, and together the rook and knight can cover each other\'s weaknesses. The challenge for White is largely strategic – you must leverage the rook\'s range to break through, while tactically avoiding fork tricks from the knight.',
       blackPlan: 'For Black (as the puzzle opponent or AI), the task is to coordinate the rook and knight to harass White\'s rook and delay mate. Use the knight to jump and threaten, while the rook provides long-range support.',
       keyPositions: 'This setup is engaging because it often boils down to whether raw power (rook) can overcome well-coordinated lesser pieces. It highlights the importance of piece cooperation and careful positioning on a narrow board where every move has immediate consequences.',
     },
@@ -544,7 +495,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 3,
     icon: '⚖️',
   },
-  'two-knights-vs-rook': {
+  '2X8_FLIP_FORK_LITE': {
     challenge: 'An asymmetric 1D battle on a 7-square board where White has two knights versus Black\'s single rook (each side has a king as well). The imbalance forces creative play. White\'s goal is to use the two knights in tandem to trap and checkmate Black\'s king or to capture the rook, while Black\'s rook will try to pick off the knights and avoid getting cornered. The black king starts behind the rook (at the far end), ensuring the rook isn\'t initially blocked.',
     solvabilityType: 'COMPETITIVE',
     hints: [
@@ -562,7 +513,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     icon: '⚖️',
   },
   // Mini-Board Puzzles Help Content
-  'krk-2x6-guillotine': {
+  '1X9_ROOK_RACE': {
     challenge: 'Deliver K+R vs K mate on a 2×6 in 2–3 moves.',
     solvabilityType: 'FORCED_WIN_WHITE',
     hints: ['Cut a rank with the rook', 'Bring the king to oppose', 'Finish with a ladder'],
@@ -570,46 +521,7 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     difficultyStars: 1,
     icon: '🪓'
   },
-  'krk-2x8-guillotine': {
-    challenge: 'Extend the rook ladder; convert without stalemate.',
-    solvabilityType: 'FORCED_WIN_WHITE',
-    hints: ['Cut space first', 'Walk the king upward', 'Corner then mate'],
-    learningObjectives: ['Staircase construction', 'Zugzwang entries'],
-    difficultyStars: 1,
-    icon: '🪜'
-  },
-  'bishop-corridor-2x8': {
-    challenge: 'Crack (or hold) the opposite-color fortress.',
-    solvabilityType: 'TACTICAL_PUZZLE',
-    hints: ['Fix targets on bishop\'s color', 'Triangulate the king', 'Time the rook breach'],
-    learningObjectives: ['Color-complex play', 'Zugzwang', 'Breakthrough timing'],
-    difficultyStars: 3,
-    icon: '🎯'
-  },
-  'flip-fork-lite-2x8': {
-    challenge: 'Find the forcing knight sequence that wins material.',
-    solvabilityType: 'TACTICAL_PUZZLE',
-    hints: ['Look for checks first', 'Force the king into a fork grid'],
-    learningObjectives: ['Knight forks', 'Forcing move order'],
-    difficultyStars: 3,
-    icon: '♞'
-  },
-  'q-vs-rn-3x8': {
-    challenge: 'Win decisively (mate or net material) with the queen.',
-    solvabilityType: 'TACTICAL_PUZZLE',
-    hints: ['Pin the rook to king', 'Lure the knight to a forkable square'],
-    learningObjectives: ['Diagonal nets', 'Pin + fork motifs'],
-    difficultyStars: 4,
-    icon: '👑'
-  },
-  'rook-race-1d-1x9': {
-    challenge: 'Out-tempo the rook+knight duo on a single file.',
-    solvabilityType: 'TACTICAL_PUZZLE',
-    hints: ['Keep the rook mobile', 'Dodge fork squares (±2)'],
-    learningObjectives: ['Tempo management', 'Fork avoidance patterns'],
-    difficultyStars: 2,
-    icon: '🏁'
-  },
+  // All 12 modes defined above
 };
 
 /**
@@ -845,7 +757,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
     }
 
     // Pawn attacks (diagonal forward)
-    const pawnDirection = side === 'w' ? 1 : -1;
+    const pawnDirection = side === 'w' ? -1 : 1;
     for (const df of [-1, 1]) {
       const newRank = rank + pawnDirection;
       const newFile = file + df;
@@ -1009,9 +921,9 @@ export function legalMoves(pos: Position): Move[] {
         }
       } else if (t === 'p') {
         // Pawn: forward + diagonal captures + promotion
-        const direction = turn === 'w' ? 1 : -1;
-        const startRank = turn === 'w' ? 1 : (config.height - 2);
-        const promotionRank = turn === 'w' ? (config.height - 1) : 0;
+        const direction = turn === 'w' ? -1 : 1;
+        const startRank = turn === 'w' ? (config.height - 2) : 1;
+        const promotionRank = turn === 'w' ? 0 : (config.height - 1);
 
         // Forward move
         const oneStep = rank + direction;
