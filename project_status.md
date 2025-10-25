@@ -1,76 +1,159 @@
-# Thin Chess — Project Status
+# 1-D Chess & Thin Chess — Project Status
 
 **Status: ✅ PRODUCTION READY**
 _Last updated: 2025-10-24_
 
 ## 1) Overview
-Thin Chess is a minimalist 1×12 chess variant presented on a single column of squares. Pieces: king (±1), rook (any distance), knight (±2 jump). Kings cannot move into check. This web app provides an interactive board, perfect-play AI opponent, game over detection, position editor, sound effects, and full PWA offline support. Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtrafny.github.io](https://jmtrafny.github.io)).
+This project features two minimalist chess variants:
+- **1-D Chess (1×12)**: A single-file chess variant with Kings, Rooks, and Knights. Features a perfect-play solver.
+- **Thin Chess (2×10)**: A 2-file, 10-rank variant with all standard pieces (K, R, N, B, P). Includes 5 curated tactical challenges.
+
+Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtrafny.github.io](https://jmtrafny.github.io)).
 
 ## 2) Current Implementation
 
 **Stack:**
-- **React 19** + **TypeScript** + **Vite 7** (~1166 total LOC)
+- **React 19** + **TypeScript** + **Vite 7** (~1400 total LOC)
 - **Vanilla CSS** with CSS custom properties (dark theme with gradient background)
 - **GitHub Pages** deployment via GitHub Actions
 - **PWA** with service worker and manifest.json
 
 **Features Implemented:**
-- ✅ Interactive 1×12 board with legal move highlighting
+
+### Core Game Engine
+- ✅ Interactive boards for both variants with legal move highlighting
+- ✅ Variant selector on startup (1-D Chess, Thin Chess, Thin Chess Challenges)
 - ✅ Two game modes: 1-player (vs AI) and 2-player (local)
-- ✅ Perfect-play AI using tri-valued negamax solver with transposition table
 - ✅ Automatic game over detection (stalemate/checkmate) with visual banner
 - ✅ Draw by repetition detection and claim button
 - ✅ Resignation option with confirmation dialog
-- ✅ Sound effects for moves, captures, and game outcomes
-- ✅ Mute toggle with localStorage persistence
 - ✅ Undo/Redo with full history management
 - ✅ Position editor with load/copy functionality
-- ✅ SVG chess pieces (6 high-quality graphics with transparent backgrounds)
+- ✅ Responsive design optimized for mobile and desktop
+
+### 1-D Chess Specific
+- ✅ Perfect-play AI using tri-valued negamax solver with transposition table
+- ✅ Instant position evaluation (WIN/LOSS/DRAW with depth)
+- ✅ Cached solver results for repeated positions
+
+### Thin Chess Specific
+- ✅ Full 2D chess movement (King, Rook, Knight, Bishop, Pawn)
+- ✅ Pawn promotion to any piece
+- ✅ Diagonal bishop movement
+- ✅ Random-move AI (game tree too large for perfect solver)
+- ✅ **5 Curated Challenges** with progressive hint system:
+  1. **🧩 Top-Rank Guillotine** (⭐ Beginner) - Mate in 2-3 puzzle
+  2. **📚 Mirror Towers** (⭐⭐⭐ Advanced) - Standard opening
+  3. **🎯 Pawn Corridors** (⭐⭐⭐ Intermediate) - Promotion race
+  4. **👑 Bishop Duel** (⭐⭐⭐⭐ Advanced) - Fortress warfare
+  5. **🧩 Flip-Fork** (⭐⭐⭐ Intermediate) - Knight fork tactics
+
+### Challenge Mode Features
+- ✅ Mode cards with type icons (🧩 Puzzle, 📚 Baseline, 🎯 Tactical, 👑 Endgame)
+- ✅ Difficulty stars (⭐ 1-5 scale)
+- ✅ "?" help button on each mode card
+- ✅ Progressive hint system (Hint 1 → Hint 2 → Full Solution)
+- ✅ Strategic guidance for competitive modes
+- ✅ Learning objectives for each challenge
+- ✅ Solvability indicators (Forced Win, Tactical Puzzle, Competitive, Drawish)
+
+### Audio & Visual
+- ✅ Sound effects for moves, captures, and game outcomes
+- ✅ Mute toggle with localStorage persistence
+- ✅ SVG chess pieces (10 high-quality graphics with transparent backgrounds)
+- ✅ Alternating checkerboard pattern for 2×10 board
+- ✅ Coordinate labels for both variants
+
+### PWA & Deployment
 - ✅ PWA install button (appears when app is installable)
 - ✅ Custom domain (thinchess.com) with HTTPS
 - ✅ Open Graph meta tags for rich social media previews
 - ✅ Fully offline-capable after first load
-- ✅ Responsive design optimized for mobile and desktop
+- ✅ Service worker with network-first strategy
 
 **UI Design:**
 - Minimalist single-panel layout (no sidebar, no clutter)
-- Header: Title (left) + Sound toggle + Install button (right, conditional)
-- Central board with coordinate numbers (1-12) aligned to squares
+- Header: Dynamic title showing variant/mode + Sound toggle + Install button (conditional)
+- Central board with coordinate labels (1-12 for 1-D, a-b/1-10 for Thin)
 - Controls: New Game, Undo, Redo (3-column grid)
 - Peace Treaty button: Dual-purpose resign/draw claim with dynamic styling
 - Position Editor in collapsible details section
-- Modal dialogs for game mode selection and color picker
+- Modal dialogs for variant selection, mode pack, game mode, and help
 - Game-over banner with animation when game ends
-- Sound effects enhance gameplay feedback
+- Help modal with progressive hint reveal system
 
 **Default State:**
-- Game starts immediately in 1-player mode
-- User plays as white (AI plays black)
-- Board shows starting position: `bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w`
+- Game starts with variant selection modal
+- Three options: 1-D Chess, Thin Chess, Thin Chess Challenges
+- After variant selected, choose 1-player or 2-player mode
+- 1-player mode prompts for color selection
 
 ## 3) Architecture Decisions
 
+### Multi-Variant System
+**Decision:** Unified engine with variant parameter (`'thin'` | `'skinny'`) supporting different board sizes.
+**Rationale:** Code reuse for common logic (check detection, move application) while allowing variant-specific movement generation.
+
+**Internal Naming (Code):**
+- `'thin'` = 1-D Chess (1×12)
+- `'skinny'` = Thin Chess (2×10)
+
+**User-Facing Naming:**
+- "1-D Chess" = 1-D Chess (1×12)
+- "Thin Chess" = Thin Chess (2×10)
+- "Thin Chess Challenges" = Curated mode pack
+
+**Implementation:**
+- `BoardConfig` interface defines dimensions for each variant
+- `CONFIGS` object maps variant types to configurations
+- All engine functions accept `Position` with embedded variant field
+- Position encoding/decoding handles both formats (comma-separated vs rank-separated)
+
+### Thin Chess AI Strategy
+**Problem:** Thin Chess (2×10) has exponentially larger game tree than 1-D Chess (1×12).
+**Solution:** Random move selection for Thin Chess instead of perfect solver.
+**Rationale:**
+- Branching factor ~11 moves average in Thin Chess vs ~5 in 1-D Chess
+- Depth-20 search hits max depth 47,549 times, freezing browser
+- Random AI provides playable opponent for casual games and mode challenges
+
+### Challenge Mode System
+**Decision:** Built-in help system with progressive hints instead of external documentation.
+**Rationale:**
+- Prevents frustration (users can get help without leaving the app)
+- Progressive disclosure (hints before full solution)
+- Educational value (learning objectives explain concepts)
+- Better UX than forcing users to search for solutions
+
+**Data Structure:**
+```typescript
+interface ModeHelp {
+  challenge: string;
+  solvabilityType: 'FORCED_WIN_WHITE' | 'TACTICAL_PUZZLE' | 'COMPETITIVE' | 'DRAWISH';
+  hints: string[];
+  solution?: string;
+  strategy?: { whitePlan, blackPlan, keyPositions };
+  learningObjectives: string[];
+  difficultyStars: 1 | 2 | 3 | 4 | 5;
+  icon: '🧩' | '⚖️' | '📚' | '🎯' | '👑';
+}
+```
+
 ### UI Simplification
-**Decision:** Removed right instruction panel, solver display, side-to-move indicator, and status messages.
-**Rationale:** Keep the experience clean and game-focused. Users learn by playing, not reading instructions. The board state is self-explanatory.
+**Decision:** Removed right instruction panel, solver display (for Thin Chess), side-to-move indicator.
+**Rationale:** Keep experience clean and game-focused. Users learn by playing. Board state is self-explanatory.
 
 ### Game Flow
-1. **New Game button** → Modal with game mode selection (1-player / 2-player)
-2. **1-player mode** → Color picker modal (white / black)
-3. **2-player mode** → Game starts immediately
-4. **Gameplay** → Click piece to select, click target to move
-5. **Game over** → Banner displays result, board/buttons disabled
-
-### AI Implementation
-- **Solver:** Tri-valued negamax (WIN/LOSS/DRAW) with transposition table
-- **Depth limit:** MAX_DEPTH = 50 to prevent stack overflow
-- **AI delay:** 500ms artificial "thinking" time for better UX
-- **Trigger:** useEffect watches `pos.turn` and calls `makeAIMove()` when it's AI's turn
-- **Prevention:** `aiThinking` flag prevents double-triggering and user moves during AI turn
+1. **Startup** → Variant selection modal (1-D Chess / Thin Chess / Thin Chess Challenges)
+2. **Mode Pack** (optional) → Grid of 5 challenge cards with help buttons
+3. **Game Mode** → 1-player or 2-player selection
+4. **1-player Mode** → Color picker modal (white / black)
+5. **Gameplay** → Click piece to select, click target to move
+6. **Game Over** → Banner displays result, board/buttons disabled
 
 ### Service Worker Strategy
 **Problem:** Initial cache-first strategy caused stale cache issues (white screen on updates).
-**Solution:** Implemented **Network First** for HTML/JS/CSS/JSON (always fetch fresh, cache as fallback) and **Cache First** for static assets (SVG, images).
+**Solution:** **Network First** for HTML/JS/CSS/JSON (always fetch fresh, cache as fallback) and **Cache First** for static assets (SVG, images).
 **Cache versions:** `thin-chess-v2` and `thin-chess-static-v2` (bumped from v1 to force invalidation).
 **Dev mode:** Service worker disabled in development (`import.meta.env.PROD` check in main.tsx).
 
@@ -85,30 +168,16 @@ Thin Chess is a minimalist 1×12 chess variant presented on a single column of s
 - CNAME record for www subdomain → jmtrafny.github.io
 - HTTPS automatically provisioned via Let's Encrypt
 
-### Sound System
-**Audio Management:** Preloaded HTML5 Audio with volume control (default 0.5)
-**Sound Effects:**
-- Move sound: Plays when piece moves to empty square
-- Capture sound: Plays when piece takes another piece
-- Victory/Defeat/Draw sounds: Play based on game outcome and player side
-**Mute Toggle:** 🔊/🔇 button in header, state persists in localStorage
-**Error Handling:** Graceful fallback if sounds missing or autoplay blocked
-**Files:** 5 MP3 files in public/sounds/ (move, capture, victory, defeat, draw)
-
-### Social Media Integration
-**Open Graph Tags:** Full meta tags for Facebook, Twitter, LinkedIn rich previews
-**Banner Image:** Custom 1200×630px banner at public/banner.png
-**Description:** "Play Thin Chess - a 1×12 chess variant... can you beat the perfect-play AI? (hint: yes)"
-**Testing:** Use Facebook Sharing Debugger, Twitter Card Validator to verify
-
 ### State Management
 - **React hooks** for all state (no Redux/context needed for this scale)
 - **History management:** Array of encoded positions with index pointer for undo/redo
-- **Game modes:** TypeScript union type `'1player' | '2player' | null`
-- **PWA install:** Captures `beforeinstallprompt` event, shows install button conditionally
-- **Sound muted:** Boolean state synced with localStorage
+- **Variant tracking:** Current variant stored in position object
+- **Mode selection:** Selected mode stored in state, displayed in header
+- **Help modal:** Progressive hint level state (0 = no hints, 1/2 = hints revealed, 3 = solution)
 
 ## 4) Rules (source of truth for engine)
+
+### 1-D Chess (1×12)
 - **Board**: 1 file of 12 ranks (indexed 0..11 internally, displayed as 1..12 top→bottom)
 - **Pieces**: `k`, `r`, `n` with side `w`/`b`
 - **Moves**: `k` moves ±1; `n` jumps ±2 (leaper; color-bound); `r` slides any distance ±1 direction. All captures by displacement. Rooks cannot jump over pieces. Knights ignore intervening squares. Kings may not move into check.
@@ -116,42 +185,65 @@ Thin Chess is a minimalist 1×12 chess variant presented on a single column of s
 - **Repetition**: twofold repetition (position appears 2+ times) can be claimed as **draw** via UI button
 - **Resignation**: players can resign at any time with confirmation dialog
 
+### Thin Chess (2×10)
+- **Board**: 2 files (a, b) of 10 ranks = 20 squares (indexed row-major 0..19)
+- **Pieces**: `k`, `r`, `n`, `b`, `p` with side `w`/`b`
+- **Moves**: Standard chess movement adapted to 2D board
+  - King: 8 directions (±1 orthogonal, ±1 diagonal)
+  - Rook: Orthogonal sliding (up/down/left/right)
+  - Knight: L-shape (2 in one direction, 1 perpendicular)
+  - Bishop: Diagonal sliding (4 diagonal directions)
+  - Pawn: Forward 1, captures diagonally forward, promotes on opposite rank
+- **Same rules**: Check, checkmate, stalemate, repetition, resignation
+
 ## 5) Position Encoding
+
+### 1-D Chess (1×12)
 - 12 comma-separated tokens, top→bottom. Token set: `x` for empty; otherwise `[wb][krn]`
 - Append the side to move as `:w` or `:b`
 - Example (default start): `bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w`
 - **Internal representation:** `.` used for empty cells (converted from/to `x` in encode/decode)
+
+### Thin Chess (2×10)
+- Ranks separated by `/`, each rank has two cells separated by `,`
+- Token set: `x` for empty; otherwise `[wb][krnbp]`
+- Append side to move as `:w` or `:b`
+- Example: `x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w`
 
 ## 6) Files & Structure
 
 ```
 jmtrafny.github.io/
 ├── src/
-│   ├── engine.ts          # Move generation, legality, terminal detection, encode/decode
-│   ├── solver.ts          # Tri-valued negamax with TT and cycle detection
-│   ├── audio.ts           # Sound effects management (preload, play, mute control)
-│   ├── App.tsx            # Main React component (~420 lines)
-│   ├── App.css            # Styling with CSS custom properties (~400 lines)
+│   ├── engine.ts          # Multi-variant move generation, encoding, terminal detection
+│   ├── solver.ts          # Tri-valued negamax with TT (used for 1-D Chess)
+│   ├── audio.ts           # Sound effects management
+│   ├── App.tsx            # Main React component (~650 lines)
+│   ├── App.css            # Styling with variant-specific layouts (~730 lines)
 │   ├── main.tsx           # React entry point, PWA service worker registration
 │   └── vite-env.d.ts      # TypeScript environment definitions
 ├── public/
-│   ├── pieces/            # SVG chess piece graphics (6 files: wk,wr,wn,bk,br,bn)
+│   ├── pieces/            # SVG chess piece graphics (10 files: wk,wr,wn,wb,wp,bk,br,bn,bb,bp)
 │   ├── sounds/            # Sound effects (move, capture, victory, defeat, draw MP3s)
-│   ├── chess.svg          # App icon (used in manifest)
+│   ├── chess.svg          # App icon
+│   ├── white-pawn.svg     # Title icon
 │   ├── banner.png         # Social media Open Graph banner (1200×630px)
 │   ├── manifest.json      # PWA manifest
 │   ├── sw.js              # Service worker with network-first strategy
 │   └── CNAME              # Custom domain file (thinchess.com)
 ├── .github/workflows/
 │   └── deploy.yml         # GitHub Actions deployment workflow
+├── README.md              # Project overview and usage
+├── DEVELOPER.md           # Developer documentation
+├── THIN_CHESS_MODES.md    # Detailed challenge mode documentation
+├── project_status.md      # This file
 ├── index.html             # HTML entry point with Open Graph meta tags
-├── vite.config.ts         # Vite configuration (base: '/', terser minify)
-├── package.json           # Dependencies (React 19, TypeScript, Vite)
-├── tsconfig.json          # TypeScript configuration
-└── project_status.md      # This file
+├── vite.config.ts         # Vite configuration
+├── package.json           # Dependencies
+└── tsconfig.json          # TypeScript configuration
 ```
 
-**Total codebase:** ~1166 lines of TypeScript/TSX/CSS (excluding config/deps)
+**Total codebase:** ~1400 lines of TypeScript/TSX/CSS (excluding config/deps)
 
 ## 7) Development Notes
 
@@ -170,166 +262,109 @@ npm run preview    # Preview production build locally
 ### Deployment
 Push to `main` branch → GitHub Actions automatically builds and deploys to GitHub Pages → Live at **thinchess.com**
 
-**Custom Domain Setup:**
-1. Create `public/CNAME` with domain name
-2. Configure DNS A records (4× GitHub Pages IPs)
-3. Configure DNS CNAME for www subdomain
-4. Enable "Enforce HTTPS" in GitHub Pages settings
-5. Wait for Let's Encrypt SSL certificate provisioning
-
-### Service Worker Behavior
-- **Development:** SW disabled (only registers in production)
-- **Production:** SW uses network-first strategy for app code
-- **Cache invalidation:** Bump `CACHE_NAME` version in `public/sw.js` to force updates
-- **Testing:** Use "Unregister" in DevTools > Application > Service Workers if needed
-
-### Sound System
-- **Adding sounds:** Place MP3 files in `public/sounds/` (move, capture, victory, defeat, draw)
-- **Sources:** Pixabay (CC0), Freesound.org (Creative Commons)
-- **Recommended sizes:** < 100KB per file
-- **Testing:** Sound gracefully fails if files missing (console.debug only)
-- **Mute persistence:** Stored in localStorage as `thin-chess-muted`
-
-### PWA Install Button
-- Only shows when browser fires `beforeinstallprompt` event
-- Hidden in dev mode since SW is disabled
-- Works on Chrome, Edge, Safari (iOS 16.4+), and other Chromium browsers
-- Disappears after successful installation
-
-### Social Media Sharing
-- **Testing previews:** Use Facebook Sharing Debugger, Twitter Card Validator
-- **Updating banner:** Replace `public/banner.png` (1200×630px recommended)
-- **Force refresh:** Use social platform debuggers to clear cache and re-scrape
-
-### Position Editor
-- Access via "Position Editor" details section
-- Paste position code → Load button
-- Current position displayed in readonly textarea
-- Copy button copies to clipboard
-
 ### Known Limitations
-- **Solver depth limit:** MAX_DEPTH = 50 to prevent stack overflow on complex positions
-- **No opening book:** Solver computes from scratch each move (cached in TT during game)
+- **1-D Chess solver depth limit:** MAX_DEPTH = 50 to prevent stack overflow
+- **Thin Chess AI:** Random moves only (no perfect solver due to complexity)
+- **No opening book:** Solver/AI computes from scratch each move
 - **No undo during AI turn:** Buttons disabled while AI is thinking
 - **No move animation:** Instant position updates (future enhancement)
-- **Sound effects:** Require manual download from Pixabay/Freesound (not included in repo)
-- **Repetition detection:** Requires manual claim (no automatic draw after threefold repetition)
+- **Repetition detection:** Requires manual claim (no automatic draw after threefold)
 
 ## 8) Goals Achieved
 
 ### MVP Goals ✅
-- ✅ Playable UI with touch/mouse support and legal-move highlighting
-- ✅ Correct rule implementation (legal moves, check, checkmate, stalemate)
-- ✅ Built-in solver with tri-valued outcomes and transposition table
-- ✅ Position I/O with human-readable encoding
-- ✅ PWA with offline support and install prompt
+- ✅ Two playable variants with distinct strategic depth
+- ✅ Correct rule implementation for both variants
+- ✅ Perfect-play solver for 1-D Chess
+- ✅ Random-move AI for Thin Chess
+- ✅ Position I/O with variant-aware encoding
+- ✅ PWA with offline support
 - ✅ GitHub Pages hosting with automated CI/CD
 
+### Thin Chess Challenges ✅
+- ✅ 5 curated tactical/strategic positions
+- ✅ Progressive hint system (3 levels)
+- ✅ Full solutions with move explanations
+- ✅ Solvability indicators
+- ✅ Learning objectives
+- ✅ Difficulty ratings (1-5 stars)
+- ✅ Type icons and badges
+- ✅ In-app help modal
+
 ### Additional Features Implemented
-- ✅ AI opponent with configurable player color
-- ✅ 2-player local mode
-- ✅ Game over detection with visual feedback
-- ✅ Sound effects for moves, captures, and game outcomes
-- ✅ Mute toggle with localStorage persistence
-- ✅ Custom domain (thinchess.com) with HTTPS
-- ✅ Open Graph meta tags for rich social media sharing
-- ✅ Undo/Redo with full history
-- ✅ High-quality SVG chess pieces
-- ✅ Responsive design optimized for mobile
-- ✅ Clean, minimalist UI without clutter
+- ✅ Multi-variant architecture
+- ✅ Variant selector on startup
+- ✅ Dynamic board rendering (1×12 and 2×10)
+- ✅ Sound effects with mute toggle
+- ✅ Custom domain with HTTPS
+- ✅ Open Graph social media tags
+- ✅ Undo/Redo system
+- ✅ Draw by repetition detection
+- ✅ Resignation with confirmation
+- ✅ Responsive mobile design
 
 ### Future Enhancements (Stretch Goals)
-- ⏳ URL share (`?pos=`) with compressed state
-- ⏳ Endgame tablebase cache in `localStorage`
-- ⏳ Opening trainer mode with puzzles
-- ⏳ Sound effects and haptics
-- ⏳ Theme toggle (light/dark/high-contrast)
+- ⏳ Additional Thin Chess challenge modes
+- ⏳ Opening trainer mode for 1-D Chess
 - ⏳ Move animation
 - ⏳ Move history display
-- ⏳ Export game as PGN or similar format
+- ⏳ Position sharing via URL
+- ⏳ Theme toggle (light/dark modes)
+- ⏳ Export game notation
 
 ## 9) Technical Decisions Log
 
-### Why React over vanilla JS?
-- Component structure scales better for modals, board, controls
-- State management with hooks is cleaner than manual DOM updates
-- TypeScript integration is excellent
-- React 19 is fast and modern (no legacy baggage)
+### Why multi-variant architecture?
+- Maximizes code reuse for common logic (check detection, move application)
+- Single codebase easier to maintain than separate apps
+- Unified UI/UX reduces learning curve
+- Position encoding format easily extensible
 
-### Why no state management library?
-- App is simple enough for useState/useEffect
-- No need for Redux/Zustand/Context for ~10 state variables
-- Keeps bundle size small (~150KB gzipped)
+### Why random AI for Thin Chess?
+- Game tree 10-20× larger than 1-D Chess
+- Perfect solver would freeze browser for minutes
+- Random AI provides adequate challenge for casual play
+- Allows focus on curated challenge modes for serious study
 
-### Why SVG pieces over Unicode?
-- Better visual quality across platforms
-- Transparent backgrounds show board colors
-- Scalable to any size without pixelation
-- Easier to customize/theme in future
+### Why progressive hints?
+- Reduces frustration (users don't get stuck)
+- Encourages learning (reveal hints gradually)
+- Maintains challenge (users can choose to solve without hints)
+- Better UX than forcing users to search external documentation
 
-### Why no test suite?
-- This is a fun project, not production software
-- Manual testing during development was sufficient
-- Engine logic is simple enough to verify by playing
-- Test infrastructure removed to reduce complexity
-
-### Why network-first caching?
-- Ensures users always get latest version when online
-- Prevents stale cache bugs (white screen on updates)
-- Still works offline by falling back to cache
-- Static assets use cache-first for performance
-
-### Why 500ms AI delay?
-- Instant moves feel robotic and jarring
-- Brief delay makes AI feel more natural
-- Gives user time to see their move before board changes
-- Prevents accidental double-clicks during AI turn
-
-### Why MAX_DEPTH = 50?
-- Prevents stack overflow on deep positions
-- Most games resolve much faster than depth 50
-- Solver is still strong enough for perfect play in practice
-- Could be increased if needed, but 50 is safe
+### Why 5 challenges instead of 10?
+- Quality over quantity (well-tested, interesting positions)
+- Better difficulty curve (beginner → advanced)
+- Less overwhelming for new players
+- Room to add more challenges in future
 
 ---
 
 ## For Future Contributors / Coding Agents
 
-### Making Changes to the UI
-- Edit `src/App.tsx` for React components and game logic
-- Edit `src/App.css` for styling (uses CSS custom properties in `:root`)
-- Board squares are 64×64px, coordinate numbers are 64px height to align
-- Modal system uses overlay + card pattern with animations
+### Making Changes to Variants
+- Edit `src/engine.ts` for game rules and movement logic
+- BoardConfig system handles dimension differences
+- All functions accept variant parameter via Position object
+- Test both variants after any engine changes
 
-### Making Changes to Game Logic
-- Edit `src/engine.ts` for move generation, legality, terminal detection
-- Edit `src/solver.ts` for AI behavior (negamax, TT, depth limits)
-- Position encoding/decoding happens in `engine.ts` (encode/decode functions)
-- Transposition table can be cleared via `clearTT()` when resetting game
+### Adding New Challenges
+1. Add mode to `SKINNY_MODE_PACK` array in `src/engine.ts`
+2. Add help content to `MODE_HELP_CONTENT` object
+3. Include: challenge, hints, solution, learning objectives, difficulty, icon
+4. Update `THIN_CHESS_MODES.md` documentation
+5. Test mode loads correctly and hints work
 
-### Making Changes to PWA
-- Edit `public/manifest.json` for app metadata (name, colors, icons)
-- Edit `public/sw.js` for caching strategy
-- Remember to bump `CACHE_NAME` version when changing SW logic
-- Service worker only runs in production (disabled in dev)
-
-### Deploying Changes
-1. Commit and push to `main` branch
-2. GitHub Actions runs automatically
-3. Wait ~2 minutes for build + deploy
-4. Visit https://jmtrafny.github.io to see changes
-5. Users may need to close/reopen app to get SW update
-
-### Testing Locally
-- Run `npm run dev` for development server
-- Service worker won't run (disabled in dev mode)
-- Use `npm run build && npm run preview` to test production build with SW
+### Updating Variant Names
+- User-facing: Update strings in `App.tsx`, `index.html`, `README.md`
+- Internal: Keep `'thin'` and `'skinny'` unchanged (avoids breaking positions)
+- Comments: Update in `engine.ts` header
 
 ### Common Pitfalls
-- **Don't change `vite.config.ts` base path** - Must stay `'/'` for user GitHub Pages
-- **Don't forget to bump SW version** when changing caching logic
-- **Don't remove `import.meta.env.PROD` check** from main.tsx SW registration
-- **Don't use cache-first for HTML/JS** - Causes white screen on updates
+- **Don't change internal variant names** (`'thin'`/`'skinny'`) - breaks position encoding
+- **Don't forget to test both variants** after engine changes
+- **Don't skip hint testing** - ensure progressive reveal works correctly
+- **Don't use cache-first for HTML/JS** - causes white screen on updates
 
 ---
 

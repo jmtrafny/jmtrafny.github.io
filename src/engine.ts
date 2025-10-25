@@ -1,13 +1,13 @@
 /**
- * Chess Variants Engine - Thin (1×12) and Skinny (2×10)
+ * Chess Variants Engine - 1-D Chess (1×12) and Thin Chess (2×10)
  *
- * Thin Chess Rules:
+ * 1-D Chess Rules:
  * - Board: 1 file of 12 ranks (indexed 0..11, top→bottom)
  * - Pieces: k (king ±1), r (rook slides), n (knight jumps ±2)
  *
- * Skinny Chess Rules:
+ * Thin Chess Rules:
  * - Board: 2 files of 10 ranks (2×10 grid, indexed row-major)
- * - Pieces: k (king 8-dir), r (rook orthogonal), n (knight L-shape), b (bishop diagonal)
+ * - Pieces: k (king 8-dir), r (rook orthogonal), n (knight L-shape), b (bishop diagonal), p (pawn)
  *
  * Common Rules:
  * - Kings cannot move into check
@@ -101,6 +101,168 @@ export const START_POSITIONS: Record<VariantType, string> = {
 
 // Backward compatibility: default starting position for Thin Chess
 export const START_CODE = START_POSITIONS.thin;
+
+/**
+ * Skinny Chess Mode Pack
+ * Curated starting positions for various strategic and tactical scenarios
+ */
+export interface SkinnyMode {
+  id: string;
+  name: string;
+  description: string;
+  startPosition: string;
+  rationale: string;
+  difficulty: 'Baseline' | 'Tactical' | 'Strategic' | 'Endgame' | 'Puzzle';
+}
+
+export const SKINNY_MODE_PACK: SkinnyMode[] = [
+  {
+    id: 'top-rank-guillotine',
+    name: 'Top-Rank Guillotine',
+    description: 'Beginner: Mate in 2-3 moves',
+    startPosition: 'x,bk/x,x/x,x/x,x/x,x/x,x/wk,x/wr,x/x,x/x,x:w',
+    rationale: 'Classic rook endgame teaching fundamental K+R vs K checkmating technique.',
+    difficulty: 'Puzzle',
+  },
+  {
+    id: 'mirror-towers',
+    name: 'Mirror Towers',
+    description: 'Standard opening - learn the basics',
+    startPosition: 'x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w',
+    rationale: 'Essential baseline position for learning Skinny Chess opening theory and piece development.',
+    difficulty: 'Baseline',
+  },
+  {
+    id: 'pawn-corridors',
+    name: 'Pawn Corridors',
+    description: 'Promotion race - calculate tempo',
+    startPosition: 'x,bk/x,bb/x,bn/x,br/x,x/x,bp/wp,x/wr,x/wn,x/wb,x/wk,x:w',
+    rationale: 'White pawn on a7 ready to promote; tests tempo calculation and piece coordination.',
+    difficulty: 'Tactical',
+  },
+  {
+    id: 'bishop-duel',
+    name: 'Bishop Duel',
+    description: 'No knights - fortress warfare',
+    startPosition: 'x,bk/x,bb/x,x/x,br/x,x/x,x/wr,x/x,x/wb,x/wk,x:w',
+    rationale: 'Pure color-complex strategy showcasing zugzwang and fortress positions.',
+    difficulty: 'Strategic',
+  },
+  {
+    id: 'flip-fork',
+    name: 'Flip-Fork',
+    description: 'Tactical puzzle - win material',
+    startPosition: 'x,bk/x,bb/x,x/x,br/x,x/x,x/wr,x/x,x/wb,x/wk,wn:w',
+    rationale: 'Knight fork pattern: exploit unusual knight position to win material in 3-4 moves.',
+    difficulty: 'Puzzle',
+  },
+];
+
+/**
+ * Mode Help Content
+ * Progressive hints and solutions for each mode
+ */
+export interface ModeHelp {
+  challenge: string;
+  solvabilityType: 'FORCED_WIN_WHITE' | 'TACTICAL_PUZZLE' | 'COMPETITIVE' | 'DRAWISH';
+  hints: string[];
+  solution?: string;
+  strategy?: {
+    whitePlan: string;
+    blackPlan: string;
+    keyPositions: string;
+  };
+  learningObjectives: string[];
+  difficultyStars: 1 | 2 | 3 | 4 | 5;
+  icon: '🧩' | '⚖️' | '📚' | '🎯' | '👑';
+}
+
+export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
+  'top-rank-guillotine': {
+    challenge: 'White has a rook and king versus a lone black king trapped near the top of the board. Your goal is to deliver checkmate in 2–3 moves using the classic rook+king checkmating technique.',
+    solvabilityType: 'FORCED_WIN_WHITE',
+    hints: [
+      'The black king is already trapped on the b-file. Use your king and rook together to cut off escape squares.',
+      'Bring your white king up the a-file to support the rook. The rook should control the b-file while the king approaches.',
+    ],
+    solution: '1. Kb2 – King steps up to support the rook. Black is forced to b9 or stays at b10.\n2. Rb3+ – Rook check drives king to the back rank. If 1…Kb9 then 2.Kb3 Ka10 3.Ra3#. If 1…Ka10 then 2.Ra3#.\n3. Checkmate – King and rook trap the black king.\n\nKey Concepts: Rook ladder, king support, edge checkmate.',
+    learningObjectives: [
+      'Master the fundamental K+R vs K checkmating technique',
+      'Use the rook to cut off files',
+      'Practice basic king opposition in endgames',
+    ],
+    difficultyStars: 1,
+    icon: '🧩',
+  },
+  'mirror-towers': {
+    challenge: 'The standard Skinny Chess opening position with all pieces vertically aligned on opposite files. This is a competitive game where you\'ll learn fundamental opening principles and piece development.',
+    solvabilityType: 'COMPETITIVE',
+    hints: [],
+    strategy: {
+      whitePlan: 'Advance the rook early to control central ranks (5–6 range). Use knight to attack black\'s pieces from unexpected angles. Create threats that black\'s random moves may not address. Look for forks between king and other pieces.',
+      blackPlan: 'Develop pieces quickly to active squares. Keep king safe from knight forks. Use bishop to control diagonal escape routes. Counter-attack when white overextends.',
+      keyPositions: 'Rook on 5th rank often dominates the center. Knight on b-file can fork king+bishop. Bishop controls one color complex entirely.',
+    },
+    learningObjectives: [
+      'Understand piece development in confined space',
+      'Create and exploit tactical threats',
+      'Practice planning 3–4 moves ahead',
+      'Recognize fork patterns on a narrow board',
+    ],
+    difficultyStars: 3,
+    icon: '📚',
+  },
+  'pawn-corridors': {
+    challenge: 'Both sides have one pawn racing toward promotion (white pawn on a7, black pawn on b4). This tactical puzzle tests your ability to calculate promotion races while defending with pieces.',
+    solvabilityType: 'TACTICAL_PUZZLE',
+    hints: [
+      'Count how many moves it takes each pawn to promote. Can you stop your opponent\'s pawn while advancing your own?',
+      'Your rook on a-file can cut across to the b-file to blockade black\'s pawn. Meanwhile, your pawn only needs 1 move to promote from a7.',
+    ],
+    solution: '1. a8=R or a8=Q – Promote immediately. Black\'s pawn is only on b4 and needs several moves to promote.\n2. Use the new piece to support attack – With extra material, coordinate rook/queen with existing pieces.\n3. Stop black\'s pawn if it advances – Rook can shift to b-file (e.g., Ra8–Rb8 or Ra4–Rb4) after you secure promotion.\n\nKey Concepts: Pawn promotion, tempo calculation, piece coordination.',
+    learningObjectives: [
+      'Calculate promotion races accurately',
+      'Understand tempo advantage',
+      'Decide when to promote vs. when to defend',
+    ],
+    difficultyStars: 3,
+    icon: '🎯',
+  },
+  'bishop-duel': {
+    challenge: 'A strategic endgame with K+R+B versus K+R+B and no knights. This position explores color-complex warfare where each bishop controls only one color, creating fortress and zugzwang possibilities.',
+    solvabilityType: 'DRAWISH',
+    hints: [],
+    strategy: {
+      whitePlan: 'Activate your rook to the 7th rank if possible. Use bishop to control key squares your opponent\'s bishop cannot. Create threats on squares matching your bishop\'s color. Hunt for zugzwang positions that force concessions.',
+      blackPlan: 'Establish a defensive fortress with bishop controlling critical squares. Keep rook active; trade if white\'s rook invades. Maintain king centralization. Avoid self-blockades.',
+      keyPositions: 'Bishop blockades on promotion squares. Rook on the 7th rank with bishop support = dangerous. King+bishop battery controlling the key color complex.',
+    },
+    learningObjectives: [
+      'Manage color-complex strategy (opposite-color bishops)',
+      'Build and break fortresses',
+      'Recognize zugzwang patterns',
+      'Practice patient maneuvering',
+    ],
+    difficultyStars: 4,
+    icon: '👑',
+  },
+  'flip-fork': {
+    challenge: 'White has an unusual knight position at b1. Your goal is to exploit this knight\'s mobility to win material through a tactical fork sequence within 3–4 moves.',
+    solvabilityType: 'TACTICAL_PUZZLE',
+    hints: [
+      'Knights are most powerful when they can attack multiple pieces from a central square. Where can your knight jump to threaten two pieces at once?',
+      'Look at the knight move Na3 or Nd2. From these squares, can the knight reach a fork position attacking king and bishop/rook?',
+    ],
+    solution: '1. Na3 – Knight jumps to a3, eyeing Nb5. If …Kb9 (or any waiting move)\n2. Nb5 – Fork! Knight attacks both king on b10 and bishop on b9.\n3. …Ka8/Ka10 – King must move.\n4. N×(target) – Capture the bishop (or rook) and convert the material edge.\n\nAlternative: 1.Nd2 aiming for Nc4–Ne5 fork motifs.\n\nKey Concepts: Knight forks, forcing moves, double attacks.',
+    learningObjectives: [
+      'Spot and execute knight-fork tactics',
+      'Calculate forcing sequences',
+      'Understand knight mobility on a narrow board',
+    ],
+    difficultyStars: 3,
+    icon: '🧩',
+  },
+};
 
 /**
  * Coordinate conversion functions for 2D board support

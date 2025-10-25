@@ -16,6 +16,10 @@ import {
   VariantType,
   CONFIGS,
   indexToCoords,
+  Move,
+  SkinnyMode,
+  SKINNY_MODE_PACK,
+  MODE_HELP_CONTENT,
 } from './engine';
 import { solve, clearTT } from './solver';
 import {
@@ -41,6 +45,16 @@ function App() {
   // Variant selection
   const [gameVariant, setGameVariant] = useState<VariantType>('thin'); // Start with thin
   const [showVariantPicker, setShowVariantPicker] = useState(true); // Show on startup
+  const [showModePicker, setShowModePicker] = useState(false); // Show mode pack selector
+  const [selectedMode, setSelectedMode] = useState<SkinnyMode | null>(null); // Currently selected mode
+
+  // Help modal state
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [helpMode, setHelpMode] = useState<string | null>(null);
+  const [hintLevel, setHintLevel] = useState(0); // 0 = no hints, 1 = hint1, 2 = hint2, 3 = solution
+
+  // Resignation confirmation modal
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
 
   const [pos, setPos] = useState<Position>(() => decode(START_POSITIONS.thin, 'thin'));
   const [history, setHistory] = useState<string[]>([encode(decode(START_POSITIONS.thin, 'thin'))]);
@@ -70,28 +84,47 @@ function App() {
 
     setAiThinking(true);
     setTimeout(() => {
-      const result = solve(position);
-      if (result.best) {
-        // Check if AI is capturing
-        const isCapture = position.board[result.best.to] !== EMPTY;
+      try {
+        let bestMove: Move | undefined;
 
-        const newPos = applyMove(position, result.best);
-        setPos(newPos);
-        setHistory(prev => {
-          const newHistory = prev.slice(0, hIndex + 1);
-          newHistory.push(encode(newPos));
-          return newHistory;
-        });
-        setHIndex(prev => prev + 1);
-
-        // Play appropriate sound
-        if (isCapture) {
-          playCapture();
+        if (position.variant === 'skinny') {
+          // For Skinny Chess, use random move selection (game tree too large to solve)
+          const moves = legalMoves(position);
+          if (moves.length > 0) {
+            bestMove = moves[Math.floor(Math.random() * moves.length)];
+            console.log('[AI] Skinny Chess - selected random move:', bestMove);
+          }
         } else {
-          playMove();
+          // For Thin Chess, use full solver
+          const result = solve(position);
+          bestMove = result.best;
         }
+
+        if (bestMove) {
+          // Check if AI is capturing
+          const isCapture = position.board[bestMove.to] !== EMPTY;
+
+          const newPos = applyMove(position, bestMove);
+          setPos(newPos);
+          setHistory(prev => {
+            const newHistory = prev.slice(0, hIndex + 1);
+            newHistory.push(encode(newPos));
+            return newHistory;
+          });
+          setHIndex(prev => prev + 1);
+
+          // Play appropriate sound
+          if (isCapture) {
+            playCapture();
+          } else {
+            playMove();
+          }
+        }
+      } catch (error) {
+        console.error('[AI] Error during move:', error);
+      } finally {
+        setAiThinking(false);
       }
-      setAiThinking(false);
     }, 500);
   };
 
@@ -239,9 +272,11 @@ function App() {
     }
   };
 
-  // New Game
+  // New Game - return to variant picker to allow changing variant/mode
   const handleNewGame = () => {
-    setShowModal(true);
+    setShowVariantPicker(true);
+    setShowModePicker(false);
+    setShowModal(false);
     setShowColorPicker(false);
   };
 
@@ -265,14 +300,40 @@ function App() {
     setTargets([]);
     setGameOver(false);
     setGameResult('');
+    setSelectedMode(null); // Clear any selected mode
     clearTT();
     setShowVariantPicker(false);
     setShowModal(true); // Show game mode picker
   };
 
+  // Show mode pack selector
+  const selectModePack = () => {
+    setShowVariantPicker(false);
+    setShowModePicker(true);
+  };
+
+  // Handle mode selection from mode pack
+  const selectMode = (mode: SkinnyMode) => {
+    setGameVariant('skinny');
+    setSelectedMode(mode);
+    const startPos = decode(mode.startPosition, 'skinny');
+    setPos(startPos);
+    setHistory([encode(startPos)]);
+    setHIndex(0);
+    setSel(null);
+    setTargets([]);
+    setGameOver(false);
+    setGameResult('');
+    clearTT();
+    setShowModePicker(false);
+    setShowModal(true); // Show game mode picker (1 player vs 2 player)
+  };
+
   // Start game with selected mode and optional player side
   const startGame = (mode: '1player' | '2player', side: Side | null) => {
-    const startPos = decode(START_POSITIONS[gameVariant], gameVariant);
+    // Use selected mode position if available, otherwise use default variant position
+    const startPosString = selectedMode?.startPosition || START_POSITIONS[gameVariant];
+    const startPos = decode(startPosString, gameVariant);
     setPos(startPos);
     setHistory([encode(startPos)]);
     setHIndex(0);
@@ -315,21 +376,30 @@ function App() {
       setGameResult('Draw by Repetition');
       playDraw();
     } else {
-      // Resignation
-      if (window.confirm('Are you sure you want to resign?')) {
-        setGameOver(true);
-        if (gameMode === '1player') {
-          setGameResult('You resigned - AI wins');
-          playDefeat();
-        } else {
-          // 2-player mode
-          const resigner = pos.turn === 'w' ? 'White' : 'Black';
-          const winner = pos.turn === 'w' ? 'Black' : 'White';
-          setGameResult(`${resigner} resigned - ${winner} wins`);
-          playDefeat();
-        }
-      }
+      // Show resignation confirmation modal
+      setShowResignConfirm(true);
     }
+  };
+
+  // Confirm resignation
+  const confirmResignation = () => {
+    setShowResignConfirm(false);
+    setGameOver(true);
+    if (gameMode === '1player') {
+      setGameResult('You resigned - AI wins');
+      playDefeat();
+    } else {
+      // 2-player mode
+      const resigner = pos.turn === 'w' ? 'White' : 'Black';
+      const winner = pos.turn === 'w' ? 'Black' : 'White';
+      setGameResult(`${resigner} resigned - ${winner} wins`);
+      playDefeat();
+    }
+  };
+
+  // Cancel resignation
+  const cancelResignation = () => {
+    setShowResignConfirm(false);
   };
 
   // Load position from code
@@ -355,6 +425,23 @@ function App() {
     navigator.clipboard.writeText(code);
   };
 
+  // Help modal handlers
+  const openHelp = (modeId: string) => {
+    setHelpMode(modeId);
+    setHintLevel(0);
+    setShowHelpModal(true);
+  };
+
+  const closeHelp = () => {
+    setShowHelpModal(false);
+    setHelpMode(null);
+    setHintLevel(0);
+  };
+
+  const revealHint = (level: number) => {
+    setHintLevel(level);
+  };
+
   return (
     <div className="app">
       {/* Variant Picker Modal */}
@@ -364,12 +451,175 @@ function App() {
             <h2>Choose Game Variant</h2>
             <div className="modal-buttons">
               <button className="modal-btn" onClick={() => selectVariant('thin')}>
-                Thin Chess
-                <div className="modal-subtitle">1×12 board - Classic</div>
+                1-D Chess
+                <div className="modal-subtitle">1×12 board</div>
               </button>
               <button className="modal-btn" onClick={() => selectVariant('skinny')}>
-                Skinny Chess
-                <div className="modal-subtitle">2×10 board - NEW!</div>
+                Thin Chess
+                <div className="modal-subtitle">2×10 board</div>
+              </button>
+              <button className="modal-btn" onClick={selectModePack}>
+                Thin Chess Challenges
+                <div className="modal-subtitle">Curated challenges</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mode Pack Selector Modal */}
+      {showModePicker && (
+        <div className="modal-overlay">
+          <div className="modal mode-pack-modal">
+            <h2>Thin Chess - Challenges</h2>
+            <div className="mode-grid">
+              {SKINNY_MODE_PACK.map((mode) => {
+                const helpContent = MODE_HELP_CONTENT[mode.id];
+                return (
+                  <div key={mode.id} className="mode-card-wrapper">
+                    <button
+                      className="mode-card"
+                      onClick={() => selectMode(mode)}
+                    >
+                      <div className="mode-header">
+                        <span className="mode-icon">{helpContent.icon}</span>
+                        <span className="mode-difficulty-stars">
+                          {'⭐'.repeat(helpContent.difficultyStars)}
+                        </span>
+                      </div>
+                      <div className="mode-name">{mode.name}</div>
+                      <div className="mode-description">{mode.description}</div>
+                      <div className="mode-type-badge">{mode.difficulty}</div>
+                    </button>
+                    <button
+                      className="help-icon-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openHelp(mode.id);
+                      }}
+                      title="Show help for this mode"
+                    >
+                      ?
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              className="modal-btn back-btn"
+              onClick={() => {
+                setShowModePicker(false);
+                setShowVariantPicker(true);
+              }}
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Help Modal */}
+      {showHelpModal && helpMode && MODE_HELP_CONTENT[helpMode] && (
+        <div className="modal-overlay" onClick={closeHelp}>
+          <div className="modal help-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{SKINNY_MODE_PACK.find(m => m.id === helpMode)?.name}</h2>
+
+            <div className="help-section">
+              <h3>The Challenge</h3>
+              <p>{MODE_HELP_CONTENT[helpMode].challenge}</p>
+            </div>
+
+            <div className="help-section">
+              <div className="solvability-badge">{MODE_HELP_CONTENT[helpMode].solvabilityType.replace(/_/g, ' ')}</div>
+            </div>
+
+            {/* Progressive hints for puzzles */}
+            {MODE_HELP_CONTENT[helpMode].hints.length > 0 && (
+              <div className="help-section">
+                <h3>Hints</h3>
+                {hintLevel === 0 && (
+                  <button className="hint-btn" onClick={() => revealHint(1)}>
+                    💡 Show Hint 1
+                  </button>
+                )}
+                {hintLevel >= 1 && (
+                  <div className="hint-box">
+                    <strong>Hint 1:</strong> {MODE_HELP_CONTENT[helpMode].hints[0]}
+                  </div>
+                )}
+                {hintLevel >= 1 && MODE_HELP_CONTENT[helpMode].hints.length > 1 && hintLevel < 2 && (
+                  <button className="hint-btn" onClick={() => revealHint(2)}>
+                    💡 Show Hint 2
+                  </button>
+                )}
+                {hintLevel >= 2 && MODE_HELP_CONTENT[helpMode].hints[1] && (
+                  <div className="hint-box">
+                    <strong>Hint 2:</strong> {MODE_HELP_CONTENT[helpMode].hints[1]}
+                  </div>
+                )}
+                {hintLevel >= 2 && MODE_HELP_CONTENT[helpMode].solution && (
+                  <button className="hint-btn solution-btn" onClick={() => revealHint(3)}>
+                    🔓 Show Full Solution
+                  </button>
+                )}
+                {hintLevel >= 3 && MODE_HELP_CONTENT[helpMode].solution && (
+                  <div className="solution-box">
+                    <strong>Solution:</strong>
+                    <pre>{MODE_HELP_CONTENT[helpMode].solution}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Strategy guide for competitive modes */}
+            {MODE_HELP_CONTENT[helpMode].strategy && (
+              <div className="help-section">
+                <h3>Strategic Approach</h3>
+                <div className="strategy-section">
+                  <h4>White's Plan</h4>
+                  <p>{MODE_HELP_CONTENT[helpMode].strategy.whitePlan}</p>
+                </div>
+                <div className="strategy-section">
+                  <h4>Black's Plan</h4>
+                  <p>{MODE_HELP_CONTENT[helpMode].strategy.blackPlan}</p>
+                </div>
+                <div className="strategy-section">
+                  <h4>Key Positions</h4>
+                  <p>{MODE_HELP_CONTENT[helpMode].strategy.keyPositions}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="help-section">
+              <h3>Learning Objectives</h3>
+              <ul>
+                {MODE_HELP_CONTENT[helpMode].learningObjectives.map((obj, i) => (
+                  <li key={i}>{obj}</li>
+                ))}
+              </ul>
+            </div>
+
+            <button className="modal-btn" onClick={closeHelp}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Resignation Confirmation Modal */}
+      {showResignConfirm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Resign Game?</h2>
+            <p style={{ textAlign: 'center', margin: '20px 0' }}>
+              Are you sure you want to resign?
+            </p>
+            <div className="modal-buttons">
+              <button className="modal-btn" onClick={confirmResignation} style={{ background: 'var(--lose)' }}>
+                Yes, Resign
+              </button>
+              <button className="modal-btn" onClick={cancelResignation}>
+                Cancel
               </button>
             </div>
           </div>
@@ -433,7 +683,8 @@ function App() {
             <span className="title-icon title-icon-white">
               <img src="/white-pawn.svg" alt="" />
             </span>
-            Thin Chess
+            {selectedMode ? `${selectedMode.name}` : gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
+            {selectedMode && <span className="mode-badge">{selectedMode.difficulty}</span>}
           </h1>
           <div className="header-buttons">
             <button className="icon-btn" onClick={handleToggleSound} title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}>
