@@ -14,7 +14,6 @@ import {
   Piece,
   Side,
   VariantType,
-  CONFIGS,
   getConfig,
   indexToCoords,
   Move,
@@ -339,7 +338,7 @@ function App() {
     setGameVariant('skinny');
     setSelectedSkinnyMode(mode);
     setSelectedThinMode(null);
-    const startPos = decode(mode.startPosition, 'skinny');
+    const startPos = decode(mode.startPosition, 'skinny', mode.boardLength, mode.boardWidth);
     setPos(startPos);
     setHistory([encode(startPos)]);
     setHIndex(0);
@@ -377,7 +376,7 @@ function App() {
     if (selectedThinMode) {
       startPos = decode(selectedThinMode.startPosition, 'thin', selectedThinMode.boardLength);
     } else if (selectedSkinnyMode) {
-      startPos = decode(selectedSkinnyMode.startPosition, 'skinny');
+      startPos = decode(selectedSkinnyMode.startPosition, 'skinny', selectedSkinnyMode.boardLength, selectedSkinnyMode.boardWidth);
     } else {
       startPos = decode(START_POSITIONS[gameVariant], gameVariant);
     }
@@ -499,11 +498,11 @@ function App() {
             <div className="modal-buttons">
               <button className="modal-btn" onClick={() => selectVariant('thin')}>
                 1-D Chess
-                <div className="modal-subtitle">Classic 1-dimensional chess</div>
+                <div className="modal-subtitle">Single-file chess on a line</div>
               </button>
               <button className="modal-btn" onClick={() => selectVariant('skinny')}>
                 Thin Chess
-                <div className="modal-subtitle">2×10 chess variant</div>
+                <div className="modal-subtitle">Narrow-board chess variant</div>
               </button>
             </div>
           </div>
@@ -825,7 +824,10 @@ function App() {
             style={
               gameVariant === 'thin'
                 ? { gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)` }
-                : undefined
+                : {
+                    gridTemplateColumns: `repeat(${getConfig(pos).width}, 64px)`,
+                    gridTemplateRows: `repeat(${getConfig(pos).height}, 64px)`,
+                  }
             }
           >
             {pos.board.map((cell, i) => {
@@ -863,15 +865,15 @@ function App() {
                 </div>
               ))
             ) : (
-              // Skinny: both files and ranks
+              // Skinny: both files and ranks (use actual config, not hardcoded)
               <div className="coords-2d">
                 <div className="coords-files">
-                  {CONFIGS.skinny.files.map(f => (
+                  {getConfig(pos).files.map(f => (
                     <div key={f} className="n">{f}</div>
                   ))}
                 </div>
                 <div className="coords-ranks">
-                  {CONFIGS.skinny.ranks.map(r => (
+                  {getConfig(pos).ranks.map(r => (
                     <div key={r} className="n">{r}</div>
                   ))}
                 </div>

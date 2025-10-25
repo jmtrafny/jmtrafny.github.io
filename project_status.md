@@ -5,8 +5,8 @@ _Last updated: 2025-10-24_
 
 ## 1) Overview
 This project features two minimalist chess variants:
-- **1-D Chess (1×12)**: A single-file chess variant with Kings, Rooks, and Knights. Features a perfect-play solver.
-- **Thin Chess (2×10)**: A 2-file, 10-rank variant with all standard pieces (K, R, N, B, P). Includes 5 curated tactical challenges.
+- **1-D Chess (1×N)**: Single-file chess variant with variable board lengths (6, 7, 8, 9, 12 squares). Features Kings, Rooks, and Knights. Includes perfect-play solver.
+- **Thin Chess (M×N)**: Multi-file narrow-board variant with variable dimensions (2×10, 3×8). Features all standard pieces including Queens (K, R, N, B, P, Q). Includes 6 curated tactical challenges.
 
 Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtrafny.github.io](https://jmtrafny.github.io)).
 
@@ -32,21 +32,30 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 - ✅ Responsive design optimized for mobile and desktop
 
 ### 1-D Chess Specific
+- ✅ Variable board lengths (6, 7, 8, 9, 12 squares)
 - ✅ Perfect-play AI using tri-valued negamax solver with transposition table
 - ✅ Instant position evaluation (WIN/LOSS/DRAW with depth)
 - ✅ Cached solver results for repeated positions
+- ✅ **5 Curated Challenge Modes**:
+  1. **📚 Original 1-D Chess** (⭐⭐⭐⭐ Classic) - 12 squares, full setup
+  2. **🎯 Minimal Knights Duel** (⭐⭐ Puzzle) - 6 squares (7/10)
+  3. **📚 Classic 1D Chess** (⭐⭐⭐ Classic) - 8 squares, Martin Gardner (8/10)
+  4. **⚖️ Rook vs Rook & Knight** (⭐⭐⭐ Asymmetric) - 9 squares (7/10)
+  5. **⚖️ Two Knights vs Rook** (⭐⭐⭐ Asymmetric) - 7 squares (8/10)
 
 ### Thin Chess Specific
-- ✅ Full 2D chess movement (King, Rook, Knight, Bishop, Pawn)
+- ✅ Full 2D chess movement (King, Rook, Knight, Bishop, Pawn, Queen)
+- ✅ Variable board dimensions (2×10, 3×8 supported)
 - ✅ Pawn promotion to any piece
-- ✅ Diagonal bishop movement
+- ✅ Diagonal queen movement on wider boards
 - ✅ Random-move AI (game tree too large for perfect solver)
-- ✅ **5 Curated Challenges** with progressive hint system:
-  1. **🧩 Top-Rank Guillotine** (⭐ Beginner) - Mate in 2-3 puzzle
-  2. **📚 Mirror Towers** (⭐⭐⭐ Advanced) - Standard opening
-  3. **🎯 Pawn Corridors** (⭐⭐⭐ Intermediate) - Promotion race
-  4. **👑 Bishop Duel** (⭐⭐⭐⭐ Advanced) - Fortress warfare
-  5. **🧩 Flip-Fork** (⭐⭐⭐ Intermediate) - Knight fork tactics
+- ✅ **6 Curated Challenges** with progressive hint system:
+  1. **🧩 Top-Rank Guillotine** (⭐ Beginner) - K+R vs K mate puzzle (6/10)
+  2. **📚 Mirror Towers** (⭐⭐⭐ Advanced) - Standard opening (9/10)
+  3. **🎯 Pawn Corridors** (⭐⭐⭐ Intermediate) - Promotion race (7/10)
+  4. **👑 Bishop Duel** (⭐⭐⭐⭐ Advanced) - Opposite-color bishops (8/10)
+  5. **🧩 Flip-Fork** (⭐⭐⭐ Intermediate) - Knight fork tactics (8/10)
+  6. **⚖️ Three-File Showdown** (⭐⭐⭐⭐ Advanced) - Queen vs R+N on 3×8 (8/10)
 
 ### Challenge Mode Features
 - ✅ Mode cards with type icons (🧩 Puzzle, 📚 Baseline, 🎯 Tactical, 👑 Endgame)
@@ -223,7 +232,7 @@ jmtrafny.github.io/
 │   ├── main.tsx           # React entry point, PWA service worker registration
 │   └── vite-env.d.ts      # TypeScript environment definitions
 ├── public/
-│   ├── pieces/            # SVG chess piece graphics (10 files: wk,wr,wn,wb,wp,bk,br,bn,bb,bp)
+│   ├── pieces/            # SVG chess piece graphics (12 files: wk,wq,wr,wn,wb,wp,bk,bq,br,bn,bb,bp)
 │   ├── sounds/            # Sound effects (move, capture, victory, defeat, draw MP3s)
 │   ├── chess.svg          # App icon
 │   ├── white-pawn.svg     # Title icon
@@ -349,11 +358,12 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - Test both variants after any engine changes
 
 ### Adding New Challenges
-1. Add mode to `SKINNY_MODE_PACK` array in `src/engine.ts`
-2. Add help content to `MODE_HELP_CONTENT` object
-3. Include: challenge, hints, solution, learning objectives, difficulty, icon
-4. Update `THIN_CHESS_MODES.md` documentation
-5. Test mode loads correctly and hints work
+1. Add mode to `SKINNY_MODE_PACK` or `THIN_MODE_PACK` array in `src/engine.ts`
+2. For non-standard dimensions, specify: `boardWidth: 3, boardLength: 8` (Thin Chess) or `boardLength: 9` (1-D Chess)
+3. Add help content to `MODE_HELP_CONTENT` object
+4. Include: challenge, hints, solution, learning objectives, difficulty, icon
+5. Update `THIN_CHESS_MODES.md` documentation
+6. Test mode loads correctly with proper board size and hints work
 
 ### Updating Variant Names
 - User-facing: Update strings in `App.tsx`, `index.html`, `README.md`

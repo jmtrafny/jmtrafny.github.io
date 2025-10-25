@@ -16,7 +16,7 @@
  */
 
 export type Side = 'w' | 'b';
-export type PieceType = 'k' | 'r' | 'n' | 'b' | 'p';
+export type PieceType = 'k' | 'r' | 'n' | 'b' | 'p' | 'q';
 export type Piece = `${Side}${PieceType}`;
 export type Cell = Piece | '.';
 export type Board = Cell[];
@@ -53,7 +53,7 @@ export const CONFIGS: Record<VariantType, BoardConfig> = {
 
 /**
  * Get board configuration for a position.
- * Handles variable board lengths for 1-D Chess modes.
+ * Handles variable board dimensions for both variants.
  */
 export function getConfig(pos: Position): BoardConfig {
   if (pos.variant === 'thin' && pos.boardLength && pos.boardLength !== 12) {
@@ -67,6 +67,20 @@ export function getConfig(pos: Position): BoardConfig {
       ranks: Array.from({ length: pos.boardLength }, (_, i) => i + 1),
     };
   }
+  if (pos.variant === 'skinny' && (pos.boardWidth || pos.boardLength)) {
+    // Custom Thin Chess mode with non-standard dimensions (e.g., 3×8)
+    const width = pos.boardWidth || 2;
+    const height = pos.boardLength || 10;
+    const files = Array.from({ length: width }, (_, i) => String.fromCharCode(97 + i)); // 'a','b','c'...
+    return {
+      variant: 'skinny',
+      width,
+      height,
+      size: width * height,
+      files,
+      ranks: Array.from({ length: height }, (_, i) => i + 1),
+    };
+  }
   return CONFIGS[pos.variant];
 }
 
@@ -74,7 +88,8 @@ export interface Position {
   variant: VariantType;
   board: Board;
   turn: Side;
-  boardLength?: number; // Optional: for 1-D Chess modes with custom lengths (6, 7, 8, 10)
+  boardLength?: number; // Optional: for custom board height (1-D: 6,7,8,9,10,12; Thin: 8,10,etc)
+  boardWidth?: number;  // Optional: for custom board width (Thin Chess: 2 or 3)
 }
 
 export interface Move {
@@ -88,11 +103,13 @@ export const EMPTY: Cell = '.';
 // Unicode chess symbols
 export const UNICODE: Record<Piece, string> = {
   wk: '\u2654',
+  wq: '\u2655',
   wr: '\u2656',
   wn: '\u2658',
   wb: '\u2657',
   wp: '\u2659',
   bk: '\u265A',
+  bq: '\u265B',
   br: '\u265C',
   bn: '\u265E',
   bb: '\u265D',
@@ -102,11 +119,13 @@ export const UNICODE: Record<Piece, string> = {
 // SVG piece images
 export const PIECE_IMAGES: Record<Piece, string> = {
   wk: '/pieces/wk.svg',
+  wq: '/pieces/wq.svg',
   wr: '/pieces/wr.svg',
   wn: '/pieces/wn.svg',
   wb: '/pieces/wb.svg',
   wp: '/pieces/wp.svg',
   bk: '/pieces/bk.svg',
+  bq: '/pieces/bq.svg',
   br: '/pieces/br.svg',
   bn: '/pieces/bn.svg',
   bb: '/pieces/bb.svg',
@@ -133,48 +152,60 @@ export interface SkinnyMode {
   startPosition: string;
   rationale: string;
   difficulty: 'Baseline' | 'Tactical' | 'Strategic' | 'Endgame' | 'Puzzle';
+  boardWidth?: number;  // Optional: for non-standard widths (default 2)
+  boardLength?: number; // Optional: for non-standard heights (default 10)
 }
 
 export const SKINNY_MODE_PACK: SkinnyMode[] = [
   {
     id: 'top-rank-guillotine',
     name: 'Top-Rank Guillotine',
-    description: 'Beginner: Mate in 2-3 moves',
+    description: 'Mate in 2-3 moves (6/10)',
     startPosition: 'x,bk/x,x/x,x/x,x/x,x/x,x/wk,x/wr,x/x,x/x,x:w',
-    rationale: 'Classic rook endgame teaching fundamental K+R vs K checkmating technique.',
+    rationale: 'Classic K+R vs K endgame on 2×10 board. Focused exercise teaching fundamental rook-and-king mating technique. Methodically guillotine the black king against the top edge.',
     difficulty: 'Puzzle',
   },
   {
     id: 'mirror-towers',
     name: 'Mirror Towers',
-    description: 'Standard opening - learn the basics',
+    description: 'Standard opening - balanced game (9/10)',
     startPosition: 'x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w',
-    rationale: 'Essential baseline position for learning Skinny Chess opening theory and piece development.',
+    rationale: 'Standard Thin Chess opening with mirrored pieces on opposite files. Tense head-to-head battle offering intense tactical opportunities. Highly educational and replayable.',
     difficulty: 'Baseline',
   },
   {
     id: 'pawn-corridors',
     name: 'Pawn Corridors',
-    description: 'Promotion race - calculate tempo',
+    description: 'Promotion race - calculate tempo (7/10)',
     startPosition: 'x,bk/x,bb/x,bn/x,br/x,x/x,bp/wp,x/wr,x/wn,x/wb,x/wk,x:w',
-    rationale: 'White pawn on a7 ready to promote; tests tempo calculation and piece coordination.',
+    rationale: 'Tactical puzzle with pawns racing on narrow corridors. White\'s pawn at a7 is far advanced while Black\'s pawn is at b4. Tests tempo calculation and piece coordination under pressure.',
     difficulty: 'Tactical',
   },
   {
     id: 'bishop-duel',
     name: 'Bishop Duel',
-    description: 'No knights - fortress warfare',
+    description: 'Opposite-color bishops - fortress warfare (8/10)',
     startPosition: 'x,bk/x,bb/x,x/x,br/x,x/x,x/wr,x/x,x/wb,x/wk,x:w',
-    rationale: 'Pure color-complex strategy showcasing zugzwang and fortress positions.',
+    rationale: 'Strategic endgame featuring opposite-color bishops on 2-file board. Each bishop controls only one color, creating fortress and zugzwang possibilities. Tests patience and positional understanding.',
     difficulty: 'Strategic',
   },
   {
     id: 'flip-fork',
     name: 'Flip-Fork',
-    description: 'Tactical puzzle - win material',
+    description: 'Knight fork tactics (8/10)',
     startPosition: 'x,bk/x,bb/x,x/x,br/x,x/x,x/wr,x/x,x/wb,x/wk,wn:w',
-    rationale: 'Knight fork pattern: exploit unusual knight position to win material in 3-4 moves.',
+    rationale: 'White knight starts at b1 (Black\'s side). Exploit this unusual placement to win material via knight fork in 3-4 moves. Highlights knight\'s unique movement in cramped quarters.',
     difficulty: 'Puzzle',
+  },
+  {
+    id: 'three-file-showdown',
+    name: 'Three-File Showdown',
+    description: 'Queen vs Rook & Knight on 3×8 board (8/10)',
+    startPosition: 'wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,x/bk,x,x:w',
+    rationale: 'Power vs. numbers on wider 3-file board. White\'s queen wields diagonal tactics unavailable in 1D, while Black\'s rook+knight have more room to coordinate. Dynamic tactical playground with cross-file maneuvers.',
+    difficulty: 'Strategic',
+    boardWidth: 3,
+    boardLength: 8,
   },
 ];
 
@@ -196,7 +227,7 @@ export const THIN_MODE_PACK: ThinMode[] = [
   {
     id: 'original-1d-chess',
     name: 'Original 1-D Chess',
-    description: 'Board length 12 - full classic setup',
+    description: '12 squares - Full classic setup',
     startPosition: 'bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w',
     boardLength: 12,
     rationale: 'Classic 12-square 1-D chess with full piece complement (2 knights, 2 rooks per side). Rich strategic depth.',
@@ -205,37 +236,37 @@ export const THIN_MODE_PACK: ThinMode[] = [
   {
     id: 'minimal-knights-duel',
     name: 'Minimal Knights Duel',
-    description: 'Board length 6 - quick tactical battle',
+    description: '6 squares - Quick tactical puzzle (7/10)',
     startPosition: 'wk,wn,x,x,bn,bk:w',
     boardLength: 6,
-    rationale: 'Simple symmetric setup with one knight and one king each. Knights must maneuver carefully without leaving kings exposed.',
+    rationale: 'Symmetric endgame distilling chess to tactical essence. Knights must hop carefully - one wrong jump leaves your king vulnerable. First-move advantage and timing are critical.',
     difficulty: 'Puzzle',
   },
   {
     id: 'classic-1d-chess',
     name: 'Classic 1D Chess',
-    description: 'Board length 8 - Martin Gardner variant',
+    description: '8 squares - Martin Gardner variant (8/10)',
     startPosition: 'wk,wn,wr,x,x,bn,br,bk:w',
     boardLength: 8,
-    rationale: 'The classic one-dimensional chess described by Martin Gardner. White has a forced win with optimal play.',
+    rationale: 'The classic 1D chess setup originally described by Martin Gardner. Great baseline for learning piece coordination. White has a forced win with perfect play.',
     difficulty: 'Classic',
   },
   {
-    id: 'multi-piece-battle',
-    name: 'Multi-Piece Battle',
-    description: 'Board length 10 - bishops included',
-    startPosition: 'wk,wr,wn,wb,x,x,bb,bn,br,bk:w',
-    boardLength: 10,
-    rationale: 'Symmetric setup introducing bishops. Bishops move on same-color squares (parity), creating unique tactical opportunities.',
-    difficulty: 'Strategic',
+    id: 'rook-vs-rook-knight',
+    name: 'Rook vs Rook & Knight',
+    description: '9 squares - Power vs numbers (7/10)',
+    startPosition: 'wk,wr,x,x,x,x,bn,br,bk:w',
+    boardLength: 9,
+    rationale: 'White has lone rook facing Black\'s rook+knight team. Classic power vs. numbers trade-off: can raw range overcome well-coordinated lesser pieces? Four empty squares between armies gives both sides room to maneuver.',
+    difficulty: 'Asymmetric',
   },
   {
-    id: 'asymmetric-challenge',
+    id: 'two-knights-vs-rook',
     name: 'Two Knights vs Rook',
-    description: 'Board length 7 - unbalanced challenge',
+    description: '7 squares - Mobility vs power (8/10)',
     startPosition: 'wk,wn,wn,x,x,br,bk:w',
     boardLength: 7,
-    rationale: 'White has two knights, Black has one rook. Asymmetric challenge testing piece coordination against long-range threats.',
+    rationale: 'Asymmetric battle where White\'s two knights must work in tandem to trap Black\'s king or rook. Tense cat-and-mouse game: knights have agility, rook has superior range. Black king behind rook prevents easy quick mate.',
     difficulty: 'Asymmetric',
   },
 ];
@@ -261,88 +292,108 @@ export interface ModeHelp {
 
 export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
   'top-rank-guillotine': {
-    challenge: 'White has a rook and king versus a lone black king trapped near the top of the board. Your goal is to deliver checkmate in 2–3 moves using the classic rook+king checkmating technique.',
+    challenge: 'A quick puzzle where White has a king and rook versus a lone black king trapped at the top of a 2-file board. The goal is to deliver checkmate in 2-3 moves using the classic rook-and-king mating technique. Methodically "guillotine" the black king against the top edge.',
     solvabilityType: 'FORCED_WIN_WHITE',
     hints: [
-      'The black king is already trapped on the b-file. Use your king and rook together to cut off escape squares.',
-      'Bring your white king up the a-file to support the rook. The rook should control the b-file while the king approaches.',
+      'The black king is confined near rank 10. The rook forms a "ladder" on one file while the king boxes in the opposing king.',
+      'The limited 2-column width makes the classic pattern clear: use the rook to cut off ranks and walk the enemy king to the board\'s edge.',
     ],
-    solution: '1. Kb2 – King steps up to support the rook. Black is forced to b9 or stays at b10.\n2. Rb3+ – Rook check drives king to the back rank. If 1…Kb9 then 2.Kb3 Ka10 3.Ra3#. If 1…Ka10 then 2.Ra3#.\n3. Checkmate – King and rook trap the black king.\n\nKey Concepts: Rook ladder, king support, edge checkmate.',
+    solution: '1. Kb2 – King steps up to support. Black must stay on b-file or retreat to b9.\n2. Rb3+ – Rook check drives king to back rank.\n3. If ...Kb9 then Kb3 Ka10 Ra3#. If ...Ka10 then Ra3# immediately.\n\nKey Concepts: K+R vs K endgame, rook ladder technique, using king to cut off escape squares.',
     learningObjectives: [
-      'Master the fundamental K+R vs K checkmating technique',
-      'Use the rook to cut off files',
-      'Practice basic king opposition in endgames',
+      'Execute the fundamental K+R vs K checkmate with no distractions',
+      'Use the rook to cut off ranks methodically',
+      'Practice king opposition and zugzwang patterns',
     ],
     difficultyStars: 1,
     icon: '🧩',
   },
   'mirror-towers': {
-    challenge: 'The standard Skinny Chess opening position with all pieces vertically aligned on opposite files. This is a competitive game where you\'ll learn fundamental opening principles and piece development.',
+    challenge: 'The standard Thin Chess opening position - a mini-chess game on a 2×10 board. Each side has a king and a set of major/minor pieces vertically aligned on opposite files. White and Black begin in mirrored, balanced positions. White\'s objective is to outplay Black through superior development and tactics.',
     solvabilityType: 'COMPETITIVE',
     hints: [],
     strategy: {
-      whitePlan: 'Advance the rook early to control central ranks (5–6 range). Use knight to attack black\'s pieces from unexpected angles. Create threats that black\'s random moves may not address. Look for forks between king and other pieces.',
-      blackPlan: 'Develop pieces quickly to active squares. Keep king safe from knight forks. Use bishop to control diagonal escape routes. Counter-attack when white overextends.',
-      keyPositions: 'Rook on 5th rank often dominates the center. Knight on b-file can fork king+bishop. Bishop controls one color complex entirely.',
+      whitePlan: 'The 2-column layout means pieces face each other almost immediately. Advance rook to control central ranks. Knights can create fork threats between the two files. Bishops dominate one color-complex. Coordinate all pieces without them blocking each other.',
+      blackPlan: 'Mirror White\'s development initially but look for tactical opportunities. Keep king safe from knight forks. Use bishop to control squares White\'s bishop cannot. Counter-attack when White overextends.',
+      keyPositions: 'Rook on 5th-7th rank controls board. Knight forks between files are deadly. Bishops on opposite colors create imbalanced positions. Any plan can be mirrored by opponent - test of strategic thinking.',
     },
     learningObjectives: [
-      'Understand piece development in confined space',
-      'Create and exploit tactical threats',
-      'Practice planning 3–4 moves ahead',
-      'Recognize fork patterns on a narrow board',
+      'Learn piece development in very confined space',
+      'Coordinate pieces without them blocking each other',
+      'Practice tactical awareness (forks, pins, skewers)',
+      'Think 3-4 moves ahead on narrow front',
     ],
     difficultyStars: 3,
     icon: '📚',
   },
   'pawn-corridors': {
-    challenge: 'Both sides have one pawn racing toward promotion (white pawn on a7, black pawn on b4). This tactical puzzle tests your ability to calculate promotion races while defending with pieces.',
+    challenge: 'A tactical puzzle where both sides have a single pawn racing on narrow "corridors" to reach the opposite end. White\'s pawn is far advanced (near a7), while Black\'s pawn is lower (at b4). Each side has pieces to aid their pawn or hinder the opponent. Win the race to the top!',
     solvabilityType: 'TACTICAL_PUZZLE',
     hints: [
-      'Count how many moves it takes each pawn to promote. Can you stop your opponent\'s pawn while advancing your own?',
-      'Your rook on a-file can cut across to the b-file to blockade black\'s pawn. Meanwhile, your pawn only needs 1 move to promote from a7.',
+      'This is all about tempo and calculation. Count moves: who promotes first if promotions were allowed? White\'s pawn needs fewer moves.',
+      'The narrow board amplifies tension - limited paths mean a single rook or knight move can seal off a file or create an unblockable threat. Use pieces to interfere just in time.',
     ],
-    solution: '1. a8=R or a8=Q – Promote immediately. Black\'s pawn is only on b4 and needs several moves to promote.\n2. Use the new piece to support attack – With extra material, coordinate rook/queen with existing pieces.\n3. Stop black\'s pawn if it advances – Rook can shift to b-file (e.g., Ra8–Rb8 or Ra4–Rb4) after you secure promotion.\n\nKey Concepts: Pawn promotion, tempo calculation, piece coordination.',
+    solution: '1. a8=(promote) – White promotes immediately, gaining decisive advantage. Black\'s pawn at b4 needs 6 moves.\n2. Use newly promoted piece – Coordinate with existing pieces to stop Black\'s pawn.\n3. Block or capture Black\'s pawn – Shift rook to b-file (e.g., Ra8-Rb8) to blockade.\n\nKey Concepts: Tempo calculation, pawn races, piece interference, initiative.',
     learningObjectives: [
-      'Calculate promotion races accurately',
-      'Understand tempo advantage',
-      'Decide when to promote vs. when to defend',
+      'Practice counting moves in pawn races',
+      'Use pieces to delay or block opponent pawns',
+      'Understand initiative and tempo advantage',
+      'Learn when reaching the last rank wins the race',
     ],
     difficultyStars: 3,
     icon: '🎯',
   },
   'bishop-duel': {
-    challenge: 'A strategic endgame with K+R+B versus K+R+B and no knights. This position explores color-complex warfare where each bishop controls only one color, creating fortress and zugzwang possibilities.',
+    challenge: 'A balanced endgame duel featuring kings, rooks, and opposite-colored bishops for each side. With only two files, each bishop is permanently restricted to one color of squares. The starting position is symmetric, and the game often tends toward a tense drawish fight. Find a breakthrough or settle for a fortress!',
     solvabilityType: 'DRAWISH',
     hints: [],
     strategy: {
-      whitePlan: 'Activate your rook to the 7th rank if possible. Use bishop to control key squares your opponent\'s bishop cannot. Create threats on squares matching your bishop\'s color. Hunt for zugzwang positions that force concessions.',
-      blackPlan: 'Establish a defensive fortress with bishop controlling critical squares. Keep rook active; trade if white\'s rook invades. Maintain king centralization. Avoid self-blockades.',
-      keyPositions: 'Bishop blockades on promotion squares. Rook on the 7th rank with bishop support = dangerous. King+bishop battery controlling the key color complex.',
+      whitePlan: 'This is less about quick tactics and more about planning and patience. Since each bishop can only influence half the squares, look for situations where you can establish a fortress on the color the opponent\'s bishop cannot touch. Coordinate rook and king to force zugzwang or penetrate vulnerable color squares. Activate rook to 7th rank with bishop support.',
+      blackPlan: 'Maintain an active rook and solid blockade. Use bishop to control critical squares that White\'s bishop cannot reach. Look for fortress setups. Trade rooks if White invades. Keep king centralized.',
+      keyPositions: 'Bishops on opposite colors can never capture each other. Rook on 7th rank with bishop support is dangerous. King+bishop battery controlling one color complex = strong fortress. Victory comes from understanding the delicate imbalance.',
     },
     learningObjectives: [
-      'Manage color-complex strategy (opposite-color bishops)',
-      'Build and break fortresses',
-      'Recognize zugzwang patterns',
-      'Practice patient maneuvering',
+      'Understand opposite-color bishop endgames',
+      'Build and maintain fortresses on narrow boards',
+      'Recognize zugzwang and breakthrough patterns',
+      'Practice patient positional maneuvering',
     ],
     difficultyStars: 4,
     icon: '👑',
   },
   'flip-fork': {
-    challenge: 'White has an unusual knight position at b1. Your goal is to exploit this knight\'s mobility to win material through a tactical fork sequence within 3–4 moves.',
+    challenge: 'Flip-Fork presents White with an unusual initial placement: a white knight that begins on Black\'s side of the board (at b1). This flipped knight is poised to wreak havoc if used creatively. The challenge goal is to win material via a knight fork in the first few moves.',
     solvabilityType: 'TACTICAL_PUZZLE',
     hints: [
-      'Knights are most powerful when they can attack multiple pieces from a central square. Where can your knight jump to threaten two pieces at once?',
-      'Look at the knight move Na3 or Nd2. From these squares, can the knight reach a fork position attacking king and bishop/rook?',
+      'The knight at b1 is almost in the "back door" of Black\'s position from the get-go, which is unusual and exciting. Look for a path where the knight can hop to fork the king and a loose piece.',
+      'Knights can be devastating in cramped quarters where other pieces\' lines are easily blocked. The knight might jump to a3, then to b5 to fork the black king and bishop simultaneously.',
     ],
-    solution: '1. Na3 – Knight jumps to a3, eyeing Nb5. If …Kb9 (or any waiting move)\n2. Nb5 – Fork! Knight attacks both king on b10 and bishop on b9.\n3. …Ka8/Ka10 – King must move.\n4. N×(target) – Capture the bishop (or rook) and convert the material edge.\n\nAlternative: 1.Nd2 aiming for Nc4–Ne5 fork motifs.\n\nKey Concepts: Knight forks, forcing moves, double attacks.',
+    solution: '1. Na3 – Knight jumps to a3, preparing fork.\n2. Nb5 – Fork! Attacks both king on b10 and bishop on b9 (or rook).\n3. ...Ka8 or Ka10 – King must move.\n4. Nxb9 (or Nxb7) – Capture piece, gaining decisive material edge.\n\nAlternative maneuvers possible. Key is spotting the fork pattern.\n\nKey Concepts: Knight forks, double attacks, unique movement in cramped spaces.',
     learningObjectives: [
-      'Spot and execute knight-fork tactics',
-      'Calculate forcing sequences',
-      'Understand knight mobility on a narrow board',
+      'Spot knight-fork tactical patterns',
+      'Calculate forcing sequences with knights',
+      'Maximize knight\'s reach on narrow boards',
+      'Understand how knights excel when lines are blocked',
     ],
     difficultyStars: 3,
     icon: '🧩',
+  },
+  'three-file-showdown': {
+    challenge: 'This mode extends the power vs. numbers concept to a 3-file board (3×8). White has a king and a queen, while Black defends with a king, a rook, a knight, and a pawn as a shield. The queen on a 3×8 board wields tremendous power with diagonal tactics, but the confined width means it can still be cornered by clever defense.',
+    solvabilityType: 'COMPETITIVE',
+    hints: [],
+    strategy: {
+      whitePlan: 'The queen vs rook+knight imbalance on a wider board means White can now exploit diagonal tactics. The queen can attack two files at once or approach from unexpected angles. Use the queen\'s power to orchestrate mating nets or fork two enemy pieces. Simultaneously pressure the knight and pin the rook behind its king.',
+      blackPlan: 'Coordinate the rook and knight (with the pawn buying some time) to trap or trade off the white queen. The added file gives the knight more room to leap around and the rook more lateral freedom. Set up traps or pins on the third file. Perhaps sacrifice the pawn to distract the queen.',
+      keyPositions: 'Queen\'s diagonal attacks across three files unlock new tactical patterns. Knight can force queen into corners while rook aims for white king. Pawn acts as buffer piece. Multi-piece coordination is critical.',
+    },
+    learningObjectives: [
+      'Understand queen power on wider narrow boards',
+      'Practice diagonal tactics (pins, skewers, forks)',
+      'Coordinate multiple pieces against superior force',
+      'Learn multi-piece cooperation patterns',
+    ],
+    difficultyStars: 4,
+    icon: '⚖️',
   },
   // 1-D Chess Mode Help Content
   'original-1d-chess': {
@@ -364,70 +415,71 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     icon: '📚',
   },
   'minimal-knights-duel': {
-    challenge: 'A quick tactical battle on a 6-square board. Each side has one king and one knight. Knights must maneuver carefully to attack the opposing king without leaving their own king exposed.',
+    challenge: 'A simple symmetric endgame on a one-dimensional 6-square board. Each side has only a king and a knight, with kings at opposite ends and knights just inside them. Two empty squares separate the forces, preventing immediate contact. White moves first, and the goal is to maneuver your knight to checkmate the lone black king (or force its capture) without exposing your own king to the enemy knight.',
     solvabilityType: 'TACTICAL_PUZZLE',
     hints: [
-      'Knights need a 2-square jump and cannot attack adjacent squares. Your knight at position 1 can jump to positions 3 or beyond.',
-      'Try to use your knight to control the center while keeping your king safe. Look for ways to check the enemy king while maintaining defense.',
+      'This scenario distills chess to a tactical essence. With only knights (which jump two squares) in play, every move must be calculated precisely. There\'s a cat-and-mouse element: you try to get your knight in range to corner the enemy king while preventing the enemy knight from doing the same.',
+      'The spacing ensures no piece can attack immediately, so it becomes a short maneuvering battle where first-move advantage and timing are critical. Despite minimal material, the solution is not trivial – one wrong jump can leave your king vulnerable.',
     ],
-    solution: 'This is a non-trivial tactical puzzle. With perfect play, one side may force a win through precise knight maneuvers. The key is to use your knight to restrict the enemy king\'s movement while advancing your own king into attacking position.\n\nKey Concepts: Knight coordination, king safety, tempo advantage.',
+    solution: 'This is a non-trivial puzzle highlighting knight movement and king safety. With perfect play, White can leverage first-move advantage. Look for ways to use your knight to restrict the enemy king while advancing carefully.\n\nKey Concepts: Knight ±2 jumps, king safety, tempo, minimal material endgames.',
     learningObjectives: [
-      'Understand knight movement in 1D (jumps ±2)',
-      'Practice king and knight coordination',
-      'Learn minimal material endgame technique',
+      'Understand knight movement in 1D (jumps ±2 squares)',
+      'Practice king and knight coordination with minimal material',
+      'Learn how first-move advantage and timing affect outcomes',
+      'Master precision in tactical calculations',
     ],
     difficultyStars: 2,
     icon: '🎯',
   },
   'classic-1d-chess': {
-    challenge: 'The classic one-dimensional chess variant described by Martin Gardner. Each side has a king, a knight, and a rook on an 8-square board. It has been proven that White has a forced win with optimal play.',
+    challenge: 'This is the classic one-dimensional chess setup originally described by Martin Gardner. Each side has a king, a rook ("castle"), and a knight arrayed on an 8-square line. The armies are mirrored with two central empty squares ensuring neither side is in immediate check. White\'s objective is to coordinate the rook and knight to checkmate Black\'s king. Notably, White is known to have a forced win with perfect play.',
     solvabilityType: 'FORCED_WIN_WHITE',
     hints: [],
     strategy: {
-      whitePlan: 'Use your rook to control long-range squares and your knight to create tactical threats. Coordinate both pieces to deliver checkmate. The rook should cut off escape squares while the knight delivers checks.',
-      blackPlan: 'Try to trade pieces to reach a drawn endgame (e.g., K+N vs K is a draw). Defend actively and look for stalemate opportunities if you can eliminate white\'s attacking pieces.',
-      keyPositions: 'Rook on central squares (positions 3-4) dominates the board. Knight forks between king and rook can win material. King must stay protected from combined rook+knight attacks.',
+      whitePlan: 'This scenario serves as a great baseline for 1D chess. It plays out like a mini chess game where you practice fundamental coordination: the knight\'s 2-square jumps and the rook\'s long-range moves complement each other. The challenge is strategic – you must plan how to use the rook for pressure and the knight for tricky forks.',
+      blackPlan: 'Black\'s pieces mirror your own capabilities. Try to defend by trading pieces to reach a draw (king vs king stalemate). Defend actively and look for counter-opportunities.',
+      keyPositions: 'Rook on central squares dominates. Knight forks are key tactical motifs. Despite being "solved" (its complexity has been compared to tic-tac-toe), it\'s instructive to discover the winning method. The fun comes from executing a checkmate with limited space and pieces, learning about piece parity and coordination in a stripped-down environment.',
     },
     learningObjectives: [
-      'Master the classic 1D chess position',
-      'Practice rook and knight coordination',
-      'Understand forced win techniques',
-      'Learn piece trading strategies',
+      'Master the classic 1D chess baseline position',
+      'Practice fundamental rook and knight coordination',
+      'Learn about piece parity and cooperation',
+      'Understand forced win techniques in constrained spaces',
     ],
     difficultyStars: 3,
     icon: '📚',
   },
-  'multi-piece-battle': {
-    challenge: 'A complex 10-square battle introducing bishops to 1D chess. Bishops move every other square (staying on the same "color" parity), creating unique tactical opportunities. Both sides have king, rook, knight, and bishop.',
+  'rook-vs-rook-knight': {
+    challenge: 'An intriguing imbalance scenario on a 9-square board. White has a lone rook (plus king) facing Black\'s rook and knight (plus king). On a 9-length single file, White essentially wields a powerful piece against Black\'s rook+knight team. There is ample space (four empty squares between armies) to maneuver, giving Black a fighting chance to coordinate defenses or counter-attacks.',
     solvabilityType: 'COMPETITIVE',
     hints: [],
     strategy: {
-      whitePlan: 'Use your bishop to control one parity of squares (odd or even positions). Coordinate rook for long-range attacks and knight for tactical jumps. Create threats on both parities that black cannot defend simultaneously.',
-      blackPlan: 'Develop pieces to active squares quickly. Use your bishop to blockade white\'s bishop. Look for tactical opportunities with knight forks. Keep king centralized and protected.',
-      keyPositions: 'Bishops on opposite parities can never capture each other. Rook on position 5 (center) controls both sides. Knight can exploit weak squares the bishop cannot defend.',
+      whitePlan: 'This mode showcases the classic "power vs. numbers" trade-off. White\'s rook is powerful and can dominate open lines, but Black\'s combined forces have their own synergy: the knight\'s jumping ability can threaten the rook in ways a rook cannot, and together the rook and knight can cover each other\'s weaknesses. The challenge for White is largely strategic – you must leverage the rook\'s range to break through, while tactically avoiding fork tricks from the knight.',
+      blackPlan: 'For Black (as the puzzle opponent or AI), the task is to coordinate the rook and knight to harass White\'s rook and delay mate. Use the knight to jump and threaten, while the rook provides long-range support.',
+      keyPositions: 'This setup is engaging because it often boils down to whether raw power (rook) can overcome well-coordinated lesser pieces. It highlights the importance of piece cooperation and careful positioning on a narrow board where every move has immediate consequences.',
     },
     learningObjectives: [
-      'Understand bishop movement in 1D (jumps ±2 on same parity)',
-      'Manage opposite-parity bishop positions',
-      'Coordinate multiple piece types',
-      'Practice complex tactical calculations',
+      'Understand the power vs. numbers material imbalance',
+      'Practice leveraging superior piece range',
+      'Defend against or execute knight fork tactics',
+      'Learn piece cooperation under pressure',
     ],
-    difficultyStars: 4,
-    icon: '👑',
+    difficultyStars: 3,
+    icon: '⚖️',
   },
-  'asymmetric-challenge': {
-    challenge: 'An unbalanced 7-square battle: White has two knights while Black has one rook. White\'s knights must work together to corner the black king or rook, while Black uses the rook\'s long range to pick off knights from a distance.',
+  'two-knights-vs-rook': {
+    challenge: 'An asymmetric 1D battle on a 7-square board where White has two knights versus Black\'s single rook (each side has a king as well). The imbalance forces creative play. White\'s goal is to use the two knights in tandem to trap and checkmate Black\'s king or to capture the rook, while Black\'s rook will try to pick off the knights and avoid getting cornered. The black king starts behind the rook (at the far end), ensuring the rook isn\'t initially blocked.',
     solvabilityType: 'COMPETITIVE',
     hints: [
-      'Two knights can create a fork pattern where one knight attacks the king while the other controls escape squares. Coordinate your knights to approach from different distances.',
-      'Black\'s rook can control an entire line if unobstructed. Try to keep both knights protected from long-range rook attacks while advancing.',
+      'This mode plays out as a tense cat-and-mouse game. White\'s knights have strength in numbers and agility, able to threaten from different distances, while Black\'s rook has superior range and can strike from afar.',
+      'Every move counts: if the knights coordinate, they can corner the rook or king; if they split up or miscalculate, the rook will systematically eliminate them. The asymmetry makes the scenario unpredictable and highly replayable.',
     ],
-    solution: 'This is a balanced handicap match. White should coordinate both knights to create double threats, while Black must use the rook\'s range to maintain distance.\n\nWhite Strategy: Advance knights together (one at position N, one at N+2 or N-2) to create fork opportunities. Trap the rook or deliver checkmate through knight coordination.\n\nBlack Strategy: Keep rook active on open lines. Pick off exposed knights. Maintain king safety by keeping the rook between king and enemy knights.\n\nKey Concepts: Material imbalance, piece coordination, long-range vs short-range tactics.',
+    solution: 'This is a balanced handicap match testing your ability to leverage mobility vs. power.\n\nWhite Strategy: Advance knights together, coordinating to create fork opportunities and trap the rook. Use one knight to restrict while the other attacks.\n\nBlack Strategy: Keep rook active. Use range to pick off exposed knights. Maintain king safety by keeping rook between king and enemy knights.\n\nKey Concepts: Material imbalance, two-piece coordination, long-range vs short-range tactics.',
     learningObjectives: [
-      'Handle material imbalance situations',
-      'Coordinate two knights effectively',
-      'Defend against multiple attackers with one piece',
-      'Understand positional compensation',
+      'Coordinate two knights to create combined threats',
+      'Handle asymmetric material situations',
+      'Understand mobility vs. power trade-offs',
+      'Approach with caution and appreciate rook\'s need for open lines',
     ],
     difficultyStars: 3,
     icon: '⚖️',
@@ -467,53 +519,64 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
  * cell = 'x' (empty) or '[wb][krnbp]' (piece)
  * side = 'w' or 'b'
  */
-export function decode(code: string, variant: VariantType, boardLength?: number): Position {
+export function decode(code: string, variant: VariantType, boardLength?: number, boardWidth?: number): Position {
   const [cellsRaw, turnRaw] = code.trim().split(':');
 
-  // Parse cells first to determine actual board length
+  // Parse cells first to determine actual board dimensions
   let items: string[];
+  let detectedWidth: number | undefined;
+  let detectedHeight: number | undefined;
+
   if (variant === 'thin') {
     // Thin: flat comma-separated
     items = cellsRaw.split(',').map(s => s.trim());
+    detectedHeight = items.length;
   } else {
     // Skinny: ranks separated by '/', cells by ','
     const ranks = cellsRaw.split('/');
+    detectedHeight = ranks.length;
+    detectedWidth = ranks[0].split(',').length; // Width from first rank
     items = ranks.flatMap(rank => rank.split(',').map(s => s.trim()));
   }
 
-  // Auto-detect board length for thin variant if not provided
+  // Auto-detect dimensions if not provided
   if (variant === 'thin' && !boardLength) {
-    boardLength = items.length;
+    boardLength = detectedHeight;
+  }
+  if (variant === 'skinny') {
+    if (!boardWidth) boardWidth = detectedWidth;
+    if (!boardLength) boardLength = detectedHeight;
   }
 
-  // Determine config - use custom length for 1-D Chess modes if needed
-  let config: BoardConfig;
-  if (variant === 'thin' && boardLength && boardLength !== 12) {
-    config = {
-      variant: 'thin',
-      width: 1,
-      height: boardLength,
-      size: boardLength,
-      files: ['a'],
-      ranks: Array.from({ length: boardLength }, (_, i) => i + 1),
-    };
-  } else {
-    config = CONFIGS[variant];
+  // Build position object with detected/provided dimensions
+  const pos: Position = {
+    variant,
+    board: [], // Will be filled below
+    turn: (turnRaw || 'w').trim() === 'b' ? 'b' : 'w',
+  };
+
+  if (variant === 'thin' && boardLength) {
+    pos.boardLength = boardLength;
   }
+  if (variant === 'skinny') {
+    if (boardWidth && boardWidth !== 2) pos.boardWidth = boardWidth;
+    if (boardLength && boardLength !== 10) pos.boardLength = boardLength;
+  }
+
+  // Get config for validation
+  const config = getConfig(pos);
 
   if (items.length !== config.size) {
     throw new Error(`Expected ${config.size} squares for ${variant}, got ${items.length}`);
   }
 
-  const board: Board = items.map(s => {
+  pos.board = items.map(s => {
     if (s === 'x') return EMPTY;
-    if (!/^[wb][krnbp]$/.test(s)) throw new Error(`Bad token: ${s}`);
+    if (!/^[wb][krnbpq]$/.test(s)) throw new Error(`Bad token: ${s}`);
     return s as Piece;
   });
 
-  const turn: Side = (turnRaw || 'w').trim() === 'b' ? 'b' : 'w';
-
-  return { variant, board, turn, boardLength };
+  return pos;
 }
 
 export function encode(pos: Position): string {
@@ -621,7 +684,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
       }
     }
 
-    // Rook attacks (orthogonal rays)
+    // Rook attacks (orthogonal rays) - also check for queen
     const rookDeltas = [[-1,0],[1,0],[0,-1],[0,1]];
     for (const [dr, df] of rookDeltas) {
       let r = rank + dr;
@@ -630,7 +693,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
         const j = coordsToIndex(r, f, config);
         const p = board[j];
         if (p !== EMPTY) {
-          if (p === `${opp}r`) return true;
+          if (p === `${opp}r` || p === `${opp}q`) return true;
           break;
         }
         r += dr;
@@ -638,7 +701,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
       }
     }
 
-    // Bishop attacks (diagonal rays)
+    // Bishop attacks (diagonal rays) - also check for queen
     const bishopDeltas = [[-1,-1],[-1,1],[1,-1],[1,1]];
     for (const [dr, df] of bishopDeltas) {
       let r = rank + dr;
@@ -647,7 +710,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
         const j = coordsToIndex(r, f, config);
         const p = board[j];
         if (p !== EMPTY) {
-          if (p === `${opp}b`) return true;
+          if (p === `${opp}b` || p === `${opp}q`) return true;
           break;
         }
         r += dr;
@@ -794,6 +857,30 @@ export function legalMoves(pos: Position): Move[] {
             f += df;
           }
         }
+      } else if (t === 'q') {
+        // Queen: rook + bishop (orthogonal + diagonal sliding)
+        const queenDeltas = [
+          [-1, 0], [1, 0], [0, -1], [0, 1],      // Rook moves
+          [-1, -1], [-1, 1], [1, -1], [1, 1]     // Bishop moves
+        ];
+        for (const [dr, df] of queenDeltas) {
+          let r = rank + dr;
+          let f = file + df;
+          while (inBounds2D(r, f, config)) {
+            const j = coordsToIndex(r, f, config);
+            const q = board[j];
+            if (q === EMPTY) {
+              pieceMoves.push({ from: i, to: j });
+            } else {
+              if (sideOf(q) !== turn) {
+                pieceMoves.push({ from: i, to: j });
+              }
+              break;
+            }
+            r += dr;
+            f += df;
+          }
+        }
       } else if (t === 'p') {
         // Pawn: forward + diagonal captures + promotion
         const direction = turn === 'w' ? 1 : -1;
@@ -881,6 +968,7 @@ export function applyMove(pos: Position, m: Move): Position {
     board: nb,
     turn: pos.turn === 'w' ? 'b' : 'w',
     boardLength: pos.boardLength,
+    boardWidth: pos.boardWidth,
   };
 }
 
