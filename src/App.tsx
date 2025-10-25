@@ -115,7 +115,13 @@ function App() {
   // Determines win/loss/draw from game result and plays appropriate sound effect.
   // Uses ref to prevent duplicate playback on component re-renders.
   useEffect(() => {
-    if (!gameState.gameOver || !gameState.gameResult) return;
+    if (!gameState.gameOver || !gameState.gameResult) {
+      // Reset ref when game is not over (e.g., new game started)
+      if (!gameState.gameOver && lastGameResultRef.current) {
+        lastGameResultRef.current = '';
+      }
+      return;
+    }
 
     // Prevent playing the same sound multiple times for the same result
     if (lastGameResultRef.current === gameState.gameResult) return;

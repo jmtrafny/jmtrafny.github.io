@@ -128,11 +128,16 @@ export function useGameState(): [GameState, GameActions] {
 
   // Check for game over
   useEffect(() => {
+    // Skip check if no game mode is set (initial state before game loads)
+    // or if position is invalid or game already over
+    if (!state.currentMode || !state.position || !state.position.board || state.gameOver) return;
+
     const term = terminal(state.position);
-    if (term && !state.gameOver) {
+    if (term) {
       let result = '';
       if (term === 'STALEMATE') {
         result = 'Draw - Stalemate';
+        console.log('[GameState] Stalemate detected:', state.position);
       } else if (term === 'WHITE_MATE') {
         result = 'Black Wins - White is checkmated';
       } else if (term === 'BLACK_MATE') {
@@ -145,7 +150,7 @@ export function useGameState(): [GameState, GameActions] {
         gameResult: result,
       }));
     }
-  }, [state.position, state.gameOver]);
+  }, [state.position, state.gameOver, state.currentMode]);
 
   const actions: GameActions = {
     selectSquare: useCallback((index: number) => {
