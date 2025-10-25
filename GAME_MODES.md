@@ -5,8 +5,9 @@ Complete technical reference for all game modes in 1-D Chess and Thin Chess vari
 ## Table of Contents
 1. [1-D Chess Modes](#1-d-chess-modes) (5 modes)
 2. [Thin Chess Modes](#thin-chess-modes) (6 modes)
-3. [Implementation Details](#implementation-details)
-4. [Adding Custom Modes](#adding-custom-modes)
+3. [Mini-Board Puzzles](#mini-board-puzzles) (6 puzzles)
+4. [Implementation Details](#implementation-details)
+5. [Adding Custom Modes](#adding-custom-modes)
 
 ---
 
@@ -594,6 +595,50 @@ Rank 1:  wk x  x     ← White King
 
 ---
 
+## Mini-Board Puzzles
+
+The **Mini-Board Puzzles** category contains 6 tactical and endgame challenges designed to teach specific chess concepts in controlled environments. These puzzles span 1-D (1×N) and 2-D (2×N, 3×N) boards and focus on isolated tactical themes.
+
+### Puzzle 1: Top-Rank Guillotine (2×6)
+**ID:** `krk-2x6-guillotine` | **Difficulty:** ⭐ Puzzle | **Board:** 2×6
+**Position:** `x,bk/x,x/x,x/wk,x/wr,x/x,x:w`
+
+Fundamental K+R vs K ladder mate. Teaches rook opposition and staircase technique in minimal space.
+
+### Puzzle 2: Top-Rank Guillotine (2×8)
+**ID:** `krk-2x8-guillotine` | **Difficulty:** ⭐ Puzzle | **Board:** 2×8
+**Position:** `x,bk/x,x/x,x/x,x/wk,x/wr,x/x,x:w`
+
+Extended ladder mate requiring more steps. Reinforces systematic conversion technique.
+
+### Puzzle 3: Bishop Corridor Squeeze (2×8)
+**ID:** `bishop-corridor-2x8` | **Difficulty:** ⭐⭐⭐ Endgame | **Board:** 2×8
+**Position:** `x,bk/x,bb/x,x/x,x/wk,x/wr,x/x,x:w`
+
+Opposite-color bishop fortress. White must find zugzwang entries to break through.
+
+### Puzzle 4: Flip-Fork Lite (2×8)
+**ID:** `flip-fork-lite-2x8` | **Difficulty:** ⭐⭐⭐ Tactical | **Board:** 2×8
+**Position:** `x,bk/x,bb/x,x/x,br/x,x/wr,x/x,x/wk,wn:w`
+
+Knight fork pattern recognition in cramped space. Teaches forcing sequences.
+
+### Puzzle 5: Three-File Showdown (3×8)
+**ID:** `q-vs-rn-3x8` | **Difficulty:** ⭐⭐⭐⭐ Strategic | **Board:** 3×8
+**Position:** `wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,x/bk,x,x:w`
+
+Queen vs Rook+Knight material imbalance. Power vs numbers on 3 files.
+
+### Puzzle 6: Rook Race (1×9)
+**ID:** `rook-race-1d-1x9` | **Difficulty:** ⭐⭐ Asymmetric | **Board:** 1×9
+**Position:** `wk,wr,x,x,x,x,bn,br,bk:w`
+
+Asymmetric material battle. White's rook vs Black's rook+knight in 1-D.
+
+**See [THIN_CHESS_MODES.md](THIN_CHESS_MODES.md) for player-facing descriptions and strategies for all 17 game modes.**
+
+---
+
 ## Implementation Details
 
 ### Code Structure
@@ -607,8 +652,11 @@ export const THIN_MODE_PACK: ThinMode[] = [ /* 5 modes */ ];
 // Thin Chess modes (6 total)
 export const SKINNY_MODE_PACK: SkinnyMode[] = [ /* 6 modes */ ];
 
-// Help content for all 11 modes
-export const MODE_HELP_CONTENT: Record<string, ModeHelp> = { /* 11 entries */ };
+// Mini-Board Puzzles (6 total - mixed 1-D and 2-D)
+export const MINI_BOARD_PUZZLES_PACK: Array<ThinMode | SkinnyMode> = [ /* 6 puzzles */ ];
+
+// Help content for all 17 modes (5 + 6 + 6)
+export const MODE_HELP_CONTENT: Record<string, ModeHelp> = { /* 17 entries */ };
 ```
 
 ### Mode Data Structures

@@ -21,6 +21,7 @@ import {
   SKINNY_MODE_PACK,
   ThinMode,
   THIN_MODE_PACK,
+  MINI_BOARD_PUZZLES_PACK,
   MODE_HELP_CONTENT,
   moveToAlgebraic,
 } from './engine';
@@ -54,8 +55,10 @@ function App() {
   const [showVariantPicker, setShowVariantPicker] = useState(false); // Don't show on startup
   const [showThinModePicker, setShowThinModePicker] = useState(false); // Show 1-D Chess mode selector
   const [showSkinnyModePicker, setShowSkinnyModePicker] = useState(false); // Show Thin Chess challenges selector
+  const [showPuzzleModePicker, setShowPuzzleModePicker] = useState(false); // Show Mini-Board Puzzles selector
   const [selectedThinMode, setSelectedThinMode] = useState<ThinMode | null>(defaultMode); // Start with 1-D Chess
   const [selectedSkinnyMode, setSelectedSkinnyMode] = useState<SkinnyMode | null>(null); // Currently selected Thin Chess mode
+  const [selectedPuzzleMode, setSelectedPuzzleMode] = useState<ThinMode | SkinnyMode | null>(null); // Currently selected Puzzle mode
 
   // Help modal state
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -312,6 +315,7 @@ function App() {
     setShowVariantPicker(true);
     setShowThinModePicker(false);
     setShowSkinnyModePicker(false);
+    setShowPuzzleModePicker(false);
     setShowModal(false);
     setShowColorPicker(false);
   };
@@ -393,6 +397,32 @@ function App() {
     setShowModal(true); // Show game mode picker
   };
 
+  // Handle puzzle mode selection
+  const selectPuzzleMode = (mode: ThinMode | SkinnyMode) => {
+    // Determine if it's a 1-D or 2-D puzzle based on boardWidth
+    const is2D = 'boardWidth' in mode && mode.boardWidth !== undefined;
+    setGameVariant(is2D ? 'skinny' : 'thin');
+    setSelectedPuzzleMode(mode);
+    setSelectedThinMode(null);
+    setSelectedSkinnyMode(null);
+
+    const startPos = is2D
+      ? decode(mode.startPosition, 'skinny', mode.boardLength, mode.boardWidth)
+      : decode(mode.startPosition, 'thin', mode.boardLength);
+
+    setPos(startPos);
+    setHistory([encode(startPos)]);
+    setHIndex(0);
+    setSel(null);
+    setTargets([]);
+    setGameOver(false);
+    setGameResult('');
+    setMoveLog([]); // Reset move log
+    clearTT();
+    setShowPuzzleModePicker(false);
+    setShowModal(true); // Show game mode picker (1 player vs 2 player)
+  };
+
   // Start game with selected mode and optional player side
   const startGame = (mode: '1player' | '2player', side: Side | null) => {
     // Use selected mode position if available, otherwise use default variant position
@@ -401,6 +431,11 @@ function App() {
       startPos = decode(selectedThinMode.startPosition, 'thin', selectedThinMode.boardLength);
     } else if (selectedSkinnyMode) {
       startPos = decode(selectedSkinnyMode.startPosition, 'skinny', selectedSkinnyMode.boardLength, selectedSkinnyMode.boardWidth);
+    } else if (selectedPuzzleMode) {
+      const is2D = 'boardWidth' in selectedPuzzleMode && selectedPuzzleMode.boardWidth !== undefined;
+      startPos = is2D
+        ? decode(selectedPuzzleMode.startPosition, 'skinny', selectedPuzzleMode.boardLength, selectedPuzzleMode.boardWidth)
+        : decode(selectedPuzzleMode.startPosition, 'thin', selectedPuzzleMode.boardLength);
     } else {
       startPos = decode(START_POSITIONS[gameVariant], gameVariant);
     }
@@ -530,6 +565,13 @@ function App() {
                 Thin Chess
                 <div className="modal-subtitle">Narrow-board chess variant</div>
               </button>
+              <button className="modal-btn" onClick={() => {
+                setShowVariantPicker(false);
+                setShowPuzzleModePicker(true);
+              }}>
+                Mini-Board Puzzles
+                <div className="modal-subtitle">Tactical & endgame challenges</div>
+              </button>
             </div>
           </div>
         </div>
@@ -654,11 +696,64 @@ function App() {
         </div>
       )}
 
+      {/* Mini-Board Puzzles Selector Modal */}
+      {showPuzzleModePicker && (
+        <div className="modal-overlay">
+          <div className="modal mode-pack-modal">
+            <h2>Mini-Board Puzzles</h2>
+            <div className="mode-grid">
+              {MINI_BOARD_PUZZLES_PACK.map((mode) => {
+                const helpContent = MODE_HELP_CONTENT[mode.id];
+                return (
+                  <div key={mode.id} className="mode-card-wrapper">
+                    {helpContent && (
+                      <button
+                        className="help-icon-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openHelp(mode.id);
+                        }}
+                        title="Show hints and strategy"
+                      >
+                        ?
+                      </button>
+                    )}
+                    <button
+                      className="mode-card"
+                      onClick={() => selectPuzzleMode(mode)}
+                    >
+                      <div className="mode-header">
+                        <span className="mode-icon">{helpContent?.icon || '🧩'}</span>
+                        <span className="mode-difficulty-stars">
+                          {'⭐'.repeat(helpContent?.difficultyStars || 3)}
+                        </span>
+                      </div>
+                      <div className="mode-name">{mode.name}</div>
+                      <div className="mode-description">{mode.description}</div>
+                      <div className="mode-type-badge">{mode.difficulty}</div>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              className="modal-btn back-btn"
+              onClick={() => {
+                setShowPuzzleModePicker(false);
+                setShowVariantPicker(true);
+              }}
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Help Modal */}
       {showHelpModal && helpMode && MODE_HELP_CONTENT[helpMode] && (
         <div className="modal-overlay" onClick={closeHelp}>
           <div className="modal help-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{SKINNY_MODE_PACK.find(m => m.id === helpMode)?.name || THIN_MODE_PACK.find(m => m.id === helpMode)?.name}</h2>
+            <h2>{SKINNY_MODE_PACK.find(m => m.id === helpMode)?.name || THIN_MODE_PACK.find(m => m.id === helpMode)?.name || MINI_BOARD_PUZZLES_PACK.find(m => m.id === helpMode)?.name}</h2>
 
             <div className="help-section">
               <h3>The Challenge</h3>
@@ -819,9 +914,10 @@ function App() {
             <span className="title-icon title-icon-white">
               <img src="/white-pawn.svg" alt="" />
             </span>
-            {selectedThinMode ? `${selectedThinMode.name}` : selectedSkinnyMode ? `${selectedSkinnyMode.name}` : gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
+            {selectedThinMode ? `${selectedThinMode.name}` : selectedSkinnyMode ? `${selectedSkinnyMode.name}` : selectedPuzzleMode ? `${selectedPuzzleMode.name}` : gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
             {selectedThinMode && <span className="mode-badge">{selectedThinMode.difficulty}</span>}
             {selectedSkinnyMode && <span className="mode-badge">{selectedSkinnyMode.difficulty}</span>}
+            {selectedPuzzleMode && <span className="mode-badge">{selectedPuzzleMode.difficulty}</span>}
           </h1>
           <div className="header-buttons">
             <a

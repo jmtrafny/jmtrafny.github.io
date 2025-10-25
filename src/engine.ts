@@ -272,6 +272,83 @@ export const THIN_MODE_PACK: ThinMode[] = [
 ];
 
 /**
+ * Mini-Board Puzzles Pack
+ * Small-board tactical/endgame puzzles across various dimensions
+ */
+export const MINI_BOARD_PUZZLES_PACK: Array<ThinMode | SkinnyMode> = [
+  // --- 2×6 — K+R vs K (ladder mate fundamentals)
+  {
+    id: 'krk-2x6-guillotine',
+    name: 'Top-Rank Guillotine (2×6)',
+    description: 'K+R vs K ladder mate on a skinny 2-file board (⭐ Puzzle)',
+    startPosition: 'x,bk/x,x/x,x/wk,x/wr,x/x,x:w',
+    rationale: 'Short, clean execution of the classic rook-and-king mate.',
+    difficulty: 'Puzzle',
+    boardWidth: 2,
+    boardLength: 6
+  },
+
+  // --- 2×8 — K+R vs K (slightly longer ladder)
+  {
+    id: 'krk-2x8-guillotine',
+    name: 'Top-Rank Guillotine (2×8)',
+    description: 'K+R vs K with more "walking" before the net (⭐ Puzzle)',
+    startPosition: 'x,bk/x,x/x,x/x,x/wk,x/wr,x/x,x:w',
+    rationale: 'Same core technique as 2×6 with a longer staircase to build.',
+    difficulty: 'Puzzle',
+    boardWidth: 2,
+    boardLength: 8
+  },
+
+  // --- 2×8 — Bishop corridor squeeze (rook breakthrough vs fortress)
+  {
+    id: 'bishop-corridor-2x8',
+    name: 'Bishop Corridor Squeeze (2×8)',
+    description: 'Opposite-color bishop corridor; rook breakthrough patterns (⭐⭐⭐ Endgame)',
+    startPosition: 'x,bk/x,bb/x,x/x,x/wk,x/wr,x/x,x:w',
+    rationale: 'Practice zugzwang entries and color-complex squeezes in two files.',
+    difficulty: 'Endgame',
+    boardWidth: 2,
+    boardLength: 8
+  },
+
+  // --- 2×8 — Knight fork burst
+  {
+    id: 'flip-fork-lite-2x8',
+    name: 'Flip-Fork Lite (2×8)',
+    description: 'Fast knight-fork tactic with piece-play buildup (⭐⭐⭐ Tactical)',
+    startPosition: 'x,bk/x,bb/x,x/x,br/x,x/wr,x/x,x/wk,wn:w',
+    rationale: 'Teaches recognizing forcing knight jumps in cramped lanes.',
+    difficulty: 'Tactical',
+    boardWidth: 2,
+    boardLength: 8
+  },
+
+  // --- 3×8 — Queen vs Rook+Knight (classic imbalance on 3 files)
+  {
+    id: 'q-vs-rn-3x8',
+    name: 'Three-File Showdown (3×8)',
+    description: 'Queen vs Rook & Knight — convert or mate (⭐⭐⭐⭐ Strategic)',
+    startPosition: 'wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,x/bk,x,x:w',
+    rationale: 'Power vs numbers with diagonals; orchestrate nets and pins.',
+    difficulty: 'Strategic',
+    boardWidth: 3,
+    boardLength: 8
+  },
+
+  // --- 1×9 — Rook race vs R+N
+  {
+    id: 'rook-race-1d-1x9',
+    name: 'Rook Race (1×9)',
+    description: 'White rook vs Black rook+knight — timing & tempi (⭐⭐ Asymmetric)',
+    startPosition: 'wk,wr,x,x,x,x,bn,br,bk:w',
+    rationale: 'Tradeoffs of raw power vs coordinated defenders in 1D.',
+    difficulty: 'Asymmetric',
+    boardLength: 9
+  },
+];
+
+/**
  * Mode Help Content
  * Progressive hints and solutions for each mode
  */
@@ -287,7 +364,7 @@ export interface ModeHelp {
   };
   learningObjectives: string[];
   difficultyStars: 1 | 2 | 3 | 4 | 5;
-  icon: '🧩' | '⚖️' | '📚' | '🎯' | '👑';
+  icon: string;
 }
 
 export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
@@ -483,6 +560,55 @@ export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
     ],
     difficultyStars: 3,
     icon: '⚖️',
+  },
+  // Mini-Board Puzzles Help Content
+  'krk-2x6-guillotine': {
+    challenge: 'Deliver K+R vs K mate on a 2×6 in 2–3 moves.',
+    solvabilityType: 'FORCED_WIN_WHITE',
+    hints: ['Cut a rank with the rook', 'Bring the king to oppose', 'Finish with a ladder'],
+    learningObjectives: ['Rook laddering', 'Opposition', 'Edge mates'],
+    difficultyStars: 1,
+    icon: '🪓'
+  },
+  'krk-2x8-guillotine': {
+    challenge: 'Extend the rook ladder; convert without stalemate.',
+    solvabilityType: 'FORCED_WIN_WHITE',
+    hints: ['Cut space first', 'Walk the king upward', 'Corner then mate'],
+    learningObjectives: ['Staircase construction', 'Zugzwang entries'],
+    difficultyStars: 1,
+    icon: '🪜'
+  },
+  'bishop-corridor-2x8': {
+    challenge: 'Crack (or hold) the opposite-color fortress.',
+    solvabilityType: 'TACTICAL_PUZZLE',
+    hints: ['Fix targets on bishop\'s color', 'Triangulate the king', 'Time the rook breach'],
+    learningObjectives: ['Color-complex play', 'Zugzwang', 'Breakthrough timing'],
+    difficultyStars: 3,
+    icon: '🎯'
+  },
+  'flip-fork-lite-2x8': {
+    challenge: 'Find the forcing knight sequence that wins material.',
+    solvabilityType: 'TACTICAL_PUZZLE',
+    hints: ['Look for checks first', 'Force the king into a fork grid'],
+    learningObjectives: ['Knight forks', 'Forcing move order'],
+    difficultyStars: 3,
+    icon: '♞'
+  },
+  'q-vs-rn-3x8': {
+    challenge: 'Win decisively (mate or net material) with the queen.',
+    solvabilityType: 'TACTICAL_PUZZLE',
+    hints: ['Pin the rook to king', 'Lure the knight to a forkable square'],
+    learningObjectives: ['Diagonal nets', 'Pin + fork motifs'],
+    difficultyStars: 4,
+    icon: '👑'
+  },
+  'rook-race-1d-1x9': {
+    challenge: 'Out-tempo the rook+knight duo on a single file.',
+    solvabilityType: 'TACTICAL_PUZZLE',
+    hints: ['Keep the rook mobile', 'Dodge fork squares (±2)'],
+    learningObjectives: ['Tempo management', 'Fork avoidance patterns'],
+    difficultyStars: 2,
+    icon: '🏁'
   },
 };
 
