@@ -1,0 +1,378 @@
+/**
+ * useGameState Hook
+ *
+ * Centralized game state management replacing scattered useState calls in App.tsx.
+ * Manages position, history, game mode, player side, and game status.
+ */
+
+import { useState, useCallback, useEffect } from 'react';
+import type { Position, Side } from '../engine';
+import {
+  decode,
+  encode,
+  applyMove,
+  terminal,
+  legalMoves,
+  detectRepetition,
+  moveToAlgebraic,
+  EMPTY,
+} from '../engine';
+import { clearTT } from '../solver';
+import type { GameMode } from '../config/GameModeConfig';
+
+/**
+ * Game mode types
+ */
+export type GameModeType = '1player' | '2player' | null;
+
+/**
+ * Game state interface
+ */
+export interface GameState {
+  position: Position;
+  history: string[];
+  historyIndex: number;
+  selectedSquare: number | null;
+  targetSquares: number[];
+  gameMode: GameModeType;
+  playerSide: Side | null;
+  currentMode: GameMode | null;
+  gameOver: boolean;
+  gameResult: string;
+  moveLog: string[];
+  repetitionDetected: boolean;
+  aiThinking: boolean;
+}
+
+/**
+ * Game actions interface
+ */
+export interface GameActions {
+  selectSquare: (index: number) => void;
+  makeMove: (from: number, to: number) => void;
+  undo: () => void;
+  redo: () => void;
+  newGame: (mode: GameMode, gameMode: GameModeType, playerSide: Side | null) => void;
+  restart: () => void;
+  loadPosition: (positionCode: string) => void;
+  resign: () => void;
+  claimDraw: () => void;
+  setAIThinking: (thinking: boolean) => void;
+}
+
+/**
+ * Create initial state from a game mode
+ */
+function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' | 'playerSide' | 'currentMode'> {
+  if (!mode) {
+    // Return a minimal default state
+    return {
+      position: decode('x:w', 'thin', 1, 1),
+      history: [],
+      historyIndex: 0,
+      selectedSquare: null,
+      targetSquares: [],
+      gameOver: false,
+      gameResult: '',
+      moveLog: [],
+      repetitionDetected: false,
+      aiThinking: false,
+    };
+  }
+
+  const position = decode(
+    mode.startPosition,
+    mode.variant,
+    mode.boardHeight,
+    mode.boardWidth
+  );
+
+  return {
+    position,
+    history: [encode(position)],
+    historyIndex: 0,
+    selectedSquare: null,
+    targetSquares: [],
+    gameOver: false,
+    gameResult: '',
+    moveLog: [],
+    repetitionDetected: false,
+    aiThinking: false,
+  };
+}
+
+/**
+ * Hook for managing game state
+ */
+export function useGameState(): [GameState, GameActions] {
+  const [state, setState] = useState<GameState>(() => ({
+    ...createInitialState(null),
+    gameMode: null,
+    playerSide: null,
+    currentMode: null,
+  }));
+
+  // Detect position repetition
+  useEffect(() => {
+    const currentEncoded = encode(state.position);
+    const count = detectRepetition(state.history, currentEncoded);
+    setState((prev) => ({
+      ...prev,
+      repetitionDetected: count >= 2,
+    }));
+  }, [state.position, state.history]);
+
+  // Check for game over
+  useEffect(() => {
+    const term = terminal(state.position);
+    if (term && !state.gameOver) {
+      let result = '';
+      if (term === 'STALEMATE') {
+        result = 'Draw - Stalemate';
+      } else if (term === 'WHITE_MATE') {
+        result = 'Black Wins - White is checkmated';
+      } else if (term === 'BLACK_MATE') {
+        result = 'White Wins - Black is checkmated';
+      }
+
+      setState((prev) => ({
+        ...prev,
+        gameOver: true,
+        gameResult: result,
+      }));
+    }
+  }, [state.position, state.gameOver]);
+
+  const actions: GameActions = {
+    selectSquare: useCallback((index: number) => {
+      setState((prev) => {
+        if (prev.aiThinking || prev.gameOver) return prev;
+
+        const piece = prev.position.board[index];
+
+        // Deselect if clicking same square
+        if (index === prev.selectedSquare) {
+          return {
+            ...prev,
+            selectedSquare: null,
+            targetSquares: [],
+          };
+        }
+
+        // If nothing selected, try to select this square
+        if (prev.selectedSquare === null) {
+          if (piece === EMPTY || piece[0] !== prev.position.turn) {
+            return prev; // Can't select empty or opponent's piece
+          }
+
+          // Select piece and show legal move targets
+          const targets = legalMoves(prev.position)
+            .filter((m) => m.from === index)
+            .map((m) => m.to);
+
+          return {
+            ...prev,
+            selectedSquare: index,
+            targetSquares: targets,
+          };
+        }
+
+        // Try to make a move
+        const move = legalMoves(prev.position).find(
+          (m) => m.from === prev.selectedSquare && m.to === index
+        );
+
+        if (move) {
+          const moveNotation = moveToAlgebraic(prev.position, move);
+          const newPosition = applyMove(prev.position, move);
+          const newHistory = prev.history.slice(0, prev.historyIndex + 1);
+          newHistory.push(encode(newPosition));
+
+          return {
+            ...prev,
+            position: newPosition,
+            history: newHistory,
+            historyIndex: prev.historyIndex + 1,
+            selectedSquare: null,
+            targetSquares: [],
+            moveLog: [...prev.moveLog, moveNotation],
+          };
+        }
+
+        // Clicked on different piece of same color - select it
+        if (piece !== EMPTY && piece[0] === prev.position.turn) {
+          const targets = legalMoves(prev.position)
+            .filter((m) => m.from === index)
+            .map((m) => m.to);
+
+          return {
+            ...prev,
+            selectedSquare: index,
+            targetSquares: targets,
+          };
+        }
+
+        return prev;
+      });
+    }, []),
+
+    makeMove: useCallback((from: number, to: number) => {
+      setState((prev) => {
+        // Only block if game is over (AI can make moves while aiThinking is true)
+        if (prev.gameOver) return prev;
+
+        const move = legalMoves(prev.position).find(
+          (m) => m.from === from && m.to === to
+        );
+
+        if (!move) return prev;
+
+        const moveNotation = moveToAlgebraic(prev.position, move);
+        const newPosition = applyMove(prev.position, move);
+        const newHistory = prev.history.slice(0, prev.historyIndex + 1);
+        newHistory.push(encode(newPosition));
+
+        return {
+          ...prev,
+          position: newPosition,
+          history: newHistory,
+          historyIndex: prev.historyIndex + 1,
+          moveLog: [...prev.moveLog, moveNotation],
+          selectedSquare: null,
+          targetSquares: [],
+        };
+      });
+    }, []),
+
+    undo: useCallback(() => {
+      setState((prev) => {
+        if (prev.historyIndex <= 0 || prev.aiThinking || prev.gameOver) {
+          return prev;
+        }
+
+        const stepsBack = prev.gameMode === '1player' ? Math.min(2, prev.historyIndex) : 1;
+        const newIndex = prev.historyIndex - stepsBack;
+
+        return {
+          ...prev,
+          position: decode(prev.history[newIndex], prev.position.variant),
+          historyIndex: newIndex,
+          selectedSquare: null,
+          targetSquares: [],
+          moveLog: prev.moveLog.slice(0, prev.moveLog.length - stepsBack),
+        };
+      });
+    }, []),
+
+    redo: useCallback(() => {
+      setState((prev) => {
+        if (prev.historyIndex >= prev.history.length - 1 || prev.aiThinking || prev.gameOver) {
+          return prev;
+        }
+
+        const stepsForward = prev.gameMode === '1player'
+          ? Math.min(2, prev.history.length - 1 - prev.historyIndex)
+          : 1;
+        const newIndex = prev.historyIndex + stepsForward;
+
+        return {
+          ...prev,
+          position: decode(prev.history[newIndex], prev.position.variant),
+          historyIndex: newIndex,
+          selectedSquare: null,
+          targetSquares: [],
+        };
+      });
+    }, []),
+
+    newGame: useCallback((mode: GameMode, gameMode: GameModeType, playerSide: Side | null) => {
+      clearTT();
+      const initialState = createInitialState(mode);
+
+      setState({
+        ...initialState,
+        gameMode,
+        playerSide,
+        currentMode: mode,
+      });
+    }, []),
+
+    restart: useCallback(() => {
+      setState((prev) => {
+        if (!prev.currentMode) return prev;
+
+        clearTT();
+        const initialState = createInitialState(prev.currentMode);
+
+        return {
+          ...initialState,
+          gameMode: prev.gameMode,
+          playerSide: prev.playerSide,
+          currentMode: prev.currentMode,
+        };
+      });
+    }, []),
+
+    loadPosition: useCallback((positionCode: string) => {
+      setState((prev) => {
+        try {
+          const newPosition = decode(positionCode.trim(), prev.position.variant);
+          clearTT();
+
+          return {
+            ...prev,
+            position: newPosition,
+            history: [encode(newPosition)],
+            historyIndex: 0,
+            selectedSquare: null,
+            targetSquares: [],
+            moveLog: [],
+            gameOver: false,
+            gameResult: '',
+          };
+        } catch (error) {
+          console.error('Failed to load position:', error);
+          return prev;
+        }
+      });
+    }, []),
+
+    resign: useCallback(() => {
+      setState((prev) => {
+        if (prev.gameOver) return prev;
+
+        let result = '';
+        if (prev.gameMode === '1player') {
+          result = 'You resigned - AI wins';
+        } else {
+          const resigner = prev.position.turn === 'w' ? 'White' : 'Black';
+          const winner = prev.position.turn === 'w' ? 'Black' : 'White';
+          result = `${resigner} resigned - ${winner} wins`;
+        }
+
+        return {
+          ...prev,
+          gameOver: true,
+          gameResult: result,
+        };
+      });
+    }, []),
+
+    claimDraw: useCallback(() => {
+      setState((prev) => ({
+        ...prev,
+        gameOver: true,
+        gameResult: 'Draw by Repetition',
+      }));
+    }, []),
+
+    setAIThinking: useCallback((thinking: boolean) => {
+      setState((prev) => ({
+        ...prev,
+        aiThinking: thinking,
+      }));
+    }, []),
+  };
+
+  return [state, actions];
+}

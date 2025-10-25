@@ -1,31 +1,26 @@
-import { useState, useEffect } from 'react';
+/**
+ * Main Application Component (Version 2.0 - Configuration-Driven Architecture)
+ *
+ * Refactored to use:
+ * - Centralized game-modes.json configuration
+ * - Custom hooks for state management
+ * - Extracted modal components
+ * - Simplified state and logic
+ */
+
+import { useState, useEffect, useRef } from 'react';
 import {
-  Position,
-  decode,
-  encode,
-  START_POSITIONS,
-  legalMoves,
-  applyMove,
-  terminal,
-  detectRepetition,
   PIECE_IMAGES,
   EMPTY,
-  sideOf,
-  Piece,
-  Side,
-  VariantType,
   getConfig,
   indexToCoords,
-  Move,
-  SkinnyMode,
-  SKINNY_MODE_PACK,
-  ThinMode,
-  THIN_MODE_PACK,
-  MINI_BOARD_PUZZLES_PACK,
-  MODE_HELP_CONTENT,
-  moveToAlgebraic,
+  encode,
+  legalMoves,
+  type Piece,
+  type Side,
+  type Move,
 } from './engine';
-import { solve, clearTT } from './solver';
+import { solve } from './solver';
 import {
   initAudio,
   playMove,
@@ -36,165 +31,69 @@ import {
   toggleMute,
   getMuted,
 } from './audio';
+import { useGameModes } from './hooks/useGameModes';
+import { useGameState } from './hooks/useGameState';
+import { useModalState } from './hooks/useModalState';
+import {
+  VariantPicker,
+  ModePicker,
+  HelpModal,
+  GameSetup,
+  ResignConfirm,
+} from './components/modals';
 import './App.css';
 
-type GameMode = '1player' | '2player' | null;
-
+// PWA Install Prompt Interface
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
 function App() {
-  // Default to 1-D Chess mode
-  const defaultMode = THIN_MODE_PACK[0]; // 1-D Chess
-  const defaultPosition = decode(defaultMode.startPosition, 'thin', defaultMode.boardLength);
+  // Configuration and modes
+  const {
+    config,
+    loading: configLoading,
+    error: configError,
+    categories,
+    getModesByCategory,
+    getMode,
+    getCategory,
+  } = useGameModes();
 
-  // Variant selection
-  const [gameVariant, setGameVariant] = useState<VariantType>('thin'); // Start with thin
-  const [showVariantPicker, setShowVariantPicker] = useState(false); // Don't show on startup
-  const [showThinModePicker, setShowThinModePicker] = useState(false); // Show 1-D Chess mode selector
-  const [showSkinnyModePicker, setShowSkinnyModePicker] = useState(false); // Show Thin Chess challenges selector
-  const [showPuzzleModePicker, setShowPuzzleModePicker] = useState(false); // Show Mini-Board Puzzles selector
-  const [selectedThinMode, setSelectedThinMode] = useState<ThinMode | null>(defaultMode); // Start with 1-D Chess
-  const [selectedSkinnyMode, setSelectedSkinnyMode] = useState<SkinnyMode | null>(null); // Currently selected Thin Chess mode
-  const [selectedPuzzleMode, setSelectedPuzzleMode] = useState<ThinMode | SkinnyMode | null>(null); // Currently selected Puzzle mode
+  // Game state
+  const [gameState, gameActions] = useGameState();
+  const gameActionsRef = useRef(gameActions);
+  useEffect(() => {
+    gameActionsRef.current = gameActions;
+  }, [gameActions]);
 
-  // Help modal state
-  const [showHelpModal, setShowHelpModal] = useState(false);
-  const [helpMode, setHelpMode] = useState<string | null>(null);
-  const [hintLevel, setHintLevel] = useState(0); // 0 = no hints, 1 = hint1, 2 = hint2, 3 = solution
+  // Modal state
+  const [modalState, modalActions] = useModalState();
 
-  // Resignation confirmation modal
-  const [showResignConfirm, setShowResignConfirm] = useState(false);
-
-  const [pos, setPos] = useState<Position>(() => defaultPosition);
-  const [history, setHistory] = useState<string[]>([encode(defaultPosition)]);
-  const [hIndex, setHIndex] = useState(0);
-  const [sel, setSel] = useState<number | null>(null);
-  const [targets, setTargets] = useState<number[]>([]);
-  const [gameMode, setGameMode] = useState<GameMode | null>('1player'); // Start with 1-player mode
-  const [playerSide, setPlayerSide] = useState<Side | null>('w'); // Player plays as white
-  const [showModal, setShowModal] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [aiThinking, setAiThinking] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
-  const [gameResult, setGameResult] = useState<string>('');
+  // UI state
+  const [soundMuted, setSoundMuted] = useState(() => getMuted());
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
-  const [soundMuted, setSoundMuted] = useState(() => getMuted());
-  const [repetitionDetected, setRepetitionDetected] = useState(false);
-  const [moveLog, setMoveLog] = useState<string[]>([]); // Track all moves in algebraic notation
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const lastGameResultRef = useRef<string>('');
 
-  // Initialize audio on mount
+  // Initialize audio
   useEffect(() => {
     initAudio();
   }, []);
 
-  // AI move handler
-  const makeAIMove = (position: Position) => {
-    if (aiThinking) return; // Prevent double-triggering
-
-    setAiThinking(true);
-    setTimeout(() => {
-      try {
-        let bestMove: Move | undefined;
-
-        if (position.variant === 'skinny') {
-          // For Skinny Chess, use random move selection (game tree too large to solve)
-          const moves = legalMoves(position);
-          if (moves.length > 0) {
-            bestMove = moves[Math.floor(Math.random() * moves.length)];
-            console.log('[AI] Skinny Chess - selected random move:', bestMove);
-          }
-        } else {
-          // For Thin Chess, use full solver
-          const result = solve(position);
-          bestMove = result.best;
-        }
-
-        if (bestMove) {
-          // Check if AI is capturing
-          const isCapture = position.board[bestMove.to] !== EMPTY;
-
-          // Generate move notation
-          const moveNotation = moveToAlgebraic(position, bestMove);
-
-          const newPos = applyMove(position, bestMove);
-          setPos(newPos);
-          setHistory(prev => {
-            const newHistory = prev.slice(0, hIndex + 1);
-            newHistory.push(encode(newPos));
-            return newHistory;
-          });
-          setHIndex(prev => prev + 1);
-          setMoveLog(prev => [...prev, moveNotation]);
-
-          // Play appropriate sound
-          if (isCapture) {
-            playCapture();
-          } else {
-            playMove();
-          }
-        }
-      } catch (error) {
-        console.error('[AI] Error during move:', error);
-      } finally {
-        setAiThinking(false);
+  // Initialize default game (1-D Chess: Full Set, user as white)
+  useEffect(() => {
+    if (!configLoading && !configError && config && gameState.gameMode === null) {
+      const defaultMode = getMode('1D12_CLASSIC') || config.modes[0];
+      if (defaultMode) {
+        gameActionsRef.current.newGame(defaultMode, '1player', 'w');
+      } else {
+        console.error('No default game mode available in configuration');
       }
-    }, 500);
-  };
-
-  // Check for game over (stalemate/checkmate)
-  useEffect(() => {
-    const term = terminal(pos);
-    if (term) {
-      setGameOver(true);
-      if (term === 'STALEMATE') {
-        setGameResult('Draw - Stalemate');
-        playDraw();
-      } else if (term === 'WHITE_MATE') {
-        setGameResult('Black Wins - White is checkmated');
-        // Player victory/defeat based on their side (1-player mode)
-        if (gameMode === '1player' && playerSide === 'b') {
-          playVictory();
-        } else if (gameMode === '1player' && playerSide === 'w') {
-          playDefeat();
-        } else {
-          // 2-player mode: play victory for winner
-          playVictory();
-        }
-      } else if (term === 'BLACK_MATE') {
-        setGameResult('White Wins - Black is checkmated');
-        // Player victory/defeat based on their side (1-player mode)
-        if (gameMode === '1player' && playerSide === 'w') {
-          playVictory();
-        } else if (gameMode === '1player' && playerSide === 'b') {
-          playDefeat();
-        } else {
-          // 2-player mode: play victory for winner
-          playVictory();
-        }
-      }
-    } else {
-      setGameOver(false);
-      setGameResult('');
     }
-  }, [pos, gameMode, playerSide]);
-
-  // Trigger AI move when it's AI's turn
-  useEffect(() => {
-    if (gameMode === '1player' && playerSide !== null && pos.turn !== playerSide && !aiThinking && !gameOver) {
-      makeAIMove(pos);
-    }
-  }, [gameMode, playerSide, pos.turn, aiThinking, gameOver]);
-
-  // Detect position repetition
-  useEffect(() => {
-    const currentEncoded = encode(pos);
-    const count = detectRepetition(history, currentEncoded);
-    setRepetitionDetected(count >= 2); // Twofold repetition (position appeared 2+ times)
-  }, [pos, history]);
+  }, [configLoading, configError, config, gameState.gameMode, getMode]);
 
   // Capture PWA install prompt
   useEffect(() => {
@@ -205,283 +104,187 @@ function App() {
     };
 
     window.addEventListener('beforeinstallprompt', handler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Push new position to history
-  const pushPos = (newPos: Position) => {
-    setPos(newPos);
-    const newHistory = history.slice(0, hIndex + 1);
-    newHistory.push(encode(newPos));
-    setHistory(newHistory);
-    setHIndex(hIndex + 1);
-  };
+  // Play sounds for game outcomes
+  useEffect(() => {
+    if (!gameState.gameOver || !gameState.gameResult) return;
 
-  // Handle square click
-  const handleSquareClick = (i: number) => {
-    if (aiThinking || gameOver) return; // Don't allow moves while AI is thinking or game is over
+    // Prevent playing the same sound multiple times for the same result
+    if (lastGameResultRef.current === gameState.gameResult) return;
+    lastGameResultRef.current = gameState.gameResult;
 
-    const p = pos.board[i];
+    if (gameState.gameResult.includes('Stalemate') || gameState.gameResult.includes('Draw')) {
+      console.log('[Sound] Game over: draw');
+      playDraw();
+    } else if (gameState.gameResult.includes('resigned')) {
+      console.log('[Sound] Game over: resigned (defeat)');
+      playDefeat();
+    } else if (gameState.gameMode === '1player') {
+      // Determine if player won or lost
+      const playerWon =
+        (gameState.playerSide === 'w' && gameState.gameResult.includes('White Wins')) ||
+        (gameState.playerSide === 'b' && gameState.gameResult.includes('Black Wins'));
 
-    // If nothing selected, try to select this square
-    if (sel === null) {
-      if (p === EMPTY || sideOf(p) !== pos.turn) {
-        setSel(null);
-        setTargets([]);
-        return;
+      if (playerWon) {
+        console.log('[Sound] Game over: player won (victory)');
+        playVictory();
+      } else {
+        console.log('[Sound] Game over: player lost (defeat)');
+        playDefeat();
       }
-      // Select piece and show targets
-      setSel(i);
-      const legalTargets = legalMoves(pos)
-        .filter((m) => m.from === i)
-        .map((m) => m.to);
-      setTargets(legalTargets);
+    } else {
+      console.log('[Sound] Game over: 2-player (victory)');
+      playVictory();
+    }
+  }, [gameState.gameOver, gameState.gameResult, gameState.gameMode, gameState.playerSide]);
+
+  // AI move handler
+  useEffect(() => {
+    // Skip if not AI's turn or already thinking
+    if (
+      gameState.gameMode !== '1player' ||
+      gameState.playerSide === null ||
+      gameState.position.turn === gameState.playerSide ||
+      gameState.aiThinking ||
+      gameState.gameOver
+    ) {
       return;
     }
 
-    // Deselect if clicking same square
-    if (i === sel) {
-      setSel(null);
-      setTargets([]);
-      return;
-    }
+    // AI's turn
+    console.log('[AI] Starting AI move for position:', gameState.history[gameState.historyIndex]);
+    gameActionsRef.current.setAIThinking(true);
 
-    // Try to move
-    const move = legalMoves(pos).find((m) => m.from === sel && m.to === i);
-    if (move) {
-      // Check if this is a capture
-      const isCapture = pos.board[i] !== EMPTY;
+    const timeoutId = setTimeout(() => {
+      try {
+        let bestMove: Move | undefined;
 
-      // Generate move notation
-      const moveNotation = moveToAlgebraic(pos, move);
-      setMoveLog(prev => [...prev, moveNotation]);
+        if (gameState.position.variant === 'skinny') {
+          // Random move for Thin Chess
+          const moves = legalMoves(gameState.position);
+          if (moves.length > 0) {
+            bestMove = moves[Math.floor(Math.random() * moves.length)];
+          }
+        } else {
+          // Solver for 1-D Chess
+          const result = solve(gameState.position);
+          bestMove = result.best;
+        }
 
-      pushPos(applyMove(pos, move));
+        if (bestMove) {
+          const isCapture = gameState.position.board[bestMove.to] !== EMPTY;
+          gameActionsRef.current.makeMove(bestMove.from, bestMove.to);
 
-      // Play appropriate sound
+          console.log('[Sound] AI move:', isCapture ? 'capture' : 'move');
+          if (isCapture) {
+            playCapture();
+          } else {
+            playMove();
+          }
+        }
+      } catch (error) {
+        console.error('[AI] Error during move:', error);
+      } finally {
+        gameActionsRef.current.setAIThinking(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gameState.gameMode,
+    gameState.playerSide,
+    gameState.history[gameState.historyIndex], // Current position as string
+    gameState.gameOver,
+    // NOTE: aiThinking is NOT in deps to avoid canceling the timeout
+  ]);
+
+  // Handlers
+  const handleSquareClick = (index: number) => {
+    // Check if this will be a move BEFORE calling selectSquare
+    const wasMove = gameState.selectedSquare !== null && gameState.targetSquares.includes(index);
+    const isCapture = wasMove ? gameState.position.board[index] !== EMPTY : false;
+
+    gameActions.selectSquare(index);
+
+    // Play move sound after state update is queued
+    if (wasMove) {
+      console.log('[Sound] Human move:', isCapture ? 'capture' : 'move');
       if (isCapture) {
         playCapture();
       } else {
         playMove();
       }
     }
-
-    setSel(null);
-    setTargets([]);
   };
 
-  // Undo
-  const handleUndo = () => {
-    if (hIndex > 0) {
-      // In 1-player mode, undo 2 moves (player + AI) to get back to player's turn
-      // In 2-player mode, undo 1 move
-      const stepsBack = gameMode === '1player' ? Math.min(2, hIndex) : 1;
-      const newIndex = hIndex - stepsBack;
-
-      setHIndex(newIndex);
-      setPos(decode(history[newIndex], pos.variant));
-      setSel(null);
-      setTargets([]);
-
-      // Remove corresponding moves from log
-      setMoveLog(prev => prev.slice(0, prev.length - stepsBack));
-    }
-  };
-
-  // Redo
-  const handleRedo = () => {
-    if (hIndex < history.length - 1) {
-      // In 1-player mode, redo 2 moves (player + AI) to maintain turn consistency
-      // In 2-player mode, redo 1 move
-      const stepsForward = gameMode === '1player' ? Math.min(2, history.length - 1 - hIndex) : 1;
-      const newIndex = hIndex + stepsForward;
-
-      setHIndex(newIndex);
-      setPos(decode(history[newIndex], pos.variant));
-      setSel(null);
-      setTargets([]);
-
-      // Note: We don't restore moves to the log because they should already be there
-      // If we're redoing, we just undid moves that are still in the moveLog
-      // We need to track this differently - let's just slice to match hIndex
-    }
-  };
-
-  // Restart current game with same settings
-  const handleRestartGame = () => {
-    let startPos: Position;
-    if (selectedThinMode) {
-      startPos = decode(selectedThinMode.startPosition, 'thin', selectedThinMode.boardLength);
-    } else if (selectedSkinnyMode) {
-      startPos = decode(selectedSkinnyMode.startPosition, 'skinny', selectedSkinnyMode.boardLength, selectedSkinnyMode.boardWidth);
-    } else if (selectedPuzzleMode) {
-      const is2D = 'boardWidth' in selectedPuzzleMode && selectedPuzzleMode.boardWidth !== undefined;
-      startPos = is2D
-        ? decode(selectedPuzzleMode.startPosition, 'skinny', selectedPuzzleMode.boardLength, selectedPuzzleMode.boardWidth)
-        : decode(selectedPuzzleMode.startPosition, 'thin', selectedPuzzleMode.boardLength);
-    } else {
-      startPos = decode(START_POSITIONS[gameVariant], gameVariant);
-    }
-
-    setPos(startPos);
-    setHistory([encode(startPos)]);
-    setHIndex(0);
-    setSel(null);
-    setTargets([]);
-    setGameOver(false);
-    setGameResult('');
-    setMoveLog([]);
-    clearTT();
-  };
-
-  // New Game - return to variant picker to allow changing variant/mode
   const handleNewGame = () => {
-    setShowVariantPicker(true);
-    setShowThinModePicker(false);
-    setShowSkinnyModePicker(false);
-    setShowPuzzleModePicker(false);
-    setShowModal(false);
+    modalActions.showVariantPicker();
+  };
+
+  const handleSelectCategory = (categoryId: string) => {
+    const modes = getModesByCategory(categoryId);
+
+    // If category has no modes, go back
+    if (modes.length === 0) {
+      modalActions.showVariantPicker();
+      return;
+    }
+
+    modalActions.showModePicker(categoryId);
+  };
+
+  const handleSelectMode = (modeId: string) => {
+    const mode = getMode(modeId);
+    if (!mode) return;
+
+    modalActions.showGameSetup(modeId);
     setShowColorPicker(false);
   };
 
-  // Handle mode selection
-  const handleModeSelect = (mode: '1player' | '2player') => {
-    if (mode === '1player') {
-      setShowColorPicker(true);
-    } else {
-      startGame(mode, null);
-    }
+  const handleSelect1Player = () => {
+    setShowColorPicker(true);
   };
 
-  // Handle variant selection - navigate to respective mode picker
-  const selectVariant = (variant: VariantType) => {
-    setGameVariant(variant);
-    setShowVariantPicker(false);
-    if (variant === 'thin') {
-      setShowThinModePicker(true);
-    } else {
-      setShowSkinnyModePicker(true);
-    }
+  const handleSelect2Player = () => {
+    const mode = getMode(modalState.selectedModeId || '');
+    if (!mode) return;
+
+    gameActions.newGame(mode, '2player', null);
+    modalActions.closeModal();
   };
 
-  // Handle 1-D Chess mode selection
-  const selectThinMode = (mode: ThinMode) => {
-    setGameVariant('thin');
-    setSelectedThinMode(mode);
-    setSelectedSkinnyMode(null);
-    const startPos = decode(mode.startPosition, 'thin', mode.boardLength);
-    setPos(startPos);
-    setHistory([encode(startPos)]);
-    setHIndex(0);
-    setSel(null);
-    setTargets([]);
-    setGameOver(false);
-    setGameResult('');
-    setMoveLog([]); // Reset move log
-    clearTT();
-    setShowThinModePicker(false);
-    setShowModal(true); // Show game mode picker (1 player vs 2 player)
-  };
+  const handleSelectColor = (side: Side) => {
+    const mode = getMode(modalState.selectedModeId || '');
+    if (!mode) return;
 
-  // Handle Thin Chess challenge mode selection
-  const selectSkinnyMode = (mode: SkinnyMode) => {
-    setGameVariant('skinny');
-    setSelectedSkinnyMode(mode);
-    setSelectedThinMode(null);
-    const startPos = decode(mode.startPosition, 'skinny', mode.boardLength, mode.boardWidth);
-    setPos(startPos);
-    setHistory([encode(startPos)]);
-    setHIndex(0);
-    setSel(null);
-    setTargets([]);
-    setGameOver(false);
-    setGameResult('');
-    setMoveLog([]); // Reset move log
-    clearTT();
-    setShowSkinnyModePicker(false);
-    setShowModal(true); // Show game mode picker (1 player vs 2 player)
-  };
-
-  // Handle "Thin Chess" selection (standard starting position)
-  const selectStandardThinChess = () => {
-    setGameVariant('skinny');
-    setSelectedSkinnyMode(null);
-    setSelectedThinMode(null);
-    const startPos = decode(START_POSITIONS.skinny, 'skinny');
-    setPos(startPos);
-    setHistory([encode(startPos)]);
-    setHIndex(0);
-    setSel(null);
-    setTargets([]);
-    setGameOver(false);
-    setGameResult('');
-    setMoveLog([]); // Reset move log
-    clearTT();
-    setShowSkinnyModePicker(false);
-    setShowModal(true); // Show game mode picker
-  };
-
-  // Handle puzzle mode selection
-  const selectPuzzleMode = (mode: ThinMode | SkinnyMode) => {
-    // Determine if it's a 1-D or 2-D puzzle based on boardWidth
-    const is2D = 'boardWidth' in mode && mode.boardWidth !== undefined;
-    setGameVariant(is2D ? 'skinny' : 'thin');
-    setSelectedPuzzleMode(mode);
-    setSelectedThinMode(null);
-    setSelectedSkinnyMode(null);
-
-    const startPos = is2D
-      ? decode(mode.startPosition, 'skinny', mode.boardLength, mode.boardWidth)
-      : decode(mode.startPosition, 'thin', mode.boardLength);
-
-    setPos(startPos);
-    setHistory([encode(startPos)]);
-    setHIndex(0);
-    setSel(null);
-    setTargets([]);
-    setGameOver(false);
-    setGameResult('');
-    setMoveLog([]); // Reset move log
-    clearTT();
-    setShowPuzzleModePicker(false);
-    setShowModal(true); // Show game mode picker (1 player vs 2 player)
-  };
-
-  // Start game with selected mode and optional player side
-  const startGame = (mode: '1player' | '2player', side: Side | null) => {
-    // Use selected mode position if available, otherwise use default variant position
-    let startPos: Position;
-    if (selectedThinMode) {
-      startPos = decode(selectedThinMode.startPosition, 'thin', selectedThinMode.boardLength);
-    } else if (selectedSkinnyMode) {
-      startPos = decode(selectedSkinnyMode.startPosition, 'skinny', selectedSkinnyMode.boardLength, selectedSkinnyMode.boardWidth);
-    } else if (selectedPuzzleMode) {
-      const is2D = 'boardWidth' in selectedPuzzleMode && selectedPuzzleMode.boardWidth !== undefined;
-      startPos = is2D
-        ? decode(selectedPuzzleMode.startPosition, 'skinny', selectedPuzzleMode.boardLength, selectedPuzzleMode.boardWidth)
-        : decode(selectedPuzzleMode.startPosition, 'thin', selectedPuzzleMode.boardLength);
-    } else {
-      startPos = decode(START_POSITIONS[gameVariant], gameVariant);
-    }
-    setPos(startPos);
-    setHistory([encode(startPos)]);
-    setHIndex(0);
-    setSel(null);
-    setTargets([]);
-    setGameMode(mode);
-    setPlayerSide(side);
-    setShowModal(false);
+    gameActions.newGame(mode, '1player', side);
+    modalActions.closeModal();
     setShowColorPicker(false);
-    setGameOver(false);
-    setGameResult('');
-    setMoveLog([]); // Reset move log
-    clearTT();
   };
 
-  // Handle PWA install
+  const handleToggleSound = () => {
+    const newMuted = toggleMute();
+    setSoundMuted(newMuted);
+  };
+
+  const handlePeaceTreaty = () => {
+    if (gameState.repetitionDetected) {
+      console.log('[Sound] Draw claimed by repetition');
+      gameActions.claimDraw();
+      // Note: playDraw() will be called by the game outcome effect
+    } else {
+      modalActions.showResignConfirm();
+    }
+  };
+
+  const handleResignConfirm = () => {
+    gameActions.resign();
+    modalActions.closeModal();
+  };
+
   const handleInstall = async () => {
     if (!deferredPrompt) return;
 
@@ -495,456 +298,102 @@ function App() {
     setDeferredPrompt(null);
   };
 
-  // Handle sound toggle
-  const handleToggleSound = () => {
-    const newMuted = toggleMute();
-    setSoundMuted(newMuted);
-  };
-
-  // Handle peace treaty button (resign or claim draw)
-  const handlePeaceTreaty = () => {
-    if (repetitionDetected) {
-      // Claim draw by repetition
-      setGameOver(true);
-      setGameResult('Draw by Repetition');
-      playDraw();
-    } else {
-      // Show resignation confirmation modal
-      setShowResignConfirm(true);
-    }
-  };
-
-  // Confirm resignation
-  const confirmResignation = () => {
-    setShowResignConfirm(false);
-    setGameOver(true);
-    if (gameMode === '1player') {
-      setGameResult('You resigned - AI wins');
-      playDefeat();
-    } else {
-      // 2-player mode
-      const resigner = pos.turn === 'w' ? 'White' : 'Black';
-      const winner = pos.turn === 'w' ? 'Black' : 'White';
-      setGameResult(`${resigner} resigned - ${winner} wins`);
-      playDefeat();
-    }
-  };
-
-  // Cancel resignation
-  const cancelResignation = () => {
-    setShowResignConfirm(false);
-  };
-
-  // Load position from code
   const handleLoad = () => {
     const input = (document.getElementById('posCode') as HTMLInputElement)?.value || '';
-    try {
-      const newPos = decode(input.trim(), pos.variant);
-      setPos(newPos);
-      setHistory([encode(newPos)]);
-      setHIndex(0);
-      setSel(null);
-      setTargets([]);
-      setPlayerSide(null); // Reset player side
-      setMoveLog([]); // Reset move log
-      clearTT();
-    } catch (err) {
-      alert(`Load error: ${(err as Error).message}`);
-    }
+    gameActions.loadPosition(input);
   };
 
-  // Copy position code
   const handleCopy = () => {
-    const code = encode(pos);
+    const code = encode(gameState.position);
     navigator.clipboard.writeText(code);
   };
 
-  // Help modal handlers
-  const openHelp = (modeId: string) => {
-    setHelpMode(modeId);
-    setHintLevel(0);
-    setShowHelpModal(true);
-  };
+  // Loading state
+  if (configLoading) {
+    return (
+      <div className="app">
+        <div className="panel">
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div>Loading game modes...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const closeHelp = () => {
-    setShowHelpModal(false);
-    setHelpMode(null);
-    setHintLevel(0);
-  };
+  // Error state
+  if (configError || !config) {
+    return (
+      <div className="app">
+        <div className="panel">
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--lose)' }}>
+            <div>Failed to load configuration</div>
+            <div style={{ marginTop: '10px', fontSize: '14px' }}>
+              {configError?.message || 'Unknown error'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const revealHint = (level: number) => {
-    setHintLevel(level);
-  };
+  const boardConfig = getConfig(gameState.position);
 
   return (
     <div className="app">
-      {/* Variant Picker Modal */}
-      {showVariantPicker && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h2>Choose Game Variant</h2>
-            <div className="modal-buttons">
-              <button className="modal-btn" onClick={() => selectVariant('thin')}>
-                1-D Chess
-                <div className="modal-subtitle">Single-file chess on a line</div>
-              </button>
-              <button className="modal-btn" onClick={() => selectVariant('skinny')}>
-                Thin Chess
-                <div className="modal-subtitle">Narrow-board chess variant</div>
-              </button>
-              <button className="modal-btn" onClick={() => {
-                setShowVariantPicker(false);
-                setShowPuzzleModePicker(true);
-              }}>
-                Mini-Board Puzzles
-                <div className="modal-subtitle">Tactical & endgame challenges</div>
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Modals */}
+      {modalState.currentModal === 'variant-picker' && (
+        <VariantPicker categories={categories} onSelectCategory={handleSelectCategory} />
       )}
 
-      {/* 1-D Chess Mode Selector Modal */}
-      {showThinModePicker && (
-        <div className="modal-overlay">
-          <div className="modal mode-pack-modal">
-            <h2>1-D Chess - Choose Scenario</h2>
-            <div className="mode-grid">
-              {THIN_MODE_PACK.map((mode) => {
-                const helpContent = MODE_HELP_CONTENT[mode.id];
-                return (
-                  <div key={mode.id} className="mode-card-wrapper">
-                    <button
-                      className="mode-card"
-                      onClick={() => selectThinMode(mode)}
-                    >
-                      <div className="mode-header">
-                        <span className="mode-icon">{helpContent.icon}</span>
-                        <span className="mode-difficulty-stars">
-                          {'⭐'.repeat(helpContent.difficultyStars)}
-                        </span>
-                      </div>
-                      <div className="mode-name">{mode.name}</div>
-                      <div className="mode-description">{mode.description}</div>
-                      <div className="mode-type-badge">{mode.difficulty}</div>
-                    </button>
-                    <button
-                      className="help-icon-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openHelp(mode.id);
-                      }}
-                      title="Show help for this mode"
-                    >
-                      ?
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <button
-              className="modal-btn back-btn"
-              onClick={() => {
-                setShowThinModePicker(false);
-                setShowVariantPicker(true);
-              }}
-            >
-              ← Back
-            </button>
-          </div>
-        </div>
+      {modalState.currentModal === 'mode-picker' && modalState.selectedCategoryId && (
+        <ModePicker
+          category={getCategory(modalState.selectedCategoryId)!}
+          modes={getModesByCategory(modalState.selectedCategoryId)}
+          onSelectMode={handleSelectMode}
+          onShowHelp={modalActions.showHelp}
+          onBack={modalActions.showVariantPicker}
+        />
       )}
 
-      {/* Thin Chess Challenges Selector Modal */}
-      {showSkinnyModePicker && (
-        <div className="modal-overlay">
-          <div className="modal mode-pack-modal">
-            <h2>Thin Chess - Choose Mode</h2>
-            <div className="mode-grid">
-              {/* Standard Thin Chess Option */}
-              <div className="mode-card-wrapper">
-                <button
-                  className="mode-card"
-                  onClick={selectStandardThinChess}
-                >
-                  <div className="mode-header">
-                    <span className="mode-icon">♟️</span>
-                    <span className="mode-difficulty-stars">⭐⭐⭐</span>
-                  </div>
-                  <div className="mode-name">Thin Chess</div>
-                  <div className="mode-description">Standard 2×10 starting position</div>
-                  <div className="mode-type-badge">Baseline</div>
-                </button>
-              </div>
-
-              {/* Challenge Modes */}
-              {SKINNY_MODE_PACK.map((mode) => {
-                const helpContent = MODE_HELP_CONTENT[mode.id];
-                return (
-                  <div key={mode.id} className="mode-card-wrapper">
-                    <button
-                      className="mode-card"
-                      onClick={() => selectSkinnyMode(mode)}
-                    >
-                      <div className="mode-header">
-                        <span className="mode-icon">{helpContent.icon}</span>
-                        <span className="mode-difficulty-stars">
-                          {'⭐'.repeat(helpContent.difficultyStars)}
-                        </span>
-                      </div>
-                      <div className="mode-name">{mode.name}</div>
-                      <div className="mode-description">{mode.description}</div>
-                      <div className="mode-type-badge">{mode.difficulty}</div>
-                    </button>
-                    <button
-                      className="help-icon-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openHelp(mode.id);
-                      }}
-                      title="Show help for this mode"
-                    >
-                      ?
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <button
-              className="modal-btn back-btn"
-              onClick={() => {
-                setShowSkinnyModePicker(false);
-                setShowVariantPicker(true);
-              }}
-            >
-              ← Back
-            </button>
-          </div>
-        </div>
+      {modalState.currentModal === 'game-setup' && modalState.selectedModeId && (
+        <GameSetup
+          showColorPicker={showColorPicker}
+          onSelect1Player={handleSelect1Player}
+          onSelect2Player={handleSelect2Player}
+          onSelectColor={handleSelectColor}
+          onBack={() => setShowColorPicker(false)}
+        />
       )}
 
-      {/* Mini-Board Puzzles Selector Modal */}
-      {showPuzzleModePicker && (
-        <div className="modal-overlay">
-          <div className="modal mode-pack-modal">
-            <h2>Mini-Board Puzzles</h2>
-            <div className="mode-grid">
-              {MINI_BOARD_PUZZLES_PACK.map((mode) => {
-                const helpContent = MODE_HELP_CONTENT[mode.id];
-                return (
-                  <div key={mode.id} className="mode-card-wrapper">
-                    {helpContent && (
-                      <button
-                        className="help-icon-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openHelp(mode.id);
-                        }}
-                        title="Show hints and strategy"
-                      >
-                        ?
-                      </button>
-                    )}
-                    <button
-                      className="mode-card"
-                      onClick={() => selectPuzzleMode(mode)}
-                    >
-                      <div className="mode-header">
-                        <span className="mode-icon">{helpContent?.icon || '🧩'}</span>
-                        <span className="mode-difficulty-stars">
-                          {'⭐'.repeat(helpContent?.difficultyStars || 3)}
-                        </span>
-                      </div>
-                      <div className="mode-name">{mode.name}</div>
-                      <div className="mode-description">{mode.description}</div>
-                      <div className="mode-type-badge">{mode.difficulty}</div>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <button
-              className="modal-btn back-btn"
-              onClick={() => {
-                setShowPuzzleModePicker(false);
-                setShowVariantPicker(true);
-              }}
-            >
-              ← Back
-            </button>
-          </div>
-        </div>
+      {modalState.currentModal === 'help' && modalState.helpModeId && getMode(modalState.helpModeId) && (
+        <HelpModal
+          mode={getMode(modalState.helpModeId)!}
+          hintLevel={modalState.hintLevel}
+          onRevealHint={modalActions.setHintLevel}
+          onClose={modalActions.closeModal}
+        />
       )}
 
-      {/* Help Modal */}
-      {showHelpModal && helpMode && MODE_HELP_CONTENT[helpMode] && (
-        <div className="modal-overlay" onClick={closeHelp}>
-          <div className="modal help-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{SKINNY_MODE_PACK.find(m => m.id === helpMode)?.name || THIN_MODE_PACK.find(m => m.id === helpMode)?.name || MINI_BOARD_PUZZLES_PACK.find(m => m.id === helpMode)?.name}</h2>
-
-            <div className="help-section">
-              <h3>The Challenge</h3>
-              <p>{MODE_HELP_CONTENT[helpMode].challenge}</p>
-            </div>
-
-            <div className="help-section">
-              <div className="solvability-badge">{MODE_HELP_CONTENT[helpMode].solvabilityType.replace(/_/g, ' ')}</div>
-            </div>
-
-            {/* Progressive hints for puzzles */}
-            {MODE_HELP_CONTENT[helpMode].hints.length > 0 && (
-              <div className="help-section">
-                <h3>Hints</h3>
-                {hintLevel === 0 && (
-                  <button className="hint-btn" onClick={() => revealHint(1)}>
-                    💡 Show Hint 1
-                  </button>
-                )}
-                {hintLevel >= 1 && (
-                  <div className="hint-box">
-                    <strong>Hint 1:</strong> {MODE_HELP_CONTENT[helpMode].hints[0]}
-                  </div>
-                )}
-                {hintLevel >= 1 && MODE_HELP_CONTENT[helpMode].hints.length > 1 && hintLevel < 2 && (
-                  <button className="hint-btn" onClick={() => revealHint(2)}>
-                    💡 Show Hint 2
-                  </button>
-                )}
-                {hintLevel >= 2 && MODE_HELP_CONTENT[helpMode].hints[1] && (
-                  <div className="hint-box">
-                    <strong>Hint 2:</strong> {MODE_HELP_CONTENT[helpMode].hints[1]}
-                  </div>
-                )}
-                {hintLevel >= 2 && MODE_HELP_CONTENT[helpMode].solution && (
-                  <button className="hint-btn solution-btn" onClick={() => revealHint(3)}>
-                    🔓 Show Full Solution
-                  </button>
-                )}
-                {hintLevel >= 3 && MODE_HELP_CONTENT[helpMode].solution && (
-                  <div className="solution-box">
-                    <strong>Solution:</strong>
-                    <pre>{MODE_HELP_CONTENT[helpMode].solution}</pre>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Strategy guide for competitive modes */}
-            {MODE_HELP_CONTENT[helpMode].strategy && (
-              <div className="help-section">
-                <h3>Strategic Approach</h3>
-                <div className="strategy-section">
-                  <h4>White's Plan</h4>
-                  <p>{MODE_HELP_CONTENT[helpMode].strategy.whitePlan}</p>
-                </div>
-                <div className="strategy-section">
-                  <h4>Black's Plan</h4>
-                  <p>{MODE_HELP_CONTENT[helpMode].strategy.blackPlan}</p>
-                </div>
-                <div className="strategy-section">
-                  <h4>Key Positions</h4>
-                  <p>{MODE_HELP_CONTENT[helpMode].strategy.keyPositions}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="help-section">
-              <h3>Learning Objectives</h3>
-              <ul>
-                {MODE_HELP_CONTENT[helpMode].learningObjectives.map((obj, i) => (
-                  <li key={i}>{obj}</li>
-                ))}
-              </ul>
-            </div>
-
-            <button className="modal-btn" onClick={closeHelp}>
-              Close
-            </button>
-          </div>
-        </div>
+      {modalState.currentModal === 'resign-confirm' && (
+        <ResignConfirm onConfirm={handleResignConfirm} onCancel={modalActions.closeModal} />
       )}
 
-      {/* Resignation Confirmation Modal */}
-      {showResignConfirm && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h2>Resign Game?</h2>
-            <p style={{ textAlign: 'center', margin: '20px 0' }}>
-              Are you sure you want to resign?
-            </p>
-            <div className="modal-buttons">
-              <button className="modal-btn" onClick={confirmResignation} style={{ background: 'var(--lose)' }}>
-                Yes, Resign
-              </button>
-              <button className="modal-btn" onClick={cancelResignation}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* New Game Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            {!showColorPicker ? (
-              <>
-                <h2>New Game</h2>
-                <div className="modal-buttons">
-                  <button className="modal-btn" onClick={() => handleModeSelect('1player')}>
-                    1 Player
-                    <div className="modal-subtitle">Play against AI</div>
-                  </button>
-                  <button className="modal-btn" onClick={() => handleModeSelect('2player')}>
-                    2 Player
-                    <div className="modal-subtitle">Local multiplayer</div>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2>Choose Your Color</h2>
-                <div className="modal-buttons">
-                  <button className="modal-btn" onClick={() => startGame('1player', 'w')}>
-                    ♔ White
-                    <div className="modal-subtitle">You move first</div>
-                  </button>
-                  <button className="modal-btn" onClick={() => startGame('1player', 'b')}>
-                    ♚ Black
-                    <div className="modal-subtitle">AI moves first</div>
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowColorPicker(false)}
-                  style={{
-                    marginTop: '12px',
-                    padding: '8px',
-                    background: 'transparent',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#9ca3af',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ← Back
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
+      {/* Main UI */}
       <div className="panel">
         <div className="header">
           <h1 className="title">
             <span className="title-icon title-icon-white">
               <img src="/svg/white-pawn.svg" alt="" />
             </span>
-            {selectedThinMode ? `${selectedThinMode.name}` : selectedSkinnyMode ? `${selectedSkinnyMode.name}` : selectedPuzzleMode ? `${selectedPuzzleMode.name}` : gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
-            {selectedThinMode && <span className="mode-badge">{selectedThinMode.difficulty}</span>}
-            {selectedSkinnyMode && <span className="mode-badge">{selectedSkinnyMode.difficulty}</span>}
-            {selectedPuzzleMode && <span className="mode-badge">{selectedPuzzleMode.difficulty}</span>}
+            {gameState.currentMode
+              ? gameState.currentMode.name
+              : gameState.position.variant === 'thin'
+              ? '1-D Chess'
+              : 'Thin Chess'}
+            {gameState.currentMode && (
+              <span className="mode-badge">{gameState.currentMode.difficulty}</span>
+            )}
           </h1>
           <div className="header-buttons">
             <a
@@ -954,9 +403,17 @@ function App() {
               className="icon-btn"
               title="Watch on YouTube"
             >
-              <img src="/svg/youtube.svg" alt="YouTube" style={{ width: '24px', height: '24px' }} />
+              <img
+                src="/svg/youtube.svg"
+                alt="YouTube"
+                style={{ width: '24px', height: '24px' }}
+              />
             </a>
-            <button className="icon-btn" onClick={handleToggleSound} title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}>
+            <button
+              className="icon-btn"
+              onClick={handleToggleSound}
+              title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
+            >
               {soundMuted ? '🔇' : '🔊'}
             </button>
             {showInstallButton && (
@@ -972,14 +429,14 @@ function App() {
           <div className="move-log">
             <div className="move-log-header">Moves</div>
             <div className="move-log-content">
-              {moveLog.length === 0 ? (
+              {gameState.moveLog.length === 0 ? (
                 <div className="move-log-empty">No moves yet</div>
               ) : (
                 <div className="move-list">
-                  {Array.from({ length: Math.ceil(moveLog.length / 2) }, (_, i) => {
+                  {Array.from({ length: Math.ceil(gameState.moveLog.length / 2) }, (_, i) => {
                     const moveNumber = i + 1;
-                    const whiteMove = moveLog[i * 2];
-                    const blackMove = moveLog[i * 2 + 1];
+                    const whiteMove = gameState.moveLog[i * 2];
+                    const blackMove = gameState.moveLog[i * 2 + 1];
                     return (
                       <div key={i} className="move-pair">
                         <span className="move-number">{moveNumber}.</span>
@@ -993,128 +450,151 @@ function App() {
             </div>
           </div>
 
+          {/* Board */}
           <div className="board-wrap">
-          {gameVariant === 'thin' ? (
-            // 1-D Chess: board with ranks to the right
-            <>
-              <div
-                className={`board board-${gameVariant}`}
-                style={{ gridTemplateRows: `repeat(${getConfig(pos).height}, var(--square-size))` }}
-              >
-                {pos.board.map((cell, i) => {
-                  const config = getConfig(pos);
-                  const [rank, file] = indexToCoords(i, config);
-                  const isLight = (rank + file) % 2 === 0;
+            {gameState.position.variant === 'thin' ? (
+              // 1-D Chess board
+              <>
+                <div
+                  className="board board-thin"
+                  style={{
+                    gridTemplateRows: `repeat(${boardConfig.height}, var(--square-size))`,
+                  }}
+                >
+                  {gameState.position.board.map((cell, i) => {
+                    const [rank, file] = indexToCoords(i, boardConfig);
+                    const isLight = (rank + file) % 2 === 0;
 
-                  return (
-                    <div
-                      key={i}
-                      className={`sq ${isLight ? 'light' : 'dark'} ${sel === i ? 'selected' : ''} ${
-                        targets.includes(i) ? 'target' : ''
-                      } ${aiThinking ? 'disabled' : ''}`}
-                      onClick={() => handleSquareClick(i)}
-                    >
-                      {cell !== EMPTY && (
-                        <img
-                          src={PIECE_IMAGES[cell as Piece]}
-                          alt={cell}
-                          className="piece"
-                          draggable={false}
-                        />
-                      )}
+                    return (
+                      <div
+                        key={i}
+                        className={`sq ${isLight ? 'light' : 'dark'} ${
+                          gameState.selectedSquare === i ? 'selected' : ''
+                        } ${gameState.targetSquares.includes(i) ? 'target' : ''} ${
+                          gameState.aiThinking ? 'disabled' : ''
+                        }`}
+                        onClick={() => handleSquareClick(i)}
+                      >
+                        {cell !== EMPTY && (
+                          <img
+                            src={PIECE_IMAGES[cell as Piece]}
+                            alt={cell}
+                            className="piece"
+                            draggable={false}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="coords tiny">
+                  {Array.from({ length: boardConfig.height }, (_, i) => (
+                    <div key={i} className="n">
+                      {i + 1}
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              // Thin Chess board
+              <div className="coords-2d">
+                <div
+                  className="board board-skinny"
+                  style={{
+                    gridColumn: '1',
+                    gridRow: '1',
+                    gridTemplateColumns: `repeat(${boardConfig.width}, var(--square-size))`,
+                    gridTemplateRows: `repeat(${boardConfig.height}, var(--square-size))`,
+                  }}
+                >
+                  {gameState.position.board.map((cell, i) => {
+                    const [rank, file] = indexToCoords(i, boardConfig);
+                    const isLight = (rank + file) % 2 === 0;
 
-              <div className="coords tiny">
-                {Array.from({ length: getConfig(pos).height }, (_, i) => (
-                  <div key={i} className="n">
-                    {i + 1}
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            // Thin Chess: board with files below and ranks to the right
-            <div className="coords-2d">
-              <div
-                className={`board board-${gameVariant}`}
-                style={{
-                  gridColumn: '1',
-                  gridRow: '1',
-                  gridTemplateColumns: `repeat(${getConfig(pos).width}, var(--square-size))`,
-                  gridTemplateRows: `repeat(${getConfig(pos).height}, var(--square-size))`,
-                }}
-              >
-                {pos.board.map((cell, i) => {
-                  const config = getConfig(pos);
-                  const [rank, file] = indexToCoords(i, config);
-                  const isLight = (rank + file) % 2 === 0;
-
-                  return (
-                    <div
-                      key={i}
-                      className={`sq ${isLight ? 'light' : 'dark'} ${sel === i ? 'selected' : ''} ${
-                        targets.includes(i) ? 'target' : ''
-                      } ${aiThinking ? 'disabled' : ''}`}
-                      onClick={() => handleSquareClick(i)}
-                    >
-                      {cell !== EMPTY && (
-                        <img
-                          src={PIECE_IMAGES[cell as Piece]}
-                          alt={cell}
-                          className="piece"
-                          draggable={false}
-                        />
-                      )}
+                    return (
+                      <div
+                        key={i}
+                        className={`sq ${isLight ? 'light' : 'dark'} ${
+                          gameState.selectedSquare === i ? 'selected' : ''
+                        } ${gameState.targetSquares.includes(i) ? 'target' : ''} ${
+                          gameState.aiThinking ? 'disabled' : ''
+                        }`}
+                        onClick={() => handleSquareClick(i)}
+                      >
+                        {cell !== EMPTY && (
+                          <img
+                            src={PIECE_IMAGES[cell as Piece]}
+                            alt={cell}
+                            className="piece"
+                            draggable={false}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="coords-files">
+                  {boardConfig.files.map((f) => (
+                    <div key={f} className="n">
+                      {f}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+                <div className="coords-ranks">
+                  {boardConfig.ranks.map((r) => (
+                    <div key={r} className="n">
+                      {r}
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              <div className="coords-files">
-                {getConfig(pos).files.map(f => (
-                  <div key={f} className="n">{f}</div>
-                ))}
-              </div>
-
-              <div className="coords-ranks">
-                {getConfig(pos).ranks.map(r => (
-                  <div key={r} className="n">{r}</div>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
 
-        {gameOver && (
-          <button className="game-over-banner" onClick={handleRestartGame}>
-            {gameResult}
+        {/* Game Over Banner */}
+        {gameState.gameOver && (
+          <button className="game-over-banner" onClick={gameActions.restart}>
+            {gameState.gameResult}
             <img src="/svg/restart.svg" alt="Restart" className="restart-icon" />
           </button>
         )}
 
+        {/* Controls */}
         <div className="controls row">
           <button onClick={handleNewGame}>New Game</button>
-          <button onClick={handleUndo} disabled={hIndex <= 0 || aiThinking || gameOver}>
+          <button
+            onClick={gameActions.undo}
+            disabled={gameState.historyIndex <= 0 || gameState.aiThinking || gameState.gameOver}
+          >
             Undo
           </button>
-          <button onClick={handleRedo} disabled={hIndex >= history.length - 1 || aiThinking || gameOver}>
+          <button
+            onClick={gameActions.redo}
+            disabled={
+              gameState.historyIndex >= gameState.history.length - 1 ||
+              gameState.aiThinking ||
+              gameState.gameOver
+            }
+          >
             Redo
           </button>
           <button
-            className={`peace-btn ${repetitionDetected ? 'active' : ''}`}
+            className={`peace-btn ${gameState.repetitionDetected ? 'active' : ''}`}
             onClick={handlePeaceTreaty}
-            disabled={aiThinking || gameOver}
-            title={repetitionDetected ? 'Position repeated - claim draw by repetition' : 'Resign this game (you lose)'}
+            disabled={gameState.aiThinking || gameState.gameOver}
+            title={
+              gameState.repetitionDetected
+                ? 'Position repeated - claim draw by repetition'
+                : 'Resign this game (you lose)'
+            }
           >
-            <span className="peace-icon">{repetitionDetected ? '⚖️' : '🏳️'}</span>
-            {repetitionDetected ? 'Draw' : 'Resign'}
+            <span className="peace-icon">{gameState.repetitionDetected ? '⚖️' : '🏳️'}</span>
+            {gameState.repetitionDetected ? 'Draw' : 'Resign'}
           </button>
         </div>
 
+        {/* Position Editor */}
         <details className="row">
           <summary>
             <b>Share / Edit Position</b>
@@ -1122,7 +602,12 @@ function App() {
           <div className="tiny" style={{ margin: '.5rem 0 .25rem' }}>
             Position code (w=white, b=black, k/r/n pieces, x=empty)
           </div>
-          <input id="posCode" type="text" className="mono" defaultValue={encode(pos)} />
+          <input
+            id="posCode"
+            type="text"
+            className="mono"
+            defaultValue={encode(gameState.position)}
+          />
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
             <button onClick={handleLoad}>Load</button>
             <button onClick={handleCopy}>Copy</button>

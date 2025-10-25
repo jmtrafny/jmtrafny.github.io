@@ -151,18 +151,3 @@ This document defines the finalized, categorized, and app-ready modes of ThinBoa
 *A compressed power vs numbers battle. Knight fork threat at the center.*
 
 ---
-
-## 📤 Coding Agent Integration Prompt
-
-```md
-# Integration Task for ThinBoard Chess (Revised Final Set)
-
-Use the attached `FINAL_THINBOARD_MODES_REVISED.md` to update the mode list in the app.
-
-1. Replace existing 1-D Chess and Thin Chess categories with the 6 revised modes listed.
-2. Retain all Mini-Board Puzzles as currently implemented.
-3. Use the `Code` field (e.g., `2X8_KNIGHTS_TRENCH`) as the internal ID.
-4. Use the `Start` string for board setup.
-5. Display categories in the app as: "1-D Chess", "Thin Chess", "Mini-Board Puzzles".
-6. Ensure mode descriptions are shown in tooltips or info panels.
-```
