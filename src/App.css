@@ -60,10 +60,10 @@ body {
 
 .header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
   margin-bottom: 1rem;
-  gap: 16px;
+  gap: 8px;
 }
 
 .title {
@@ -71,9 +71,7 @@ body {
   font-size: clamp(24px, 3vw, 32px);
   letter-spacing: 0.2px;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  text-align: center;
 }
 
 .title-icon {
@@ -102,8 +100,10 @@ body {
 
 .header-buttons {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .icon-btn {
@@ -354,9 +354,16 @@ body {
 }
 
 .controls {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  grid-template-columns: repeat(4, 1fr);
+  margin: 12px 0;
+}
+
+.controls-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .controls button,

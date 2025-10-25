@@ -403,19 +403,16 @@ function App() {
       <div className="panel">
         <div className="header">
           <h1 className="title">
-            <span className="title-icon title-icon-white">
-              <img src="/svg/white-pawn.svg" alt="" />
-            </span>
             {gameState.currentMode
               ? gameState.currentMode.name
               : gameState.position.variant === 'thin'
               ? '1-D Chess'
               : 'Thin Chess'}
+          </h1>
+          <div className="header-buttons">
             {gameState.currentMode && (
               <span className="mode-badge">{gameState.currentMode.difficulty}</span>
             )}
-          </h1>
-          <div className="header-buttons">
             <a
               href="https://www.youtube.com/shorts/nAO0IsMxveA"
               target="_blank"
@@ -581,37 +578,41 @@ function App() {
         )}
 
         {/* Controls */}
-        <div className="controls row">
-          <button onClick={handleNewGame}>New Game</button>
-          <button
-            onClick={gameActions.undo}
-            disabled={gameState.historyIndex <= 0 || gameState.aiThinking || gameState.gameOver}
-          >
-            Undo
-          </button>
-          <button
-            onClick={gameActions.redo}
-            disabled={
-              gameState.historyIndex >= gameState.history.length - 1 ||
-              gameState.aiThinking ||
-              gameState.gameOver
-            }
-          >
-            Redo
-          </button>
-          <button
-            className={`peace-btn ${gameState.repetitionDetected ? 'active' : ''}`}
-            onClick={handlePeaceTreaty}
-            disabled={gameState.aiThinking || gameState.gameOver}
-            title={
-              gameState.repetitionDetected
-                ? 'Position repeated - claim draw by repetition'
-                : 'Resign this game (you lose)'
-            }
-          >
-            <span className="peace-icon">{gameState.repetitionDetected ? '⚖️' : '🏳️'}</span>
-            {gameState.repetitionDetected ? 'Draw' : 'Resign'}
-          </button>
+        <div className="controls">
+          <div className="controls-row">
+            <button onClick={handleNewGame}>New Game</button>
+            <button
+              className={`peace-btn ${gameState.repetitionDetected ? 'active' : ''}`}
+              onClick={handlePeaceTreaty}
+              disabled={gameState.aiThinking || gameState.gameOver}
+              title={
+                gameState.repetitionDetected
+                  ? 'Position repeated - claim draw by repetition'
+                  : 'Resign this game (you lose)'
+              }
+            >
+              <span className="peace-icon">{gameState.repetitionDetected ? '⚖️' : '🏳️'}</span>
+              {gameState.repetitionDetected ? 'Draw' : 'Resign'}
+            </button>
+          </div>
+          <div className="controls-row">
+            <button
+              onClick={gameActions.undo}
+              disabled={gameState.historyIndex <= 0 || gameState.aiThinking || gameState.gameOver}
+            >
+              Undo
+            </button>
+            <button
+              onClick={gameActions.redo}
+              disabled={
+                gameState.historyIndex >= gameState.history.length - 1 ||
+                gameState.aiThinking ||
+                gameState.gameOver
+              }
+            >
+              Redo
+            </button>
+          </div>
         </div>
 
         {/* Position Editor */}
