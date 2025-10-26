@@ -97,9 +97,10 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 - **Help icons** positioned on right side of mode cards (vertically centered)
 
 **Default State:**
-- Game starts with 1-D Chess: Full Set, player as white
+- Game starts with mode specified in `defaultGame` configuration
+- Current default: 1-D Chess by ChessTraps, 1-player mode, player as white
+- If `defaultGame` is not specified, falls back to first mode in configuration
 - Configuration loaded from JSON on startup
-- First load defaults to user-friendly initial game
 
 ## 3) Architecture Decisions
 
@@ -126,12 +127,16 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 ```json
 {
   "version": "2.0.0",
+  "defaultGame": {
+    "modeId": "MODE_ID",
+    "gameType": "1player" | "2player",
+    "playerSide": "w" | "b"
+  },
   "categories": [
     {
       "id": "category-id",
       "name": "Display Name",
       "description": "Category description",
-      "variant": "thin" | "skinny" | "mixed",
       "icon": "🎮"
     }
   ],
@@ -167,6 +172,10 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 
 **Validation Rules:**
 - Version must be semantic version string
+- **defaultGame (optional):**
+  - modeId must reference existing mode
+  - gameType must be "1player" or "2player"
+  - playerSide must be "w" or "b"
 - All category IDs must be unique
 - All mode IDs must be unique
 - Mode categoryId must reference existing category

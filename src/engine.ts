@@ -21,7 +21,7 @@ export type Piece = `${Side}${PieceType}`;
 export type Cell = Piece | '.';
 export type Board = Cell[];
 
-export type VariantType = 'thin' | 'skinny';
+export type VariantType = '1xN' | 'NxM';
 
 export interface BoardConfig {
   variant: VariantType;
@@ -33,16 +33,16 @@ export interface BoardConfig {
 }
 
 export const CONFIGS: Record<VariantType, BoardConfig> = {
-  thin: {
-    variant: 'thin',
+  '1xN': {
+    variant: '1xN',
     width: 1,
     height: 12,
     size: 12,
     files: ['a'],
     ranks: Array.from({ length: 12 }, (_, i) => i + 1),
   },
-  skinny: {
-    variant: 'skinny',
+  'NxM': {
+    variant: 'NxM',
     width: 2,
     height: 10,
     size: 20,
@@ -56,10 +56,10 @@ export const CONFIGS: Record<VariantType, BoardConfig> = {
  * Handles variable board dimensions for both variants.
  */
 export function getConfig(pos: Position): BoardConfig {
-  if (pos.variant === 'thin' && pos.boardLength && pos.boardLength !== 12) {
+  if (pos.variant === '1xN' && pos.boardLength && pos.boardLength !== 12) {
     // Custom 1-D Chess mode with non-standard length
     return {
-      variant: 'thin',
+      variant: '1xN',
       width: 1,
       height: pos.boardLength,
       size: pos.boardLength,
@@ -67,13 +67,13 @@ export function getConfig(pos: Position): BoardConfig {
       ranks: Array.from({ length: pos.boardLength }, (_, i) => i + 1),
     };
   }
-  if (pos.variant === 'skinny' && (pos.boardWidth || pos.boardLength)) {
+  if (pos.variant === 'NxM' && (pos.boardWidth || pos.boardLength)) {
     // Custom Thin Chess mode with non-standard dimensions (e.g., 3×8)
     const width = pos.boardWidth || 2;
     const height = pos.boardLength || 10;
     const files = Array.from({ length: width }, (_, i) => String.fromCharCode(97 + i)); // 'a','b','c'...
     return {
-      variant: 'skinny',
+      variant: 'NxM',
       width,
       height,
       size: width * height,
@@ -134,12 +134,12 @@ export const PIECE_IMAGES: Record<Piece, string> = {
 
 // Starting positions for each variant
 export const START_POSITIONS: Record<VariantType, string> = {
-  thin: 'bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w',
-  skinny: 'x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w',
+  '1xN': 'bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w',
+  'NxM': 'x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w',
 };
 
 // Backward compatibility: default starting position for Thin Chess
-export const START_CODE = START_POSITIONS.thin;
+export const START_CODE = START_POSITIONS['1xN'];
 
 /**
  * NOTE: Game mode configuration has been moved to public/game-modes.json
@@ -258,7 +258,7 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
   let detectedWidth: number | undefined;
   let detectedHeight: number | undefined;
 
-  if (variant === 'thin') {
+  if (variant === '1xN') {
     // Thin: flat comma-separated
     items = cellsRaw.split(',').map(s => s.trim());
     detectedHeight = items.length;
@@ -271,10 +271,10 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
   }
 
   // Auto-detect dimensions if not provided
-  if (variant === 'thin' && !boardLength) {
+  if (variant === '1xN' && !boardLength) {
     boardLength = detectedHeight;
   }
-  if (variant === 'skinny') {
+  if (variant === 'NxM') {
     if (!boardWidth) boardWidth = detectedWidth;
     if (!boardLength) boardLength = detectedHeight;
   }
@@ -286,10 +286,10 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
     turn: (turnRaw || 'w').trim() === 'b' ? 'b' : 'w',
   };
 
-  if (variant === 'thin' && boardLength) {
+  if (variant === '1xN' && boardLength) {
     pos.boardLength = boardLength;
   }
-  if (variant === 'skinny') {
+  if (variant === 'NxM') {
     if (boardWidth && boardWidth !== 2) pos.boardWidth = boardWidth;
     if (boardLength && boardLength !== 10) pos.boardLength = boardLength;
   }
@@ -315,7 +315,7 @@ export function encode(pos: Position): string {
   const cells = pos.board.map(p => p === EMPTY ? 'x' : p);
 
   let cellsStr: string;
-  if (pos.variant === 'thin') {
+  if (pos.variant === '1xN') {
     // Thin: flat comma-separated
     cellsStr = cells.join(',');
   } else {
@@ -365,7 +365,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
   const opp: Side = side === 'w' ? 'b' : 'w';
   const [rank, file] = indexToCoords(idx, config);
 
-  if (config.variant === 'thin') {
+  if (config.variant === '1xN') {
     // Thin Chess: 1D attacks
     // Opponent king ±1
     for (const d of [-1, 1]) {
@@ -480,7 +480,7 @@ export function legalMoves(pos: Position): Move[] {
     const t = typeOf(p);
     let pieceMoves: Move[] = [];
 
-    if (variant === 'thin') {
+    if (variant === '1xN') {
       // Thin Chess: 1D movement
       if (t === 'k') {
         // King moves ±1

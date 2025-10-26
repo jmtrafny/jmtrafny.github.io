@@ -71,7 +71,7 @@ function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' |
   if (!mode) {
     // Return a minimal default state
     return {
-      position: decode('x:w', 'thin', 1, 1),
+      position: decode('x:w', '1xN', 1, 1),
       history: [],
       historyIndex: 0,
       selectedSquare: null,

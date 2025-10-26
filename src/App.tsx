@@ -87,12 +87,19 @@ function App() {
     initAudio();
   }, []);
 
-  // Initialize default game (1-D Chess: Full Set, user as white)
+  // Initialize default game from configuration
   useEffect(() => {
     if (!configLoading && !configError && config && gameState.gameMode === null) {
-      const defaultMode = getMode('1D12_CLASSIC') || config.modes[0];
+      // Use configured default game, or fall back to first mode
+      const defaultConfig = config.defaultGame;
+      const defaultMode = defaultConfig
+        ? getMode(defaultConfig.modeId)
+        : config.modes[0];
+
       if (defaultMode) {
-        gameActionsRef.current.newGame(defaultMode, '1player', 'w');
+        const gameType = defaultConfig?.gameType || '1player';
+        const playerSide = defaultConfig?.playerSide || 'w';
+        gameActionsRef.current.newGame(defaultMode, gameType, playerSide);
       } else {
         console.error('No default game mode available in configuration');
       }
@@ -178,7 +185,7 @@ function App() {
       try {
         let bestMove: Move | undefined;
 
-        if (gameState.position.variant === 'skinny') {
+        if (gameState.position.variant === 'NxM') {
           // Random move for Thin Chess
           const moves = legalMoves(gameState.position);
           if (moves.length > 0) {
@@ -405,7 +412,7 @@ function App() {
           <h1 className="title">
             {gameState.currentMode
               ? gameState.currentMode.name
-              : gameState.position.variant === 'thin'
+              : gameState.position.variant === '1xN'
               ? '1-D Chess'
               : 'Thin Chess'}
           </h1>
@@ -469,7 +476,7 @@ function App() {
 
           {/* Board */}
           <div className="board-wrap">
-            {gameState.position.variant === 'thin' ? (
+            {gameState.position.variant === '1xN' ? (
               // 1-D Chess board
               <>
                 <div

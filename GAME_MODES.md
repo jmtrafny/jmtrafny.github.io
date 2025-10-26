@@ -489,10 +489,33 @@ Example (2×10): position a5 = (4 × 2) + 0 = index 8
 3. ✅ Ensure `categoryId` matches an existing category
 4. ✅ Create valid position string
 5. ✅ Add help content with hints and learning objectives
-6. ✅ Run `npm run build` to verify
-7. ✅ Test in-app
+6. ✅ (Optional) Update `defaultGame` to set your mode as default
+7. ✅ Run `npm run build` to verify
+8. ✅ Test in-app
 
 **No code changes required!** The UI will automatically pick up new modes.
+
+### Configuring Default Game
+
+The `defaultGame` field (optional) controls which game loads on app startup:
+
+```json
+{
+  "version": "2.0.0",
+  "defaultGame": {
+    "modeId": "1D12_CHESSTRAPS",
+    "gameType": "1player",
+    "playerSide": "w"
+  },
+  "categories": [...]
+}
+```
+
+- **modeId**: Must match a valid mode ID from the `modes` array
+- **gameType**: Either `"1player"` or `"2player"`
+- **playerSide**: Either `"w"` (white) or `"b"` (black) - only used in 1-player mode
+
+If omitted, the app will load the first mode in the configuration.
 
 ### Validation
 

@@ -12,7 +12,6 @@ import type {
   SolvabilityType,
 } from './GameModeConfig';
 
-const VALID_VARIANTS = ['thin', 'skinny', 'mixed'];
 const VALID_DIFFICULTIES: DifficultyLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 const VALID_SOLVABILITY_TYPES: SolvabilityType[] = [
   'FORCED_WIN_WHITE',
@@ -40,6 +39,11 @@ export function validate(data: unknown): ValidationResult {
   // Validate version
   if (typeof config.version !== 'string' || !config.version) {
     errors.push({ field: 'version', message: 'Version must be a non-empty string' });
+  }
+
+  // Validate defaultGame (optional)
+  if (config.defaultGame !== undefined) {
+    errors.push(...validateDefaultGame(config.defaultGame, config.modes));
   }
 
   // Validate categories array
@@ -107,6 +111,60 @@ export function validate(data: unknown): ValidationResult {
 }
 
 /**
+ * Validate default game configuration
+ */
+function validateDefaultGame(defaultGame: unknown, modes: unknown): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const prefix = 'defaultGame';
+
+  if (!defaultGame || typeof defaultGame !== 'object') {
+    return [{ field: prefix, message: 'defaultGame must be an object' }];
+  }
+
+  const dg = defaultGame as Record<string, unknown>;
+
+  // Validate modeId
+  if (typeof dg.modeId !== 'string' || !dg.modeId) {
+    errors.push({
+      field: `${prefix}.modeId`,
+      message: 'modeId must be a non-empty string',
+    });
+  } else if (Array.isArray(modes)) {
+    // Check that modeId references an existing mode
+    const modeIds = modes.map((m: unknown) =>
+      typeof m === 'object' && m !== null ? (m as Record<string, unknown>).id : undefined
+    );
+    if (!modeIds.includes(dg.modeId)) {
+      errors.push({
+        field: `${prefix}.modeId`,
+        message: `References non-existent mode: ${dg.modeId}`,
+        value: dg.modeId,
+      });
+    }
+  }
+
+  // Validate gameType
+  if (typeof dg.gameType !== 'string' || !['1player', '2player'].includes(dg.gameType)) {
+    errors.push({
+      field: `${prefix}.gameType`,
+      message: 'gameType must be "1player" or "2player"',
+      value: dg.gameType,
+    });
+  }
+
+  // Validate playerSide
+  if (typeof dg.playerSide !== 'string' || !['w', 'b'].includes(dg.playerSide)) {
+    errors.push({
+      field: `${prefix}.playerSide`,
+      message: 'playerSide must be "w" or "b"',
+      value: dg.playerSide,
+    });
+  }
+
+  return errors;
+}
+
+/**
  * Validate a single category
  */
 function validateCategory(category: unknown, index: number): ValidationError[] {
@@ -120,7 +178,7 @@ function validateCategory(category: unknown, index: number): ValidationError[] {
   const cat = category as Record<string, unknown>;
 
   // Required string fields
-  const requiredStrings = ['id', 'name', 'description', 'variant', 'icon'];
+  const requiredStrings = ['id', 'name', 'description', 'icon'];
   for (const field of requiredStrings) {
     if (typeof cat[field] !== 'string' || !cat[field]) {
       errors.push({
@@ -128,15 +186,6 @@ function validateCategory(category: unknown, index: number): ValidationError[] {
         message: `${field} must be a non-empty string`,
       });
     }
-  }
-
-  // Validate variant
-  if (typeof cat.variant === 'string' && !VALID_VARIANTS.includes(cat.variant)) {
-    errors.push({
-      field: `${prefix}.variant`,
-      message: `Invalid variant: ${cat.variant}. Must be one of: ${VALID_VARIANTS.join(', ')}`,
-      value: cat.variant,
-    });
   }
 
   return errors;
@@ -216,10 +265,10 @@ function validateMode(mode: unknown, index: number): ValidationError[] {
   }
 
   // Validate variant
-  if (typeof m.variant === 'string' && !['thin', 'skinny'].includes(m.variant)) {
+  if (typeof m.variant === 'string' && !['1xN', 'NxM'].includes(m.variant)) {
     errors.push({
       field: `${prefix}.variant`,
-      message: `Invalid variant: ${m.variant}. Must be 'thin' or 'skinny'`,
+      message: `Invalid variant: ${m.variant}. Must be '1xN' or 'NxM'`,
       value: m.variant,
     });
   }

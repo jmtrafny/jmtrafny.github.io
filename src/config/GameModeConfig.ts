@@ -59,7 +59,6 @@ export interface GameModeCategory {
   id: string;
   name: string;
   description: string;
-  variant: VariantType | 'mixed';
   icon: CategoryIcon;
 }
 
@@ -82,10 +81,21 @@ export interface GameMode {
 }
 
 /**
+ * Default game configuration
+ * Specifies which game loads on app startup
+ */
+export interface DefaultGame {
+  modeId: string;                      // ID of the mode to load
+  gameType: '1player' | '2player';     // Type of game
+  playerSide: 'w' | 'b';               // Player's side (only relevant for 1player)
+}
+
+/**
  * Root configuration structure
  */
 export interface GameModeConfig {
   version: string;
+  defaultGame?: DefaultGame;           // Optional default game configuration
   categories: GameModeCategory[];
   modes: GameMode[];
 }
