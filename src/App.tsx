@@ -373,7 +373,7 @@ function App() {
     <div className="app">
       {/* Modals */}
       {modalState.currentModal === 'variant-picker' && (
-        <VariantPicker categories={categories} onSelectCategory={handleSelectCategory} />
+        <VariantPicker categories={categories} onSelectCategory={handleSelectCategory} onBack={modalActions.closeModal} />
       )}
 
       {modalState.currentModal === 'mode-picker' && modalState.selectedCategoryId && (
