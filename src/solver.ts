@@ -95,31 +95,15 @@ export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<s
 
   const moves = legalMoves(pos, rules);
 
-  // Debug logging at root level (depth 0)
-  if (depth === 0) {
-    console.log('[Solver] Root position:', encode(pos, false));
-    console.log('[Solver] Position turn:', pos.turn);
-    console.log('[Solver] Found', moves.length, 'legal moves:', moves.map(m => `${m.from}->${m.to}`).join(', '));
-    console.log('[Solver] TT size before solve:', TT.size);
-  }
-
   // Try each move
   for (const m of moves) {
     const child = applyMove(pos, m, rules);
     const r = solve(child, rules, path, depth + 1);
 
-    if (depth === 0) {
-      const childPos = applyMove(pos, m, rules);
-      console.log(`[Solver] Move ${m.from}->${m.to}: ${r.res} (depth ${r.depth}) | Child: ${encode(childPos, false)}`);
-    }
-
     // Found a winning move (opponent loses)
     if (r.res === 'LOSS') {
       const score: SolveResult = { res: 'WIN', depth: r.depth + 1, best: m };
       path.delete(key);
-      if (depth === 0) {
-        console.log('[Solver] Selected WINNING move:', m, 'mate in', (r.depth + 1));
-      }
       return save(key, score);
     }
 
@@ -146,16 +130,10 @@ export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<s
 
   // If we have a drawing move, take it
   if (hasDrawChild) {
-    if (depth === 0) {
-      console.log('[Solver] Selected DRAWING move:', bestMove);
-    }
     return save(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
   }
 
   // All moves lose → return LOSS with move that delays mate longest
-  if (depth === 0) {
-    console.log('[Solver] All moves lose. Selected delay move:', losingMove, 'depth', maxLosingDepth + 1);
-  }
   return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
 }
 

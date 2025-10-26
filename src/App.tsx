@@ -196,14 +196,11 @@ function App() {
           }
         } else {
           // Solver for 1-D Chess
-          console.log('[AI] Solving 1-D Chess position with rules:', rules);
           const result = solve(gameState.position, rules);
-          console.log('[AI] Solver result:', result);
           bestMove = result.best;
         }
 
         if (bestMove) {
-          console.log('[AI] Making move:', bestMove);
           const isCapture = gameState.position.board[bestMove.to] !== EMPTY;
           gameActionsRef.current.makeMove(bestMove.from, bestMove.to);
 
