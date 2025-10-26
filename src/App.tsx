@@ -643,14 +643,43 @@ function App() {
           <summary>
             <b>Share / Edit Position</b>
           </summary>
-          <div className="tiny" style={{ margin: '.5rem 0 .25rem' }}>
-            Position code (w=white, b=black, k/r/n pieces, x=empty)
-          </div>
+
+          <details style={{ margin: '.5rem 0' }}>
+            <summary className="tiny" style={{ cursor: 'pointer', marginBottom: '.5rem' }}>
+              Position Code Directions
+            </summary>
+            <div className="tiny" style={{ marginLeft: '1rem', lineHeight: '1.5' }}>
+              <p><strong>Format:</strong> pieces:turn</p>
+
+              <p><strong>Pieces:</strong></p>
+              <ul style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
+                <li><strong>White pieces:</strong> wk (king), wq (queen), wr (rook), wb (bishop), wn (knight), wp (pawn)</li>
+                <li><strong>Black pieces:</strong> bk (king), bq (queen), br (rook), bb (bishop), bn (knight), bp (pawn)</li>
+                <li><strong>Empty square:</strong> x</li>
+              </ul>
+
+              <p><strong>Turn:</strong> w (white) or b (black)</p>
+
+              <p><strong>Board Layout:</strong></p>
+              <ul style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
+                <li><strong>1-D Chess:</strong> Comma-separated squares from bottom to top</li>
+                <li><strong>Thin Chess:</strong> Ranks separated by / (bottom to top), squares within each rank separated by commas (left to right)</li>
+              </ul>
+
+              <p><strong>Examples:</strong></p>
+              <ul style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
+                <li>1-D Chess: <code>wk,x,x,bk:w</code> (white king, 2 empty, black king; white to move)</li>
+                <li>Thin Chess: <code>wk,wr/bk,br:b</code> (2 ranks; black to move)</li>
+              </ul>
+            </div>
+          </details>
+
           <input
             id="posCode"
             type="text"
             className="mono"
-            defaultValue={encode(gameState.position)}
+            value={encode(gameState.position)}
+            onChange={(e) => e.target.value}
           />
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
             <button onClick={handleLoad}>Load</button>
