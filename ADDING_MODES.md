@@ -54,7 +54,7 @@ If present, the app will load this on startup:
   "variant": "1xN",             // '1xN' (1-D) or 'NxM' (2–3 files)
   "boardWidth": 1,
   "boardHeight": 8,
-  "startPosition": "wk,wn,wr,x,x,br,bn,bk:w",
+  "startPosition": "bk,bn,br,x,x,wr,wn,wk:w",
   "difficulty": "Intermediate", // Beginner | Intermediate | Advanced
   "difficultyStars": 3,         // 1–5
   "icon": "🎯",
@@ -76,15 +76,27 @@ If present, the app will load this on startup:
 ---
 
 ## 4) Position encoding
+
+### Board Orientation Rules
+- **Top to bottom** = **High rank to low rank** (Rank N → Rank 1)
+- **Standard orientation:** Black pieces at top (high ranks), White pieces at bottom (low ranks)
+- This matches how chess boards are typically shown (White at bottom)
+
 ### 1‑D Chess (`variant: "1xN"` — **1×N**)
-- Comma‑separated top→bottom, then `:w` or `:b`.
-- Example (1×8): `wk,wn,wr,x,x,br,bn,bk:w`
+- Comma‑separated from top→bottom (high rank to low rank), then `:w` or `:b`
+- Example (1×8): `bk,bn,br,x,x,wr,wn,wk:w`
+  - Top (Rank 8): Black King
+  - Bottom (Rank 1): White King
 
 ### Thin Chess (`variant: "NxM"` — **M×N**)
-- Ranks separated by `/`, each rank has `M` comma‑separated cells; then `:w` or `:b`.
-- Example (2×8): `x,bk/x,bb/x,x/x,x/wk,x/wr,x/x,x:w`
+- Ranks separated by `/` from high to low
+- Each rank has `M` comma‑separated cells (left to right: file a, b, c...)
+- Then `:w` or `:b` for turn
+- Example (2×6): `x,bk/x,x/x,x/wk,x/wr,x/x,x:w`
+  - Rank 6 (top): `x,bk` (Black King on b6)
+  - Rank 1 (bottom): `x,x` (empty)
 
-**Piece tokens:** `x` empty; `k/r/n/b/p/q` with side prefix `w` or `b` (e.g., `wk`, `br`).
+**Piece tokens:** `x` = empty; `k/r/n/b/p/q` with side prefix `w` or `b` (e.g., `wk`, `br`, `wq`).
 
 **Variant keys:** `"1xN"` = 1‑D; `"NxM"` = 2‑3 files.
 

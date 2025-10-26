@@ -120,7 +120,7 @@
       "variant": "NxM",
       "boardWidth": 2,
       "boardHeight": 5,
-      "startPosition": "x,bk/x,x/wk,x/x,x/wq,x:w",
+      "startPosition": "x,bk/x,x/x,x/wk,wq/x,x:w",
       "difficulty": "Beginner",
       "difficultyStars": 1,
       "icon": "👑",
