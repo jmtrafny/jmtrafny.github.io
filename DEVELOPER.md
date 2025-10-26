@@ -60,12 +60,26 @@ export interface Position {
   turn: Side;
   boardLength?: number;  // Optional: custom height (1-D: 6-12, Thin: 8-10)
   boardWidth?: number;   // Optional: custom width (Thin Chess only: 2-5)
+  enPassantTarget?: number;  // Square index behind pawn that just double-stepped
+  halfmoveClock?: number;    // Plies since last capture/pawn move (fifty-move rule)
+  castlingRights?: number;   // Bitmask: WK=1, WQ=2, BK=4, BQ=8
+  positionHistory?: Map<string, number>;  // Position hash → count (threefold)
 }
 
 export interface Move {
   from: number;
   to: number;
   promotion?: PieceType;  // For pawn promotion
+}
+
+// Rule flags (from GameModeConfig)
+export interface RuleSet {
+  castling: boolean;
+  enPassant: boolean;
+  fiftyMoveRule: boolean;
+  threefold: boolean;
+  knightModel: 'standard' | '1D-step';
+  promotion: boolean;
 }
 ```
 
@@ -84,18 +98,24 @@ export interface Move {
 #### Core Functions
 
 ```typescript
-// Position encoding/decoding (variant-aware)
-export function encode(pos: Position): string
+// Position encoding/decoding (variant-aware, now includes rule state)
+export function encode(pos: Position, includeExtendedFields?: boolean): string
 export function decode(code: string, variant: VariantType): Position
 
-// Move generation
-export function legalMoves(pos: Position): Move[]
-export function applyMove(pos: Position, m: Move): Position
+// Move generation (rule-aware)
+export function legalMoves(pos: Position, rules?: RuleSet): Move[]
+export function applyMove(pos: Position, m: Move, rules?: RuleSet): Position
 
-// Game state
-export function terminal(pos: Position): string | null  // null | 'STALEMATE' | 'WHITE_MATE' | 'BLACK_MATE'
-export function isCheck(pos: Position): boolean
+// Game state (rule-aware)
+export function terminal(pos: Position, rules?: RuleSet): string | null
+  // Returns: null | 'STALEMATE' | 'WHITE_MATE' | 'BLACK_MATE' | 'DRAW_FIFTY' | 'DRAW_THREEFOLD'
+export function isCheck(pos: Position, rules?: RuleSet): boolean
 export function detectRepetition(currentPos: Position, history: string[]): number
+
+// Rule-specific helpers
+export function isFiftyMoveDraw(pos: Position, rules?: RuleSet): boolean
+export function isThreefoldDraw(pos: Position, rules?: RuleSet): boolean
+export function positionHash(pos: Position): string  // For threefold detection
 
 // Coordinate conversion (for 2D boards)
 export function indexToCoords(idx: number, config: BoardConfig): [number, number]
@@ -173,6 +193,98 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
 Determines if square `idx` is attacked by `side`. Variant-aware logic:
 - **1-D Chess:** Check ±1 for kings, ±2 for knights, sliding for rooks
 - **Thin Chess:** Check all 8 king directions, knight L-shapes, rook/bishop slides, pawn diagonals
+
+---
+
+### Rule System Implementation
+
+The engine supports configurable rule flags that modify game behavior. Each game mode can specify custom rules in `game-modes.json`.
+
+#### RuleSet Interface
+
+```typescript
+export interface RuleSet {
+  castling: boolean;        // Enable castling (scaffolding only - not fully implemented)
+  enPassant: boolean;       // Enable en passant captures
+  fiftyMoveRule: boolean;   // Draw after 100 plies without capture/pawn move
+  threefold: boolean;       // Draw on 3rd position repetition
+  knightModel: 'standard' | '1D-step';  // Knight movement model
+  promotion: boolean;       // Enable pawn promotion to Q/R/B/N
+}
+
+export const DEFAULT_RULES: RuleSet = {
+  castling: false,
+  enPassant: false,
+  fiftyMoveRule: false,
+  threefold: false,
+  knightModel: 'standard',
+  promotion: false,
+};
+```
+
+#### Rule Implementation Details
+
+**1. Promotion (`promotion: true`)**
+- Generates 4 promotion moves (Q, R, B, N) when pawn reaches last rank
+- When `false`: pawn can move to last rank but stays frozen (no further moves)
+- Implemented in `legalMoves()` pawn move generation
+
+**2. En Passant (`enPassant: true`)**
+- Tracks `enPassantTarget` in Position (square *behind* double-stepped pawn)
+- Generates diagonal EP capture moves when conditions met
+- `applyMove()` removes captured pawn from EP target square
+- Clears EP target after every move unless new double-step occurs
+
+**3. Fifty-Move Rule (`fiftyMoveRule: true`)**
+- Tracks `halfmoveClock` in Position
+- Increments each ply, resets to 0 on captures or pawn moves
+- `terminal()` returns `'DRAW_FIFTY'` when clock reaches 100
+- Implemented in `applyMove()` and `isFiftyMoveDraw()`
+
+**4. Threefold Repetition (`threefold: true`)**
+- Tracks `positionHistory` Map<string, number> in Position
+- `positionHash()` includes board, turn, EP target, castling rights
+- `terminal()` returns `'DRAW_THREEFOLD'` on 3rd occurrence
+- Implemented in `applyMove()` and `isThreefoldDraw()`
+
+**5. Knight Model (`knightModel: "1D-step"`)**
+- `"standard"`: Normal L-shaped moves (±2,±1 in 2D; ±2 in 1D)
+- `"1D-step"`: For 1×N boards - knight moves ±1 (jumps over pieces)
+- Affects both move generation and attack detection
+
+**6. Castling (`castling: true`)** *(Scaffolding Only)*
+- Tracks `castlingRights` bitmask: WK=1, WQ=2, BK=4, BQ=8
+- Rights cleared when king/rook moves or rook captured
+- Move generation not yet implemented (TODO in `legalMoves()`)
+
+#### Position State Extensions
+
+```typescript
+// Extended position encoding format:
+"board:turn:ep:halfmove:castling"
+
+// Example:
+"bk,br,bn,x,x,wn,wr,wk:w:-:0:0"
+// ep = '-' (no EP target)
+// halfmove = 0
+// castling = 0 (no rights)
+```
+
+#### Integration Points
+
+All engine functions accept optional `rules` parameter:
+
+```typescript
+const moves = legalMoves(position, rules);
+const newPos = applyMove(position, move, rules);
+const result = terminal(position, rules);
+```
+
+Game state hooks (`useGameState.ts`) extract rules from current mode:
+
+```typescript
+const rules = mode?.rules || DEFAULT_RULES;
+```
 
 ---
 

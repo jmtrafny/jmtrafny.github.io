@@ -16,6 +16,7 @@ import {
   indexToCoords,
   encode,
   legalMoves,
+  DEFAULT_RULES,
   type Piece,
   type Side,
   type Move,
@@ -184,10 +185,11 @@ function App() {
     const timeoutId = setTimeout(() => {
       try {
         let bestMove: Move | undefined;
+        const rules = gameState.currentMode?.rules || DEFAULT_RULES;
 
         if (gameState.position.variant === 'NxM') {
           // Random move for Thin Chess
-          const moves = legalMoves(gameState.position);
+          const moves = legalMoves(gameState.position, rules);
           if (moves.length > 0) {
             bestMove = moves[Math.floor(Math.random() * moves.length)];
           }

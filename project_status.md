@@ -248,7 +248,50 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 - **Modal state:** Centralized via `useModalState` hook
 - **Game state:** Managed via `useGameState` hook with granular actions
 
-## 4) Rules (source of truth for engine)
+## 4) Configurable Rule System (NEW)
+
+The engine now supports **rule flags** that can be configured per game mode in `game-modes.json`. This enables:
+- Standard chess rules (promotion, en passant, fifty-move, threefold)
+- Custom knight models for 1D variants
+- Castling scaffolding (for future implementation)
+
+### Rule Flags
+
+Each mode can specify:
+```json
+{
+  "rules": {
+    "promotion": true,         // Pawn promotion to Q/R/B/N (false = freeze on last rank)
+    "enPassant": true,         // En passant captures
+    "fiftyMoveRule": true,     // Draw after 100 plies
+    "threefold": true,         // Draw on 3rd position repetition
+    "knightModel": "standard", // "standard" or "1D-step"
+    "castling": false          // Castling (scaffolding only)
+  }
+}
+```
+
+**Default Behavior:** All flags default to `false` (or `"standard"`) if `rules` is omitted.
+
+**Position State:** Extended to track:
+- `enPassantTarget`: Square index behind double-stepped pawn
+- `halfmoveClock`: Plies since last capture/pawn move
+- `castlingRights`: Bitmask (WK=1, WQ=2, BK=4, BQ=8)
+- `positionHistory`: Map for threefold repetition detection
+
+**Position Encoding:** Extended format `board:turn:ep:halfmove:castling`
+
+### Implementation Status
+- ✅ Promotion (Q/R/B/N or freeze on last rank)
+- ✅ En passant (capture generation, EP target tracking, pawn removal)
+- ✅ Fifty-move rule (clock tracking, auto-draw at 100 plies)
+- ✅ Threefold repetition (position hashing, count tracking, auto-draw)
+- ✅ Knight model switch (standard L-shape vs 1D-step ±1)
+- ⏳ Castling (scaffolding in place, move generation TODO)
+
+**Board-Agnostic:** All rules work on any NxM board size (1×8, 2×10, 3×5, etc.).
+
+## 5) Base Rules (source of truth for engine)
 
 ### 1-D Chess (1×N)
 - **Board**: 1 file of N ranks (6-12 supported)

@@ -5,9 +5,12 @@
  * Results are from viewpoint of side-to-move: WIN | LOSS | DRAW
  *
  * Cycle detection: any repeated position in search path = DRAW
+ *
+ * NOTE: Solver uses DEFAULT_RULES since it operates at the engine level
+ * without awareness of specific game mode configurations.
  */
 
-import { Position, Move, legalMoves, applyMove, terminal, encode } from './engine';
+import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES } from './engine';
 
 export type Result = 'WIN' | 'LOSS' | 'DRAW';
 
@@ -36,9 +39,10 @@ export function getTTSize(): number {
 
 /**
  * Position key for transposition table
+ * Use extended format to include all position state (EP, halfmove clock, castling)
  */
 function keyOf(pos: Position): string {
-  return encode(pos);
+  return encode(pos, true);
 }
 
 /**
@@ -69,9 +73,9 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   }
 
   // Terminal position check
-  const term = terminal(pos);
+  const term = terminal(pos, DEFAULT_RULES);
   if (term) {
-    if (term === 'STALEMATE') {
+    if (term === 'STALEMATE' || term === 'DRAW_FIFTY' || term === 'DRAW_THREEFOLD') {
       return save(key, { res: 'DRAW', depth: 0 });
     }
     // Checkmate: side-to-move is mated (LOSS)
@@ -85,11 +89,11 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   let bestDepth = Infinity;
   let hasDrawChild = false;
 
-  const moves = legalMoves(pos);
+  const moves = legalMoves(pos, DEFAULT_RULES);
 
   // Try each move
   for (const m of moves) {
-    const child = applyMove(pos, m);
+    const child = applyMove(pos, m, DEFAULT_RULES);
     const r = solve(child, path, depth + 1);
 
     // Found a winning move (opponent loses)
@@ -122,8 +126,8 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   let maxDepth = -1;
   let delaying: Move | undefined = undefined;
 
-  for (const m of legalMoves(pos)) {
-    const r = solve(applyMove(pos, m), new Set(), depth + 1);
+  for (const m of legalMoves(pos, DEFAULT_RULES)) {
+    const r = solve(applyMove(pos, m, DEFAULT_RULES), new Set(), depth + 1);
     if (r.depth > maxDepth) {
       maxDepth = r.depth;
       delaying = m;

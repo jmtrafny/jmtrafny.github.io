@@ -32,6 +32,23 @@ export type ModeIcon = '🧩' | '⚖️' | '📚' | '🎯' | '👑' | '🪓';
 export type CategoryIcon = '♟️' | '🧩';
 
 /**
+ * Knight movement model
+ */
+export type KnightModel = 'standard' | '1D-step';
+
+/**
+ * Rule set configuration for a game mode
+ */
+export interface RuleSet {
+  castling: boolean;
+  enPassant: boolean;
+  fiftyMoveRule: boolean;
+  threefold: boolean;
+  knightModel: KnightModel;
+  promotion: boolean;
+}
+
+/**
  * Strategic guidance for competitive modes
  */
 export interface ModeStrategy {
@@ -78,6 +95,7 @@ export interface GameMode {
   difficultyStars: 1 | 2 | 3 | 4 | 5;
   icon: ModeIcon;
   help: ModeHelp;
+  rules?: RuleSet;
 }
 
 /**

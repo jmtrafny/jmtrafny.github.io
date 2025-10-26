@@ -69,9 +69,64 @@ If present, the app will load this on startup:
       "keyPositions": "Optional"
     },
     "learningObjectives": ["Optional list"]
+  },
+  "rules": {                    // Optional: custom rule flags (see §3a)
+    "castling": false,
+    "enPassant": false,
+    "fiftyMoveRule": false,
+    "threefold": false,
+    "knightModel": "standard",
+    "promotion": false
   }
 }
 ```
+
+---
+
+## 3a) Rule Flags (New)
+
+You can optionally specify a `rules` object to enable/disable specific chess rules for a mode.
+
+**Available Flags:**
+
+```json
+{
+  "rules": {
+    "castling": false,          // true = castling enabled (not fully implemented yet)
+    "enPassant": true,          // true = en passant captures allowed
+    "fiftyMoveRule": true,      // true = draw after 100 plies without capture/pawn move
+    "threefold": true,          // true = draw on 3rd position repetition
+    "knightModel": "standard",  // "standard" (L-shape) or "1D-step" (±1 for 1×N boards)
+    "promotion": true           // true = pawns promote to Q/R/B/N; false = freeze on last rank
+  }
+}
+```
+
+**Default Behavior:** If `rules` is omitted, all flags default to `false` (or `"standard"` for `knightModel`).
+
+**Rule Details:**
+
+- **`promotion`**: When `true`, generates 4 promotion moves (Q/R/B/N) on last rank. When `false`, pawn can move to last rank but stays frozen (no further moves).
+
+- **`enPassant`**: When `true`, pawns can capture en passant after opponent's double-step. When `false`, no en passant captures.
+
+- **`fiftyMoveRule`**: When `true`, game is drawn after 100 plies (50 full moves) with no captures or pawn moves. Automatically resets on captures/pawn moves.
+
+- **`threefold`**: When `true`, game is drawn when the same position (board + turn + EP + castling) occurs 3 times. Position history tracked automatically.
+
+- **`knightModel`**:
+  - `"standard"`: Normal chess knight (L-shape: ±2,±1 in 2D; ±2 in 1D)
+  - `"1D-step"`: Special 1×N variant - knight jumps ±1 (can jump over pieces)
+
+- **`castling`**: Scaffolding in place but move generation not fully implemented. Keep `false` for now.
+
+**Board-Agnostic:** All rules work on any NxM board size (1×8, 2×10, 3×5, etc.).
+
+**Extended Position Format:** When rules are active, positions may include additional fields:
+```
+board:turn:ep:halfmove:castling
+```
+Example: `bk,bn,br,x,x,wr,wn,wk:w:-:0:0`
 
 ---
 
