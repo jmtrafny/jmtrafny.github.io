@@ -1,5 +1,5 @@
 {
-  "version": "v5.0.0",
+  "version": "v4.0.0",
   "defaultGame": {
     "modeId": "1D8_MONK",
     "gameType": "1player",
@@ -53,14 +53,6 @@
           "Rook and knight synergy",
           "Long‑file pressure and king safety"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "1D-step",
-        "promotion": false
       }
     },
     {
@@ -93,14 +85,6 @@
           "Recognize stalemate traps in 1D",
           "Close a mating net with limited geometry"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "1D-step",
-        "promotion": false
       }
     },
     {
@@ -132,14 +116,6 @@
           "Opposition and laddering",
           "Avoiding stalemate"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "standard",
-        "promotion": false
       }
     },
     {
@@ -168,14 +144,6 @@
           "Opposition and restriction",
           "Stalemate awareness"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "standard",
-        "promotion": false
       }
     },
     {
@@ -207,14 +175,6 @@
           "Tempo management and triangulation",
           "Corner‑color principle"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "standard",
-        "promotion": false
       }
     },
     {
@@ -246,14 +206,6 @@
           "Back‑rank tactics",
           "Promotion races without castling"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "standard",
-        "promotion": true
       }
     },
     {
@@ -285,14 +237,6 @@
           "Central control in small boards",
           "Drawish evaluation management"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "standard",
-        "promotion": true
       }
     },
     {
@@ -324,14 +268,6 @@
           "Open‑file rook play",
           "King safety without castling"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "standard",
-        "promotion": true
       }
     },
     {
@@ -363,14 +299,37 @@
           "Tactical awareness",
           "Endgame transitions on small boards"
         ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": true,
-        "threefold": true,
-        "knightModel": "standard",
-        "promotion": true
+      }
+    },
+    {
+      "id": "1D8_GARDNER_KRN",
+      "categoryId": "1d-chess",
+      "name": "Gardner 1‑D Chess (KRN vs KRN)",
+      "description": "Martin Gardner’s classic one‑file duel: K, R, and N per side on 1×8. Knights use the category’s 1‑step model.",
+      "variant": "1xN",
+      "boardWidth": 1,
+      "boardHeight": 8,
+      "startPosition": "bk,br,bn,x,x,wn,wr,wk:w",
+      "difficulty": "Intermediate",
+      "difficultyStars": 3,
+      "icon": "🧩",
+      "help": {
+        "challenge": "Constrain the opposing king with rook ladders; time the knight hops.",
+        "solvabilityType": "COMPETITIVE",
+        "hints": [
+          "Opposition and tempo matter more than material.",
+          "Enforce zugzwang with rook checks."
+        ],
+        "solution": null,
+        "strategy": {
+          "whitePlan": "Drive the king to the edge; coordinate rook and knight.",
+          "blackPlan": "Seek stalemate motifs; trade into drawn configurations."
+        },
+        "learningObjectives": [
+          "Opposition",
+          "Tempo control",
+          "Rook‑and‑knight coordination"
+        ]
       }
     }
   ]
