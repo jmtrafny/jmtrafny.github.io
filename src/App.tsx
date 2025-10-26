@@ -603,7 +603,7 @@ function App() {
         {/* Controls */}
         <div className="controls">
           <div className="controls-row">
-            <button onClick={handleNewGame}>New Game</button>
+            <button onClick={handleNewGame}>New Game/Variant</button>
             <button
               className={`peace-btn ${gameState.repetitionDetected ? 'active' : ''}`}
               onClick={handlePeaceTreaty}
