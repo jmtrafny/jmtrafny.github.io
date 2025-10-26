@@ -156,12 +156,25 @@ bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w
 x,bk/x,x/x,x/wk,x/wr,x/x,x:w
 ```
 
+**Extended Format (with rule state):**
+```
+bk,br,bn,x,x,wn,wr,wk:w:-:0:0
+                      │ │ │ └─ Castling rights
+                      │ │ └─── Halfmove clock
+                      │ └───── En passant target
+                      └─────── Turn
+```
+
 **Format Guide:**
 - Pieces: `wk` (white king), `br` (black rook), `wn` (white knight), etc.
 - `x` = empty square
 - Turn indicator: `:w` (white to move) or `:b` (black to move)
 - **1-D Chess:** Comma-separated from top to bottom
 - **Thin Chess:** Ranks separated by `/`, cells within ranks separated by `,`
+- **Optional fields** (for advanced rules):
+  - En passant target square index (or `-` for none)
+  - Halfmove clock for fifty-move rule
+  - Castling rights bitmask
 
 ---
 
@@ -209,6 +222,61 @@ npm run dev      # Start development server
 npm run build    # Build for production
 npm test         # Run test suite
 ```
+
+---
+
+## Rule System
+
+The chess engine supports configurable rule flags that can be enabled per game mode. This allows for faithful implementation of standard chess rules or experimentation with custom variants.
+
+### Available Rule Flags
+
+Each game mode can specify its own ruleset in `public/game-modes.json`:
+
+```json
+{
+  "rules": {
+    "castling": false,
+    "enPassant": true,
+    "fiftyMoveRule": true,
+    "threefold": true,
+    "promotion": true,
+    "aiStrategy": "perfect"
+  }
+}
+```
+
+**Rule Descriptions:**
+
+- **`promotion`** (boolean)
+  - `true`: Pawns promote to Q/R/B/N on last rank (generates 4 move options)
+  - `false`: "Freeze on last rank" - pawns can reach last rank but don't promote
+
+- **`enPassant`** (boolean)
+  - `true`: En passant captures enabled after double-step pawn moves
+  - `false`: No en passant (pawns can only capture on occupied squares)
+
+- **`fiftyMoveRule`** (boolean)
+  - `true`: Game drawn after 100 plies (50 moves) without captures or pawn moves
+  - `false`: No fifty-move rule tracking
+
+- **`threefold`** (boolean)
+  - `true`: Game drawn when same position occurs 3 times (same board, turn, EP, castling)
+  - `false`: No repetition detection
+
+- **`aiStrategy`** ("perfect" | "aggressive" | "cooperative")
+  - `"perfect"`: AI always plays optimally (WIN > DRAW > LOSS) - best for competitive modes
+  - `"aggressive"`: AI avoids draws, takes risks (WIN > LOSS > DRAW) - keeps game going
+  - `"cooperative"`: AI only plays winning moves, otherwise random - helps player learn in puzzles
+  - Defaults to `"perfect"` if omitted
+
+- **`castling`** (boolean)
+  - `true`: Castling enabled (king-side and queen-side) - *not yet fully implemented*
+  - `false`: No castling moves generated
+
+**Current Game Modes:** All existing modes use default rules (all flags `false`) for backward compatibility.
+
+**Board-Agnostic Design:** All rules work correctly on any NxM board dimensions (1×8, 2×10, 3×5, etc.).
 
 ---
 

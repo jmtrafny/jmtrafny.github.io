@@ -15,6 +15,11 @@
  * - No legal moves + no check = stalemate (draw)
  */
 
+import type { RuleSet } from './config/GameModeConfig';
+
+// Re-export RuleSet for use by solver and other modules
+export type { RuleSet };
+
 export type Side = 'w' | 'b';
 export type PieceType = 'k' | 'r' | 'n' | 'b' | 'p' | 'q';
 export type Piece = `${Side}${PieceType}`;
@@ -90,6 +95,10 @@ export interface Position {
   turn: Side;
   boardLength?: number; // Optional: for custom board height (1-D: 6,7,8,9,10,12; Thin: 8,10,etc)
   boardWidth?: number;  // Optional: for custom board width (Thin Chess: 2 or 3)
+  enPassantTarget?: number; // Square index behind the pawn that just double-stepped (or undefined)
+  halfmoveClock?: number;   // Plies since last capture or pawn move (for fifty-move rule)
+  castlingRights?: number;  // Bitmask: WK=1, WQ=2, BK=4, BQ=8
+  positionHistory?: Map<string, number>; // Position hash -> count (for threefold repetition)
 }
 
 export interface Move {
@@ -140,6 +149,25 @@ export const START_POSITIONS: Record<VariantType, string> = {
 
 // Backward compatibility: default starting position for Thin Chess
 export const START_CODE = START_POSITIONS['1xN'];
+
+/**
+ * Default rule set (legacy behavior: no special rules)
+ */
+export const DEFAULT_RULES: RuleSet = {
+  castling: false,
+  enPassant: false,
+  fiftyMoveRule: false,
+  threefold: false,
+  promotion: false,
+};
+
+/**
+ * Castling rights bitmask constants
+ */
+export const CASTLING_WK = 1; // White kingside
+export const CASTLING_WQ = 2; // White queenside
+export const CASTLING_BK = 4; // Black kingside
+export const CASTLING_BQ = 8; // Black queenside
 
 /**
  * NOTE: Game mode configuration has been moved to public/game-modes.json
@@ -245,13 +273,22 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
 
 /**
  * Position encoding/decoding
+ * Format: "board:turn[:ep][:halfmove][:castling]"
  * Thin format:  "cell,cell,...,cell:side" (comma-separated, flat)
  * Skinny format: "c,c/c,c/.../c,c:side" (ranks separated by /, cells by comma)
  * cell = 'x' (empty) or '[wb][krnbp]' (piece)
  * side = 'w' or 'b'
+ * ep = en passant target square index (optional, '-' for none)
+ * halfmove = halfmove clock for fifty-move rule (optional, number)
+ * castling = castling rights bitmask (optional, number)
  */
 export function decode(code: string, variant: VariantType, boardLength?: number, boardWidth?: number): Position {
-  const [cellsRaw, turnRaw] = code.trim().split(':');
+  const parts = code.trim().split(':');
+  const cellsRaw = parts[0];
+  const turnRaw = parts[1] || 'w';
+  const epRaw = parts[2];
+  const halfmoveRaw = parts[3];
+  const castlingRaw = parts[4];
 
   // Parse cells first to determine actual board dimensions
   let items: string[];
@@ -307,10 +344,42 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
     return s as Piece;
   });
 
+  // Parse optional fields (with proper defaults)
+  if (epRaw && epRaw !== '-') {
+    const epIndex = parseInt(epRaw, 10);
+    if (!isNaN(epIndex)) {
+      pos.enPassantTarget = epIndex;
+    }
+  } else {
+    pos.enPassantTarget = undefined;
+  }
+
+  if (halfmoveRaw) {
+    const halfmove = parseInt(halfmoveRaw, 10);
+    if (!isNaN(halfmove)) {
+      pos.halfmoveClock = halfmove;
+    }
+  } else {
+    pos.halfmoveClock = 0; // Default to 0 if not specified
+  }
+
+  if (castlingRaw) {
+    const castling = parseInt(castlingRaw, 10);
+    if (!isNaN(castling)) {
+      pos.castlingRights = castling;
+    }
+  } else {
+    pos.castlingRights = 0; // Default to no castling rights
+  }
+
+  // Note: positionHistory is intentionally NOT initialized here
+  // It will be created by applyMove() when needed for threefold detection
+  // This prevents wiping history when decoding positions from game history
+
   return pos;
 }
 
-export function encode(pos: Position): string {
+export function encode(pos: Position, includeExtendedFields = false): string {
   const config = getConfig(pos);
   const cells = pos.board.map(p => p === EMPTY ? 'x' : p);
 
@@ -330,7 +399,22 @@ export function encode(pos: Position): string {
     cellsStr = ranks.join('/');
   }
 
-  return `${cellsStr}:${pos.turn}`;
+  let result = `${cellsStr}:${pos.turn}`;
+
+  // Add extended fields if requested or if they have non-default values
+  if (includeExtendedFields ||
+      pos.enPassantTarget !== undefined ||
+      (pos.halfmoveClock !== undefined && pos.halfmoveClock > 0) ||
+      (pos.castlingRights !== undefined && pos.castlingRights > 0)) {
+
+    const ep = pos.enPassantTarget !== undefined ? String(pos.enPassantTarget) : '-';
+    const halfmove = pos.halfmoveClock !== undefined ? String(pos.halfmoveClock) : '0';
+    const castling = pos.castlingRights !== undefined ? String(pos.castlingRights) : '0';
+
+    result += `:${ep}:${halfmove}:${castling}`;
+  }
+
+  return result;
 }
 
 /**
@@ -373,7 +457,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
       if (inBounds(j, config) && board[j] === `${opp}k`) return true;
     }
 
-    // Opponent knight ±2
+    // Opponent knight: ±2 in 1D
     for (const d of [-2, 2]) {
       const j = idx + d;
       if (inBounds(j, config) && board[j] === `${opp}n`) return true;
@@ -467,7 +551,7 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
 /**
  * Generate all legal moves for current position
  */
-export function legalMoves(pos: Position): Move[] {
+export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[] {
   const { board, turn, variant } = pos;
   const config = getConfig(pos);
   const moves: Move[] = [];
@@ -492,7 +576,7 @@ export function legalMoves(pos: Position): Move[] {
           pieceMoves.push({ from: i, to: j });
         }
       } else if (t === 'n') {
-        // Knight jumps ±2
+        // Knight in 1D: always jumps ±2 (knightModel only applies to NxM)
         for (const d of [-2, 2]) {
           const j = i + d;
           if (!inBounds(j, config)) continue;
@@ -533,6 +617,21 @@ export function legalMoves(pos: Position): Move[] {
           const q = board[j];
           if (q !== EMPTY && sideOf(q) === turn) continue;
           pieceMoves.push({ from: i, to: j });
+        }
+
+        // Castling (if enabled)
+        // NOTE: Castling is disabled in all current modes (castling=false in game-modes.json)
+        // This scaffolding is provided for future use
+        if (rules.castling && pos.castlingRights) {
+          // TODO: Implement castling move generation
+          // Requirements:
+          // - King and rook must not have moved (check castlingRights bitmask)
+          // - No pieces between king and rook
+          // - King is not in check
+          // - King does not pass through check
+          // - King does not land in check
+          // Kingside: king moves 2 squares toward h-file, rook jumps to square king passed
+          // Queenside: king moves 2 squares toward a-file, rook jumps to square king passed
         }
       } else if (t === 'n') {
         // Knight: L-shapes
@@ -623,15 +722,18 @@ export function legalMoves(pos: Position): Move[] {
         if (inBounds2D(oneStep, file, config)) {
           const j = coordsToIndex(oneStep, file, config);
           if (board[j] === EMPTY) {
-            if (oneStep === promotionRank) {
-              // Promotion (default to queen for now)
-              pieceMoves.push({ from: i, to: j, promotion: 'r' as PieceType });
+            if (oneStep === promotionRank && rules.promotion) {
+              // Promotion enabled: generate all four promotion options
+              for (const promo of ['q', 'r', 'b', 'n'] as PieceType[]) {
+                pieceMoves.push({ from: i, to: j, promotion: promo });
+              }
             } else {
+              // No promotion or not on promotion rank
               pieceMoves.push({ from: i, to: j });
             }
 
-            // Double move from starting position
-            if (rank === startRank) {
+            // Double move from starting position (only if not on promotion rank)
+            if (rank === startRank && oneStep !== promotionRank) {
               const twoStep = rank + 2 * direction;
               const j2 = coordsToIndex(twoStep, file, config);
               if (board[j2] === EMPTY) {
@@ -649,11 +751,28 @@ export function legalMoves(pos: Position): Move[] {
           const j = coordsToIndex(newRank, newFile, config);
           const q = board[j];
           if (q !== EMPTY && sideOf(q) !== turn) {
-            if (newRank === promotionRank) {
-              pieceMoves.push({ from: i, to: j, promotion: 'r' as PieceType });
+            if (newRank === promotionRank && rules.promotion) {
+              // Promotion enabled: generate all four promotion options
+              for (const promo of ['q', 'r', 'b', 'n'] as PieceType[]) {
+                pieceMoves.push({ from: i, to: j, promotion: promo });
+              }
             } else {
               pieceMoves.push({ from: i, to: j });
             }
+          }
+        }
+
+        // En passant captures
+        if (rules.enPassant && pos.enPassantTarget !== undefined) {
+          const epTarget = pos.enPassantTarget;
+          const [epRank, epFile] = indexToCoords(epTarget, config);
+
+          // Check if we're on the correct rank and adjacent file
+          if (rank === epRank && Math.abs(file - epFile) === 1) {
+            // The capture square is one rank forward
+            const captureRank = rank + direction;
+            const captureSquare = coordsToIndex(captureRank, epFile, config);
+            pieceMoves.push({ from: i, to: captureSquare });
           }
         }
       }
@@ -661,7 +780,7 @@ export function legalMoves(pos: Position): Move[] {
 
     // Filter out moves that would leave king in check
     for (const m of pieceMoves) {
-      if (!wouldExposeKing(m, board, turn, config)) {
+      if (!wouldExposeKing(m, board, turn, config, rules, pos)) {
         moves.push(m);
       }
     }
@@ -670,8 +789,20 @@ export function legalMoves(pos: Position): Move[] {
   return moves;
 }
 
-function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig): boolean {
+function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig, rules: RuleSet, pos: Position): boolean {
   const nb = board.slice();
+  const isPawnMove = typeOf(board[m.from]) === 'p';
+  const isCapture = board[m.to] !== EMPTY;
+
+  // Handle en passant capture (remove the captured pawn)
+  if (rules.enPassant && pos.enPassantTarget !== undefined && isPawnMove && !isCapture && m.to === pos.enPassantTarget) {
+    const direction = turn === 'w' ? -1 : 1;
+    const [epRank, epFile] = indexToCoords(pos.enPassantTarget, config);
+    const capturedPawnRank = epRank - direction;
+    const capturedPawnSquare = coordsToIndex(capturedPawnRank, epFile, config);
+    nb[capturedPawnSquare] = EMPTY;
+  }
+
   nb[m.to] = nb[m.from];
   nb[m.from] = EMPTY;
   const kIdx = findKing(nb, turn, config);
@@ -681,8 +812,33 @@ function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig)
 /**
  * Apply a move and return new position
  */
-export function applyMove(pos: Position, m: Move): Position {
+export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES): Position {
+  const config = getConfig(pos);
   const nb = pos.board.slice();
+  const movingPiece = nb[m.from];
+  const capturedPiece = nb[m.to];
+
+  // Detect if this is a pawn move or capture
+  const isPawnMove = typeOf(movingPiece) === 'p';
+  const isCapture = capturedPiece !== EMPTY;
+
+  // Handle en passant capture (remove the captured pawn from EP target square)
+  let epCaptured = false;
+  if (rules.enPassant && pos.enPassantTarget !== undefined && isPawnMove && !isCapture) {
+    const direction = pos.turn === 'w' ? -1 : 1;
+    const [, toFile] = indexToCoords(m.to, config);
+    const [epRank, epFile] = indexToCoords(pos.enPassantTarget, config);
+
+    // EP capture: moving pawn lands on the EP target square (diagonally)
+    // The captured pawn is one square in the opposite direction from EP target
+    const capturedPawnRank = epRank - direction;
+    const capturedPawnSquare = coordsToIndex(capturedPawnRank, epFile, config);
+
+    if (m.to === pos.enPassantTarget && Math.abs(toFile - epFile) === 1) {
+      nb[capturedPawnSquare] = EMPTY;
+      epCaptured = true;
+    }
+  }
 
   // Handle pawn promotion
   if (m.promotion) {
@@ -694,13 +850,91 @@ export function applyMove(pos: Position, m: Move): Position {
     nb[m.from] = EMPTY;
   }
 
-  return {
+  // Calculate new en passant target
+  let newEPTarget: number | undefined = undefined;
+  if (rules.enPassant && isPawnMove && !m.promotion) {
+    const [fromRank] = indexToCoords(m.from, config);
+    const [toRank, toFile] = indexToCoords(m.to, config);
+
+    // Check if this was a double-step
+    if (Math.abs(toRank - fromRank) === 2) {
+      // EP target is the square the pawn jumped over
+      const middleRank = (fromRank + toRank) / 2;
+      newEPTarget = coordsToIndex(middleRank, toFile, config);
+    }
+  }
+
+  // Update halfmove clock
+  let newHalfmoveClock = (pos.halfmoveClock || 0) + 1;
+  if (rules.fiftyMoveRule) {
+    if (isPawnMove || isCapture || epCaptured) {
+      newHalfmoveClock = 0;
+    }
+  } else {
+    newHalfmoveClock = 0; // Don't track if rule is disabled
+  }
+
+  // Update castling rights
+  let newCastlingRights = pos.castlingRights || 0;
+  if (rules.castling && newCastlingRights > 0) {
+    const pieceType = typeOf(movingPiece);
+
+    // King moves remove both castling rights for that side
+    if (pieceType === 'k') {
+      if (pos.turn === 'w') {
+        newCastlingRights &= ~(CASTLING_WK | CASTLING_WQ);
+      } else {
+        newCastlingRights &= ~(CASTLING_BK | CASTLING_BQ);
+      }
+    }
+
+    // Rook moves/captures remove castling rights
+    // Note: Proper implementation requires knowing initial rook squares (e.g., a1, h1 for white)
+    // For now, any rook move clears all rights for that side
+    // TODO: Track rook starting squares to clear only the specific castling right
+    if (pieceType === 'r') {
+      if (pos.turn === 'w') {
+        newCastlingRights &= ~(CASTLING_WK | CASTLING_WQ);
+      } else {
+        newCastlingRights &= ~(CASTLING_BK | CASTLING_BQ);
+      }
+    }
+
+    // If a rook is captured, remove castling rights for that rook
+    // TODO: This also needs to know which corner the rook was in
+    if (isCapture && typeOf(capturedPiece) === 'r') {
+      const capturedSide = sideOf(capturedPiece);
+      if (capturedSide === 'w') {
+        newCastlingRights &= ~(CASTLING_WK | CASTLING_WQ);
+      } else if (capturedSide === 'b') {
+        newCastlingRights &= ~(CASTLING_BK | CASTLING_BQ);
+      }
+    }
+  }
+
+  // Update position history for threefold repetition
+  const newHistory = rules.threefold ? new Map(pos.positionHistory || new Map()) : undefined;
+
+  const newPos: Position = {
     variant: pos.variant,
     board: nb,
     turn: pos.turn === 'w' ? 'b' : 'w',
     boardLength: pos.boardLength,
     boardWidth: pos.boardWidth,
+    enPassantTarget: newEPTarget,
+    halfmoveClock: newHalfmoveClock,
+    castlingRights: newCastlingRights,
+    positionHistory: newHistory,
   };
+
+  // Add current position to history after the move
+  if (newHistory) {
+    const hash = positionHash(newPos);
+    const count = newHistory.get(hash) || 0;
+    newHistory.set(hash, count + 1);
+  }
+
+  return newPos;
 }
 
 /**
@@ -713,11 +947,53 @@ export function isCheck(pos: Position): boolean {
 }
 
 /**
- * Terminal state detection
- * Returns: null (non-terminal) | 'STALEMATE' | 'WHITE_MATE' | 'BLACK_MATE'
+ * Check if fifty-move rule draw condition is met
  */
-export function terminal(pos: Position): string | null {
-  const moves = legalMoves(pos);
+export function isFiftyMoveDraw(pos: Position, rules: RuleSet = DEFAULT_RULES): boolean {
+  if (!rules.fiftyMoveRule) return false;
+  return (pos.halfmoveClock || 0) >= 100;
+}
+
+/**
+ * Check if threefold repetition draw condition is met
+ */
+export function isThreefoldDraw(pos: Position, rules: RuleSet = DEFAULT_RULES): boolean {
+  if (!rules.threefold || !pos.positionHistory) return false;
+  const currentHash = positionHash(pos);
+  const count = pos.positionHistory.get(currentHash) || 0;
+  return count >= 3;
+}
+
+/**
+ * Generate position hash for repetition detection
+ * Includes: board state, turn, EP target, castling rights
+ */
+export function positionHash(pos: Position): string {
+  const parts: string[] = [
+    pos.board.join(','),
+    pos.turn,
+    String(pos.enPassantTarget ?? 'none'),
+    String(pos.castlingRights ?? 0),
+  ];
+  return parts.join('|');
+}
+
+/**
+ * Terminal state detection
+ * Returns: null (non-terminal) | 'STALEMATE' | 'WHITE_MATE' | 'BLACK_MATE' | 'DRAW_FIFTY' | 'DRAW_THREEFOLD'
+ */
+export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string | null {
+  // Check for draw by fifty-move rule
+  if (isFiftyMoveDraw(pos, rules)) {
+    return 'DRAW_FIFTY';
+  }
+
+  // Check for draw by threefold repetition
+  if (isThreefoldDraw(pos, rules)) {
+    return 'DRAW_THREEFOLD';
+  }
+
+  const moves = legalMoves(pos, rules);
   if (moves.length > 0) return null; // non-terminal
 
   // No legal moves

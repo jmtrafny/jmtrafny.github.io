@@ -7,7 +7,7 @@
  * Cycle detection: any repeated position in search path = DRAW
  */
 
-import { Position, Move, legalMoves, applyMove, terminal, encode } from './engine';
+import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES, RuleSet } from './engine';
 
 export type Result = 'WIN' | 'LOSS' | 'DRAW';
 
@@ -36,9 +36,10 @@ export function getTTSize(): number {
 
 /**
  * Position key for transposition table
+ * Use extended format to include all position state (EP, halfmove clock, castling)
  */
 function keyOf(pos: Position): string {
-  return encode(pos);
+  return encode(pos, true);
 }
 
 /**
@@ -48,8 +49,13 @@ function keyOf(pos: Position): string {
  * - WIN: current side can force a win
  * - LOSS: current side will lose with perfect play
  * - DRAW: position is drawn (stalemate or repetition fortress)
+ *
+ * @param pos - The position to solve
+ * @param rules - The rule set to use (defaults to DEFAULT_RULES)
+ * @param path - Set of position keys for cycle detection
+ * @param depth - Current search depth
  */
-export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): SolveResult {
+export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<string> = new Set(), depth = 0): SolveResult {
   const key = keyOf(pos);
 
   // Depth limit to prevent stack overflow
@@ -69,9 +75,9 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   }
 
   // Terminal position check
-  const term = terminal(pos);
+  const term = terminal(pos, rules);
   if (term) {
-    if (term === 'STALEMATE') {
+    if (term === 'STALEMATE' || term === 'DRAW_FIFTY' || term === 'DRAW_THREEFOLD') {
       return save(key, { res: 'DRAW', depth: 0 });
     }
     // Checkmate: side-to-move is mated (LOSS)
@@ -84,13 +90,15 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   let bestMove: Move | undefined = undefined;
   let bestDepth = Infinity;
   let hasDrawChild = false;
+  let maxLosingDepth = -1;
+  let losingMove: Move | undefined = undefined;
 
-  const moves = legalMoves(pos);
+  const moves = legalMoves(pos, rules);
 
   // Try each move
   for (const m of moves) {
-    const child = applyMove(pos, m);
-    const r = solve(child, path, depth + 1);
+    const child = applyMove(pos, m, rules);
+    const r = solve(child, rules, path, depth + 1);
 
     // Found a winning move (opponent loses)
     if (r.res === 'LOSS') {
@@ -99,7 +107,7 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
       return save(key, score);
     }
 
-    // Track drawing moves
+    // Track drawing moves (prefer shallowest draw)
     if (r.res === 'DRAW') {
       hasDrawChild = true;
       if (r.depth + 1 < bestDepth) {
@@ -108,29 +116,52 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
       }
     }
 
-    // If child is WIN for opponent, it's bad for us; keep searching
+    // Track losing moves (prefer deepest loss to delay mate)
+    if (r.res === 'WIN') {
+      if (r.depth > maxLosingDepth) {
+        maxLosingDepth = r.depth;
+        losingMove = m;
+      }
+    }
   }
 
+  // Remove current position from path before returning
   path.delete(key);
 
-  // If we have a drawing move, take it
+  // Apply AI strategy to move selection
+  const aiStrategy = rules.aiStrategy || 'perfect';
+
+  if (aiStrategy === 'cooperative') {
+    // Cooperative: Only return WIN if found, otherwise play randomly to give opponent chances
+    // This helps in teaching/puzzle modes where you want the AI to give the player winning opportunities
+    if (hasDrawChild || losingMove) {
+      // We're not winning - pick a random move to give opponent a chance
+      const randomMove = moves[Math.floor(Math.random() * moves.length)];
+      return save(key, { res: 'DRAW', depth: 0, best: randomMove });
+    }
+    // Should never reach here since we returned early on WIN
+    return save(key, { res: 'DRAW', depth: 0, best: moves[0] });
+  }
+
+  if (aiStrategy === 'aggressive') {
+    // Aggressive: Prefer WIN > LOSS > DRAW (avoids draws, takes risks)
+    if (hasDrawChild && losingMove) {
+      // Have both draw and loss options - choose loss to keep game going
+      return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
+    }
+    if (hasDrawChild) {
+      return save(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
+    }
+    return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
+  }
+
+  // Perfect (default): WIN > DRAW > LOSS (always optimal)
   if (hasDrawChild) {
     return save(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
   }
 
-  // All moves lose → we're in LOSS; pick move that delays mate longest
-  let maxDepth = -1;
-  let delaying: Move | undefined = undefined;
-
-  for (const m of legalMoves(pos)) {
-    const r = solve(applyMove(pos, m), new Set(), depth + 1);
-    if (r.depth > maxDepth) {
-      maxDepth = r.depth;
-      delaying = m;
-    }
-  }
-
-  return save(key, { res: 'LOSS', depth: maxDepth + 1, best: delaying });
+  // All moves lose → return LOSS with move that delays mate longest
+  return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
 }
 
 /**

@@ -9,9 +9,10 @@ import type { GameModeCategory } from '../../config/GameModeConfig';
 interface VariantPickerProps {
   categories: GameModeCategory[];
   onSelectCategory: (categoryId: string) => void;
+  onBack: () => void;
 }
 
-export function VariantPicker({ categories, onSelectCategory }: VariantPickerProps) {
+export function VariantPicker({ categories, onSelectCategory, onBack }: VariantPickerProps) {
   return (
     <div className="modal-overlay">
       <div className="modal">
@@ -28,6 +29,9 @@ export function VariantPicker({ categories, onSelectCategory }: VariantPickerPro
             </button>
           ))}
         </div>
+        <button className="modal-btn back-btn" onClick={onBack}>
+          ← Back
+        </button>
       </div>
     </div>
   );

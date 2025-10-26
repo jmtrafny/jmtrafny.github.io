@@ -16,6 +16,7 @@ import {
   indexToCoords,
   encode,
   legalMoves,
+  DEFAULT_RULES,
   type Piece,
   type Side,
   type Move,
@@ -184,16 +185,18 @@ function App() {
     const timeoutId = setTimeout(() => {
       try {
         let bestMove: Move | undefined;
+        const rules = gameState.currentMode?.rules || DEFAULT_RULES;
 
         if (gameState.position.variant === 'NxM') {
           // Random move for Thin Chess
-          const moves = legalMoves(gameState.position);
+          const moves = legalMoves(gameState.position, rules);
+          console.log('[AI] NxM mode - available moves:', moves.length);
           if (moves.length > 0) {
             bestMove = moves[Math.floor(Math.random() * moves.length)];
           }
         } else {
           // Solver for 1-D Chess
-          const result = solve(gameState.position);
+          const result = solve(gameState.position, rules);
           bestMove = result.best;
         }
 
@@ -370,7 +373,7 @@ function App() {
     <div className="app">
       {/* Modals */}
       {modalState.currentModal === 'variant-picker' && (
-        <VariantPicker categories={categories} onSelectCategory={handleSelectCategory} />
+        <VariantPicker categories={categories} onSelectCategory={handleSelectCategory} onBack={modalActions.closeModal} />
       )}
 
       {modalState.currentModal === 'mode-picker' && modalState.selectedCategoryId && (

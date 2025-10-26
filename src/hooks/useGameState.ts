@@ -16,9 +16,18 @@ import {
   detectRepetition,
   moveToAlgebraic,
   EMPTY,
+  DEFAULT_RULES,
 } from '../engine';
 import { clearTT } from '../solver';
 import type { GameMode } from '../config/GameModeConfig';
+import type { RuleSet } from '../config/GameModeConfig';
+
+/**
+ * Get rules from a game mode, falling back to defaults
+ */
+function getRulesFromMode(mode: GameMode | null): RuleSet {
+  return mode?.rules || DEFAULT_RULES;
+}
 
 /**
  * Game mode types
@@ -132,7 +141,8 @@ export function useGameState(): [GameState, GameActions] {
     // or if position is invalid or game already over
     if (!state.currentMode || !state.position || !state.position.board || state.gameOver) return;
 
-    const term = terminal(state.position);
+    const rules = getRulesFromMode(state.currentMode);
+    const term = terminal(state.position, rules);
     if (term) {
       let result = '';
       if (term === 'STALEMATE') {
@@ -142,6 +152,10 @@ export function useGameState(): [GameState, GameActions] {
         result = 'Black Wins - White is checkmated';
       } else if (term === 'BLACK_MATE') {
         result = 'White Wins - Black is checkmated';
+      } else if (term === 'DRAW_FIFTY') {
+        result = 'Draw - Fifty-move rule';
+      } else if (term === 'DRAW_THREEFOLD') {
+        result = 'Draw - Threefold repetition';
       }
 
       setState((prev) => ({
@@ -158,6 +172,7 @@ export function useGameState(): [GameState, GameActions] {
         if (prev.aiThinking || prev.gameOver) return prev;
 
         const piece = prev.position.board[index];
+        const rules = getRulesFromMode(prev.currentMode);
 
         // Deselect if clicking same square
         if (index === prev.selectedSquare) {
@@ -175,7 +190,7 @@ export function useGameState(): [GameState, GameActions] {
           }
 
           // Select piece and show legal move targets
-          const targets = legalMoves(prev.position)
+          const targets = legalMoves(prev.position, rules)
             .filter((m) => m.from === index)
             .map((m) => m.to);
 
@@ -187,13 +202,13 @@ export function useGameState(): [GameState, GameActions] {
         }
 
         // Try to make a move
-        const move = legalMoves(prev.position).find(
+        const move = legalMoves(prev.position, rules).find(
           (m) => m.from === prev.selectedSquare && m.to === index
         );
 
         if (move) {
           const moveNotation = moveToAlgebraic(prev.position, move);
-          const newPosition = applyMove(prev.position, move);
+          const newPosition = applyMove(prev.position, move, rules);
           const newHistory = prev.history.slice(0, prev.historyIndex + 1);
           newHistory.push(encode(newPosition));
 
@@ -210,7 +225,7 @@ export function useGameState(): [GameState, GameActions] {
 
         // Clicked on different piece of same color - select it
         if (piece !== EMPTY && piece[0] === prev.position.turn) {
-          const targets = legalMoves(prev.position)
+          const targets = legalMoves(prev.position, rules)
             .filter((m) => m.from === index)
             .map((m) => m.to);
 
@@ -230,14 +245,19 @@ export function useGameState(): [GameState, GameActions] {
         // Only block if game is over (AI can make moves while aiThinking is true)
         if (prev.gameOver) return prev;
 
-        const move = legalMoves(prev.position).find(
+        const rules = getRulesFromMode(prev.currentMode);
+        const moves = legalMoves(prev.position, rules);
+
+        const move = moves.find(
           (m) => m.from === from && m.to === to
         );
 
-        if (!move) return prev;
+        if (!move) {
+          return prev;
+        }
 
         const moveNotation = moveToAlgebraic(prev.position, move);
-        const newPosition = applyMove(prev.position, move);
+        const newPosition = applyMove(prev.position, move, rules);
         const newHistory = prev.history.slice(0, prev.historyIndex + 1);
         newHistory.push(encode(newPosition));
 
