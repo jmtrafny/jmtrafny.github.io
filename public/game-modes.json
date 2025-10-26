@@ -30,7 +30,7 @@
       "boardHeight": 12,
       "startPosition": "bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w",
       "difficulty": "Beginner",
-      "difficultyStars": 1,
+      "difficultyStars": 2,
       "icon": "📚",
       "help": {
         "challenge": "The 12-square 1-D setup with a full complement of pieces per side. Tactical and strategic skirmishes abound.",
@@ -67,7 +67,7 @@
       "boardHeight": 8,
       "startPosition": "bk,bn,br,x,x,wr,wn,wk:w",
       "difficulty": "Intermediate",
-      "difficultyStars": 4,
+      "difficultyStars": 3,
       "icon": "🧘",
       "help": {
         "challenge": "Play as White from the well‑known 1×8 setup. Can you convert initiative into a mating net?",

@@ -603,9 +603,15 @@ details summary {
 
 .mode-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
   margin-bottom: 20px;
+}
+
+@media (min-width: 600px) {
+  .mode-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .mode-card {
@@ -620,6 +626,7 @@ details summary {
   flex-direction: column;
   gap: 8px;
   min-height: 100px;
+  flex: 1;
 }
 
 .mode-card:hover {
@@ -678,7 +685,9 @@ details summary {
 /* Mode card wrapper with help button */
 .mode-card-wrapper {
   position: relative;
-  padding-right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .mode-header {
@@ -712,12 +721,9 @@ details summary {
 }
 
 .help-icon-btn {
-  position: absolute;
-  top: 50%;
-  right: -14px;
-  transform: translateY(-50%);
   width: 28px;
   height: 28px;
+  min-width: 28px;
   border-radius: 50%;
   background: var(--accent);
   color: #0f172a;
@@ -729,12 +735,12 @@ details summary {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  align-self: center;
 }
 
 .help-icon-btn:hover {
   background: #7dd3fc;
-  transform: translateY(-50%) scale(1.1);
+  transform: scale(1.1);
 }
 
 /* Help Modal */
