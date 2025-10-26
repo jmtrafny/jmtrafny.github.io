@@ -17,6 +17,9 @@
 
 import type { RuleSet } from './config/GameModeConfig';
 
+// Re-export RuleSet for use by solver and other modules
+export type { RuleSet };
+
 export type Side = 'w' | 'b';
 export type PieceType = 'k' | 'r' | 'n' | 'b' | 'p' | 'q';
 export type Piece = `${Side}${PieceType}`;
@@ -155,7 +158,6 @@ export const DEFAULT_RULES: RuleSet = {
   enPassant: false,
   fiftyMoveRule: false,
   threefold: false,
-  knightModel: 'standard',
   promotion: false,
 };
 
@@ -370,9 +372,9 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
     pos.castlingRights = 0; // Default to no castling rights
   }
 
-  // Initialize position history for threefold repetition
-  // Start with empty map - will be populated as moves are made
-  pos.positionHistory = new Map();
+  // Note: positionHistory is intentionally NOT initialized here
+  // It will be created by applyMove() when needed for threefold detection
+  // This prevents wiping history when decoding positions from game history
 
   return pos;
 }
@@ -443,7 +445,7 @@ export function findKing(board: Board, side: Side, config: BoardConfig): number 
 /**
  * Attack detection: Is square idx attacked by opponent?
  */
-export function attacked(board: Board, side: Side, idx: number, config: BoardConfig, rules: RuleSet = DEFAULT_RULES): boolean {
+export function attacked(board: Board, side: Side, idx: number, config: BoardConfig): boolean {
   const opp: Side = side === 'w' ? 'b' : 'w';
   const [rank, file] = indexToCoords(idx, config);
 
@@ -455,19 +457,10 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
       if (inBounds(j, config) && board[j] === `${opp}k`) return true;
     }
 
-    // Opponent knight: depends on model
-    if (rules.knightModel === '1D-step') {
-      // 1D-step model: ±1
-      for (const d of [-1, 1]) {
-        const j = idx + d;
-        if (inBounds(j, config) && board[j] === `${opp}n`) return true;
-      }
-    } else {
-      // Standard 1D model: ±2
-      for (const d of [-2, 2]) {
-        const j = idx + d;
-        if (inBounds(j, config) && board[j] === `${opp}n`) return true;
-      }
+    // Opponent knight: ±2 in 1D
+    for (const d of [-2, 2]) {
+      const j = idx + d;
+      if (inBounds(j, config) && board[j] === `${opp}n`) return true;
     }
 
     // Opponent rook (sliding rays)
@@ -583,25 +576,13 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
           pieceMoves.push({ from: i, to: j });
         }
       } else if (t === 'n') {
-        // Knight: model depends on rules
-        if (rules.knightModel === '1D-step') {
-          // 1D-step: jump ±1 (can jump over pieces)
-          for (const d of [-1, 1]) {
-            const j = i + d;
-            if (!inBounds(j, config)) continue;
-            const q = board[j];
-            if (q !== EMPTY && sideOf(q) === turn) continue;
-            pieceMoves.push({ from: i, to: j });
-          }
-        } else {
-          // Standard 1D: jump ±2
-          for (const d of [-2, 2]) {
-            const j = i + d;
-            if (!inBounds(j, config)) continue;
-            const q = board[j];
-            if (q !== EMPTY && sideOf(q) === turn) continue;
-            pieceMoves.push({ from: i, to: j });
-          }
+        // Knight in 1D: always jumps ±2 (knightModel only applies to NxM)
+        for (const d of [-2, 2]) {
+          const j = i + d;
+          if (!inBounds(j, config)) continue;
+          const q = board[j];
+          if (q !== EMPTY && sideOf(q) === turn) continue;
+          pieceMoves.push({ from: i, to: j });
         }
       } else if (t === 'r') {
         // Rook slides ±1 direction
@@ -825,7 +806,7 @@ function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig,
   nb[m.to] = nb[m.from];
   nb[m.from] = EMPTY;
   const kIdx = findKing(nb, turn, config);
-  return attacked(nb, turn, kIdx, config, rules);
+  return attacked(nb, turn, kIdx, config);
 }
 
 /**
@@ -959,10 +940,10 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
 /**
  * Check if current side is in check
  */
-export function isCheck(pos: Position, rules: RuleSet = DEFAULT_RULES): boolean {
+export function isCheck(pos: Position): boolean {
   const config = getConfig(pos);
   const kIdx = findKing(pos.board, pos.turn, config);
-  return attacked(pos.board, pos.turn, kIdx, config, rules);
+  return attacked(pos.board, pos.turn, kIdx, config);
 }
 
 /**
@@ -1016,7 +997,7 @@ export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string 
   if (moves.length > 0) return null; // non-terminal
 
   // No legal moves
-  if (isCheck(pos, rules)) {
+  if (isCheck(pos)) {
     return pos.turn === 'w' ? 'WHITE_MATE' : 'BLACK_MATE';
   }
 

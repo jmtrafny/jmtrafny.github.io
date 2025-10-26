@@ -75,7 +75,6 @@ If present, the app will load this on startup:
     "enPassant": false,
     "fiftyMoveRule": false,
     "threefold": false,
-    "knightModel": "standard",
     "promotion": false
   }
 }
@@ -96,13 +95,12 @@ You can optionally specify a `rules` object to enable/disable specific chess rul
     "enPassant": true,          // true = en passant captures allowed
     "fiftyMoveRule": true,      // true = draw after 100 plies without capture/pawn move
     "threefold": true,          // true = draw on 3rd position repetition
-    "knightModel": "standard",  // "standard" (L-shape) or "1D-step" (±1 for 1×N boards)
     "promotion": true           // true = pawns promote to Q/R/B/N; false = freeze on last rank
   }
 }
 ```
 
-**Default Behavior:** If `rules` is omitted, all flags default to `false` (or `"standard"` for `knightModel`).
+**Default Behavior:** If `rules` is omitted, all flags default to `false`.
 
 **Rule Details:**
 
@@ -113,10 +111,6 @@ You can optionally specify a `rules` object to enable/disable specific chess rul
 - **`fiftyMoveRule`**: When `true`, game is drawn after 100 plies (50 full moves) with no captures or pawn moves. Automatically resets on captures/pawn moves.
 
 - **`threefold`**: When `true`, game is drawn when the same position (board + turn + EP + castling) occurs 3 times. Position history tracked automatically.
-
-- **`knightModel`**:
-  - `"standard"`: Normal chess knight (L-shape: ±2,±1 in 2D; ±2 in 1D)
-  - `"1D-step"`: Special 1×N variant - knight jumps ±1 (can jump over pieces)
 
 - **`castling`**: Scaffolding in place but move generation not fully implemented. Keep `false` for now.
 

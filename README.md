@@ -240,7 +240,6 @@ Each game mode can specify its own ruleset in `public/game-modes.json`:
     "enPassant": true,
     "fiftyMoveRule": true,
     "threefold": true,
-    "knightModel": "standard",
     "promotion": true
   }
 }
@@ -264,15 +263,11 @@ Each game mode can specify its own ruleset in `public/game-modes.json`:
   - `true`: Game drawn when same position occurs 3 times (same board, turn, EP, castling)
   - `false`: No repetition detection
 
-- **`knightModel`** ("standard" | "1D-step")
-  - `"standard"`: Normal L-shaped knight moves (±2,±1 in 2D; ±2 in 1D)
-  - `"1D-step"`: For 1×N boards - knight moves ±1 (jumps over pieces)
-
 - **`castling`** (boolean)
   - `true`: Castling enabled (king-side and queen-side) - *not yet fully implemented*
   - `false`: No castling moves generated
 
-**Current Game Modes:** All existing modes use default rules (all flags `false` or `"standard"`) for backward compatibility.
+**Current Game Modes:** All existing modes use default rules (all flags `false`) for backward compatibility.
 
 **Board-Agnostic Design:** All rules work correctly on any NxM board dimensions (1×8, 2×10, 3×5, etc.).
 

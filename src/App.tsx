@@ -190,16 +190,20 @@ function App() {
         if (gameState.position.variant === 'NxM') {
           // Random move for Thin Chess
           const moves = legalMoves(gameState.position, rules);
+          console.log('[AI] NxM mode - available moves:', moves.length);
           if (moves.length > 0) {
             bestMove = moves[Math.floor(Math.random() * moves.length)];
           }
         } else {
           // Solver for 1-D Chess
-          const result = solve(gameState.position);
+          console.log('[AI] Solving 1-D Chess position with rules:', rules);
+          const result = solve(gameState.position, rules);
+          console.log('[AI] Solver result:', result);
           bestMove = result.best;
         }
 
         if (bestMove) {
+          console.log('[AI] Making move:', bestMove);
           const isCapture = gameState.position.board[bestMove.to] !== EMPTY;
           gameActionsRef.current.makeMove(bestMove.from, bestMove.to);
 

@@ -246,11 +246,20 @@ export function useGameState(): [GameState, GameActions] {
         if (prev.gameOver) return prev;
 
         const rules = getRulesFromMode(prev.currentMode);
-        const move = legalMoves(prev.position, rules).find(
+        const moves = legalMoves(prev.position, rules);
+        console.log('[makeMove] Looking for move from', from, 'to', to);
+        console.log('[makeMove] Available moves:', moves.map(m => `${m.from}->${m.to}`));
+        console.log('[makeMove] Position turn:', prev.position.turn);
+        console.log('[makeMove] Position:', prev.position);
+
+        const move = moves.find(
           (m) => m.from === from && m.to === to
         );
 
-        if (!move) return prev;
+        if (!move) {
+          console.log('[makeMove] Move not found!');
+          return prev;
+        }
 
         const moveNotation = moveToAlgebraic(prev.position, move);
         const newPosition = applyMove(prev.position, move, rules);

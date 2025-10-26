@@ -32,11 +32,6 @@ export type ModeIcon = '🧩' | '⚖️' | '📚' | '🎯' | '👑' | '🪓';
 export type CategoryIcon = '♟️' | '🧩';
 
 /**
- * Knight movement model
- */
-export type KnightModel = 'standard' | '1D-step';
-
-/**
  * Rule set configuration for a game mode
  */
 export interface RuleSet {
@@ -44,7 +39,6 @@ export interface RuleSet {
   enPassant: boolean;
   fiftyMoveRule: boolean;
   threefold: boolean;
-  knightModel: KnightModel;
   promotion: boolean;
 }
 

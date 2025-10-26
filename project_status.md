@@ -265,13 +265,12 @@ Each mode can specify:
     "enPassant": true,         // En passant captures
     "fiftyMoveRule": true,     // Draw after 100 plies
     "threefold": true,         // Draw on 3rd position repetition
-    "knightModel": "standard", // "standard" or "1D-step"
     "castling": false          // Castling (scaffolding only)
   }
 }
 ```
 
-**Default Behavior:** All flags default to `false` (or `"standard"`) if `rules` is omitted.
+**Default Behavior:** All flags default to `false` if `rules` is omitted.
 
 **Position State:** Extended to track:
 - `enPassantTarget`: Square index behind double-stepped pawn
@@ -286,7 +285,6 @@ Each mode can specify:
 - ✅ En passant (capture generation, EP target tracking, pawn removal)
 - ✅ Fifty-move rule (clock tracking, auto-draw at 100 plies)
 - ✅ Threefold repetition (position hashing, count tracking, auto-draw)
-- ✅ Knight model switch (standard L-shape vs 1D-step ±1)
 - ⏳ Castling (scaffolding in place, move generation TODO)
 
 **Board-Agnostic:** All rules work on any NxM board size (1×8, 2×10, 3×5, etc.).

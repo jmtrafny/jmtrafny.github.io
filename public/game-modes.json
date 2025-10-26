@@ -59,7 +59,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "1D-step",
         "promotion": false
       }
     },
@@ -99,7 +98,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "1D-step",
         "promotion": false
       }
     },
@@ -138,7 +136,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "standard",
         "promotion": false
       }
     },
@@ -174,7 +171,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "standard",
         "promotion": false
       }
     },
@@ -213,7 +209,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "standard",
         "promotion": false
       }
     },
@@ -252,7 +247,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "standard",
         "promotion": true
       }
     },
@@ -291,7 +285,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "standard",
         "promotion": true
       }
     },
@@ -330,7 +323,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "standard",
         "promotion": true
       }
     },
@@ -369,7 +361,6 @@
         "enPassant": false,
         "fiftyMoveRule": true,
         "threefold": true,
-        "knightModel": "standard",
         "promotion": true
       }
     }

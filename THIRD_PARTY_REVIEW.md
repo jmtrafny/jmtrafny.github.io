@@ -36,7 +36,6 @@ This document provides everything needed to review the chess engine and solver i
 - **En Passant** (lines ~774-786, 833-860): Target tracking, capture generation, pawn removal
 - **Fifty-Move Rule** (lines ~869-884, 853-856): Halfmove clock, auto-draw at 100 plies
 - **Threefold Repetition** (lines ~862-867, 920-928): Position hashing, count tracking
-- **Knight Model** (lines ~520-540, 403-415): Standard L-shape vs 1D-step variant
 - **Castling** (lines ~631-644, 886-922): Scaffolding only (move generation TODO)
 
 ### 2. Perfect-Play Solver: `src/solver.ts` (~150 lines)
@@ -74,7 +73,6 @@ This document provides everything needed to review the chess engine and solver i
 
 **Move Generation:**
 - [ ] Are legal moves correctly generated for all piece types?
-- [ ] Does the knight model switch work correctly (standard vs 1D-step)?
 - [ ] Are promotion moves correctly generated (4 options when enabled)?
 - [ ] Are en passant captures correctly identified and generated?
 
@@ -232,20 +230,13 @@ promotion=true: Should generate 4 moves (Q/R/B/N)
 promotion=false: Pawn can move to rank 5 but stays frozen
 ```
 
-**5. Knight Model Test (1×8 board):**
-```
-Position: "bk,x,wn,x,x,x,x,wk:w"
-knightModel="standard": Knight moves to index 1 or 5 (±2)
-knightModel="1D-step": Knight moves to index 2 or 4 (±1)
-```
-
-**6. Solver WIN Position (1×8 board):**
+**5. Solver WIN Position (1×8 board):**
 ```
 Position: "bk,x,x,x,x,x,wr,wk:w"
 Expected: WIN for white (rook mates in ~3 moves)
 ```
 
-**7. Solver DRAW Position (1×8 board):**
+**6. Solver DRAW Position (1×8 board):**
 ```
 Position: "bk,br,bn,x,x,wn,wr,wk:w"
 Expected: DRAW (balanced starting position)

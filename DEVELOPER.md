@@ -78,7 +78,6 @@ export interface RuleSet {
   enPassant: boolean;
   fiftyMoveRule: boolean;
   threefold: boolean;
-  knightModel: 'standard' | '1D-step';
   promotion: boolean;
 }
 ```
@@ -208,7 +207,6 @@ export interface RuleSet {
   enPassant: boolean;       // Enable en passant captures
   fiftyMoveRule: boolean;   // Draw after 100 plies without capture/pawn move
   threefold: boolean;       // Draw on 3rd position repetition
-  knightModel: 'standard' | '1D-step';  // Knight movement model
   promotion: boolean;       // Enable pawn promotion to Q/R/B/N
 }
 
@@ -217,7 +215,6 @@ export const DEFAULT_RULES: RuleSet = {
   enPassant: false,
   fiftyMoveRule: false,
   threefold: false,
-  knightModel: 'standard',
   promotion: false,
 };
 ```
@@ -247,12 +244,7 @@ export const DEFAULT_RULES: RuleSet = {
 - `terminal()` returns `'DRAW_THREEFOLD'` on 3rd occurrence
 - Implemented in `applyMove()` and `isThreefoldDraw()`
 
-**5. Knight Model (`knightModel: "1D-step"`)**
-- `"standard"`: Normal L-shaped moves (±2,±1 in 2D; ±2 in 1D)
-- `"1D-step"`: For 1×N boards - knight moves ±1 (jumps over pieces)
-- Affects both move generation and attack detection
-
-**6. Castling (`castling: true`)** *(Scaffolding Only)*
+**5. Castling (`castling: true`)** *(Scaffolding Only)*
 - Tracks `castlingRights` bitmask: WK=1, WQ=2, BK=4, BQ=8
 - Rights cleared when king/rook moves or rook captured
 - Move generation not yet implemented (TODO in `legalMoves()`)

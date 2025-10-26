@@ -5,12 +5,9 @@
  * Results are from viewpoint of side-to-move: WIN | LOSS | DRAW
  *
  * Cycle detection: any repeated position in search path = DRAW
- *
- * NOTE: Solver uses DEFAULT_RULES since it operates at the engine level
- * without awareness of specific game mode configurations.
  */
 
-import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES } from './engine';
+import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES, RuleSet } from './engine';
 
 export type Result = 'WIN' | 'LOSS' | 'DRAW';
 
@@ -52,8 +49,13 @@ function keyOf(pos: Position): string {
  * - WIN: current side can force a win
  * - LOSS: current side will lose with perfect play
  * - DRAW: position is drawn (stalemate or repetition fortress)
+ *
+ * @param pos - The position to solve
+ * @param rules - The rule set to use (defaults to DEFAULT_RULES)
+ * @param path - Set of position keys for cycle detection
+ * @param depth - Current search depth
  */
-export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): SolveResult {
+export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<string> = new Set(), depth = 0): SolveResult {
   const key = keyOf(pos);
 
   // Depth limit to prevent stack overflow
@@ -73,7 +75,7 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   }
 
   // Terminal position check
-  const term = terminal(pos, DEFAULT_RULES);
+  const term = terminal(pos, rules);
   if (term) {
     if (term === 'STALEMATE' || term === 'DRAW_FIFTY' || term === 'DRAW_THREEFOLD') {
       return save(key, { res: 'DRAW', depth: 0 });
@@ -89,12 +91,12 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   let bestDepth = Infinity;
   let hasDrawChild = false;
 
-  const moves = legalMoves(pos, DEFAULT_RULES);
+  const moves = legalMoves(pos, rules);
 
   // Try each move
   for (const m of moves) {
-    const child = applyMove(pos, m, DEFAULT_RULES);
-    const r = solve(child, path, depth + 1);
+    const child = applyMove(pos, m, rules);
+    const r = solve(child, rules, path, depth + 1);
 
     // Found a winning move (opponent loses)
     if (r.res === 'LOSS') {
@@ -126,8 +128,8 @@ export function solve(pos: Position, path: Set<string> = new Set(), depth = 0): 
   let maxDepth = -1;
   let delaying: Move | undefined = undefined;
 
-  for (const m of legalMoves(pos, DEFAULT_RULES)) {
-    const r = solve(applyMove(pos, m, DEFAULT_RULES), new Set(), depth + 1);
+  for (const m of legalMoves(pos, rules)) {
+    const r = solve(applyMove(pos, m, rules), rules, new Set(), depth + 1);
     if (r.depth > maxDepth) {
       maxDepth = r.depth;
       delaying = m;
