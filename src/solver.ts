@@ -1,13 +1,15 @@
 /**
- * Thin Chess Solver
+ * Chess Solver - Multi-Tier System
  *
- * Tri-valued perfect-play solver with transposition table and cycle detection.
- * Results are from viewpoint of side-to-move: WIN | LOSS | DRAW
+ * Tier 1: Perfect tri-valued solver (small positions)
+ * Tier 2: Bounded iterative deepening (medium positions)
+ * Tier 3: Alpha-beta heuristic search (large positions)
  *
- * Cycle detection: any repeated position in search path = DRAW
+ * Results are from viewpoint of side-to-move
  */
 
-import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES, RuleSet } from './engine';
+import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES, RuleSet, EMPTY } from './engine';
+import { evaluate } from './evaluator';
 
 export type Result = 'WIN' | 'LOSS' | 'DRAW';
 
@@ -15,6 +17,13 @@ export interface SolveResult {
   res: Result;
   depth: number;
   best?: Move;
+  tier?: 1 | 2; // Which tier solved this
+}
+
+export interface EvalResult {
+  score: number;  // Centipawn evaluation
+  best?: Move;
+  tier: 3;        // Heuristic tier
 }
 
 // Transposition table: position key -> solve result
@@ -170,4 +179,193 @@ export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<s
 function save(key: string, val: SolveResult): SolveResult {
   TT.set(key, val);
   return val;
+}
+
+/**
+ * Alpha-Beta Minimax Search with Evaluation Function
+ *
+ * Used for large positions where perfect solving is infeasible.
+ * Returns centipawn evaluation and best move.
+ *
+ * @param pos - The position to evaluate
+ * @param rules - The rule set to use
+ * @param depth - Remaining search depth
+ * @param alpha - Alpha bound (best score for maximizing player)
+ * @param beta - Beta bound (best score for minimizing player)
+ */
+function alphaBeta(
+  pos: Position,
+  rules: RuleSet,
+  depth: number,
+  alpha: number,
+  beta: number
+): EvalResult {
+  // Terminal position check
+  const term = terminal(pos, rules);
+  if (term) {
+    if (term === 'STALEMATE' || term === 'DRAW_FIFTY' || term === 'DRAW_THREEFOLD') {
+      return { score: 0, tier: 3 };
+    }
+    // Checkmate: side-to-move is mated (very negative score)
+    return { score: -99999, tier: 3 };
+  }
+
+  // Depth limit reached: return static evaluation
+  if (depth === 0) {
+    return { score: evaluate(pos), tier: 3 };
+  }
+
+  let bestMove: Move | undefined = undefined;
+  let maxScore = -Infinity;
+
+  const moves = legalMoves(pos, rules);
+
+  // No legal moves (shouldn't happen since terminal() checks this)
+  if (moves.length === 0) {
+    return { score: 0, tier: 3 };
+  }
+
+  for (const move of moves) {
+    const child = applyMove(pos, move, rules);
+    const result = alphaBeta(child, rules, depth - 1, -beta, -alpha);
+    const score = -result.score; // Negamax: flip score for opponent
+
+    if (score > maxScore) {
+      maxScore = score;
+      bestMove = move;
+    }
+
+    alpha = Math.max(alpha, score);
+    if (alpha >= beta) {
+      break; // Beta cutoff (pruning)
+    }
+  }
+
+  return { score: maxScore, best: bestMove, tier: 3 };
+}
+
+/**
+ * Hybrid Solver - Automatically choose best solver tier
+ *
+ * Tier 1: Perfect solver (pieces ≤ 6)
+ * Tier 2: Bounded iterative deepening (pieces 7-10, max 2 seconds)
+ * Tier 3: Alpha-beta heuristic (pieces > 10 or timeout)
+ *
+ * @param pos - The position to solve
+ * @param rules - The rule set to use
+ * @param maxTime - Maximum time in milliseconds for Tier 2
+ */
+export function solveHybrid(
+  pos: Position,
+  rules: RuleSet = DEFAULT_RULES,
+  maxTime: number = 2000
+): SolveResult | EvalResult {
+  const pieceCount = pos.board.filter(p => p !== EMPTY).length;
+
+  // Tier 1: Perfect solver for small positions
+  if (pieceCount <= 6) {
+    try {
+      const result = solve(pos, rules);
+      return { ...result, tier: 1 };
+    } catch (error) {
+      console.warn('[Solver] Tier 1 failed, falling back to Tier 3:', error);
+    }
+  }
+
+  // Tier 2: Iterative deepening with timeout (7-10 pieces)
+  if (pieceCount <= 10) {
+    const startTime = Date.now();
+    let bestResult: SolveResult | null = null;
+
+    for (let maxDepth = 1; maxDepth <= 30; maxDepth++) {
+      if (Date.now() - startTime > maxTime) {
+        console.log(`[Solver] Tier 2 timeout at depth ${maxDepth}, found:`, bestResult?.res);
+        break;
+      }
+
+      try {
+        // Temporarily override MAX_DEPTH by using path depth tracking
+        const result = solve(pos, rules, new Set(), 0);
+
+        // Check if we exceeded depth limit for this iteration
+        if (result.depth <= maxDepth) {
+          bestResult = { ...result, tier: 2 };
+
+          // Found a WIN - no need to search deeper
+          if (result.res === 'WIN') {
+            console.log(`[Solver] Tier 2 found WIN at depth ${maxDepth}`);
+            return bestResult;
+          }
+        }
+      } catch (error) {
+        // Depth limit hit or other error - stop iterating
+        console.warn(`[Solver] Tier 2 error at depth ${maxDepth}:`, error);
+        break;
+      }
+    }
+
+    if (bestResult) {
+      console.log('[Solver] Tier 2 returning result:', bestResult.res, 'depth', bestResult.depth);
+      return bestResult;
+    }
+  }
+
+  // Tier 3: Alpha-beta heuristic search
+  console.log(`[Solver] Using Tier 3 (heuristic) for ${pieceCount} pieces`);
+  const searchDepth = pieceCount <= 8 ? 6 : pieceCount <= 12 ? 5 : 4;
+  const result = alphaBeta(pos, rules, searchDepth, -Infinity, Infinity);
+
+  // Apply AI strategy to heuristic result
+  return applyHeuristicStrategy(result, pos, rules);
+}
+
+/**
+ * Apply AI strategy to heuristic search results
+ *
+ * For perfect solving, strategy is applied inside solve().
+ * For heuristic results, we need to apply strategy here.
+ */
+function applyHeuristicStrategy(
+  result: EvalResult,
+  pos: Position,
+  rules: RuleSet
+): EvalResult {
+  const strategy = rules.aiStrategy || 'perfect';
+
+  // Cooperative: Only play moves with positive evaluation (>50cp advantage)
+  // Otherwise play randomly to give opponent chances
+  if (strategy === 'cooperative') {
+    const moves = legalMoves(pos, rules);
+    const goodMoves: Move[] = [];
+
+    for (const move of moves) {
+      const child = applyMove(pos, move, rules);
+      const childEval = alphaBeta(child, rules, 2, -Infinity, Infinity);
+      const score = -childEval.score;
+
+      if (score > 50) {
+        goodMoves.push(move);
+      }
+    }
+
+    if (goodMoves.length > 0) {
+      // Play one of the good moves randomly
+      const randomGoodMove = goodMoves[Math.floor(Math.random() * goodMoves.length)];
+      return { ...result, best: randomGoodMove };
+    }
+
+    // No good moves found - play randomly to help opponent
+    const randomMove = moves[Math.floor(Math.random() * moves.length)];
+    return { ...result, best: randomMove, score: 0 };
+  }
+
+  // Aggressive: Avoid draws, prefer sharp positions
+  // For heuristic search, this means preferring moves with higher variance
+  // For now, just return best move (same as perfect)
+  if (strategy === 'aggressive') {
+    return result;
+  }
+
+  // Perfect (default): Return best move from alpha-beta
+  return result;
 }

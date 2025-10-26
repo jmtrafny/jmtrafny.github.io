@@ -34,7 +34,7 @@
       "icon": "📚",
       "help": {
         "challenge": "The 12-square 1-D setup with a full complement of pieces per side. Tactical and strategic skirmishes abound.",
-        "solvabilityType": "COMPETITIVE",
+        "solvabilityType": "TACTICAL_PUZZLE",
         "hints": [],
         "solution": null,
         "strategy": {
@@ -54,7 +54,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": false,
-        "aiStrategy": "perfect"
+        "aiStrategy": "cooperative"
       }
     },
     {
@@ -71,7 +71,7 @@
       "icon": "🧘",
       "help": {
         "challenge": "Play as White from the well‑known 1×8 setup. Can you convert initiative into a mating net?",
-        "solvabilityType": "COMPETITIVE",
+        "solvabilityType": "TACTICAL_PUZZLE",
         "hints": [
           "Use the knight to restrict the enemy king’s flight squares.",
           "Tempo rook checks drive the king toward your forces."
@@ -133,7 +133,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
-        "aiStrategy": "perfect"
+        "aiStrategy": "competitive"
       }
     },
     {
@@ -172,7 +172,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
-        "aiStrategy": "perfect"
+        "aiStrategy": "competitive"
       }
     },
     {
@@ -211,7 +211,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
-        "aiStrategy": "perfect"
+        "aiStrategy": "competitive"
       }
     },
     {
@@ -250,7 +250,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
-        "aiStrategy": "perfect"
+        "aiStrategy": "competitive"
       }
     }
   ]

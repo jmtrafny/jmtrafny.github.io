@@ -15,13 +15,11 @@ import {
   getConfig,
   indexToCoords,
   encode,
-  legalMoves,
   DEFAULT_RULES,
   type Piece,
   type Side,
-  type Move,
 } from './engine';
-import { solve } from './solver';
+import { solveHybrid } from './solver';
 import {
   initAudio,
   playMove,
@@ -188,20 +186,15 @@ function App() {
     // 500ms delay provides visual feedback that AI is "thinking"
     const timeoutId = setTimeout(() => {
       try {
-        let bestMove: Move | undefined;
         const rules = gameState.currentMode?.rules || DEFAULT_RULES;
 
-        if (gameState.position.variant === 'NxM') {
-          // Random move for Thin Chess
-          const moves = legalMoves(gameState.position, rules);
-          console.log('[AI] NxM mode - available moves:', moves.length);
-          if (moves.length > 0) {
-            bestMove = moves[Math.floor(Math.random() * moves.length)];
-          }
-        } else {
-          // Solver for 1-D Chess
-          const result = solve(gameState.position, rules);
-          bestMove = result.best;
+        // Use hybrid solver for all variants (automatically chooses best tier)
+        const result = solveHybrid(gameState.position, rules);
+        const bestMove = result.best;
+
+        // Log which tier was used
+        if ('tier' in result) {
+          console.log(`[AI] Used Tier ${result.tier}:`, 'res' in result ? result.res : `${result.score}cp`);
         }
 
         if (bestMove) {
