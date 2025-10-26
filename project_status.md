@@ -265,12 +265,18 @@ Each mode can specify:
     "enPassant": true,         // En passant captures
     "fiftyMoveRule": true,     // Draw after 100 plies
     "threefold": true,         // Draw on 3rd position repetition
-    "castling": false          // Castling (scaffolding only)
+    "castling": false,         // Castling (scaffolding only)
+    "aiStrategy": "perfect"    // AI move selection: "perfect" | "aggressive" | "cooperative"
   }
 }
 ```
 
-**Default Behavior:** All flags default to `false` if `rules` is omitted.
+**Default Behavior:** All flags default to `false` (or `"perfect"` for `aiStrategy`) if `rules` is omitted.
+
+**AI Strategy Modes:**
+- **`"perfect"`** (default): AI always plays optimally (WIN > DRAW > LOSS). Best for competitive modes where you want a challenging opponent.
+- **`"aggressive"`**: AI avoids draws and takes risks (WIN > LOSS > DRAW). Keeps games dynamic by preferring to lose rather than draw.
+- **`"cooperative"`**: AI only plays winning moves if found; otherwise plays randomly. Ideal for teaching/puzzle modes where the player should win with correct play.
 
 **Position State:** Extended to track:
 - `enPassantTarget`: Square index behind double-stepped pawn
@@ -285,9 +291,14 @@ Each mode can specify:
 - ✅ En passant (capture generation, EP target tracking, pawn removal)
 - ✅ Fifty-move rule (clock tracking, auto-draw at 100 plies)
 - ✅ Threefold repetition (position hashing, count tracking, auto-draw)
+- ✅ AI Strategy (perfect/aggressive/cooperative move selection)
 - ⏳ Castling (scaffolding in place, move generation TODO)
 
 **Board-Agnostic:** All rules work on any NxM board size (1×8, 2×10, 3×5, etc.).
+
+**Strategy Usage in Modes:**
+- **Cooperative AI** (4 teaching puzzles): 1D8_MONK, 2X6_TOP_RANK_GUILLOTINE, 2X5_KQ_VS_K_M1, 3X5_KBN_VS_K_FINISH
+- **Perfect AI** (5 competitive modes): 1D12_CHESSTRAPS, 6X6_LOS_ALAMOS, 5X5_GARDNER_MINICHESS, 5X6_QUICKCHESS_RBQKN, 5X6_ELENA_NQKBR
 
 ## 5) Base Rules (source of truth for engine)
 
@@ -532,6 +543,14 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
     "learningObjectives": [
       "What players will learn"
     ]
+  },
+  "rules": {
+    "castling": false,
+    "enPassant": false,
+    "fiftyMoveRule": false,
+    "threefold": false,
+    "promotion": false,
+    "aiStrategy": "perfect"
   }
 }
 ```

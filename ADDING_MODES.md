@@ -95,12 +95,13 @@ You can optionally specify a `rules` object to enable/disable specific chess rul
     "enPassant": true,          // true = en passant captures allowed
     "fiftyMoveRule": true,      // true = draw after 100 plies without capture/pawn move
     "threefold": true,          // true = draw on 3rd position repetition
-    "promotion": true           // true = pawns promote to Q/R/B/N; false = freeze on last rank
+    "promotion": true,          // true = pawns promote to Q/R/B/N; false = freeze on last rank
+    "aiStrategy": "perfect"     // "perfect" | "aggressive" | "cooperative"
   }
 }
 ```
 
-**Default Behavior:** If `rules` is omitted, all flags default to `false`.
+**Default Behavior:** If `rules` is omitted, all flags default to `false` (or `"perfect"` for `aiStrategy`).
 
 **Rule Details:**
 
@@ -111,6 +112,11 @@ You can optionally specify a `rules` object to enable/disable specific chess rul
 - **`fiftyMoveRule`**: When `true`, game is drawn after 100 plies (50 full moves) with no captures or pawn moves. Automatically resets on captures/pawn moves.
 
 - **`threefold`**: When `true`, game is drawn when the same position (board + turn + EP + castling) occurs 3 times. Position history tracked automatically.
+
+- **`aiStrategy`**: Controls AI move selection behavior:
+  - `"perfect"`: AI plays optimally (WIN > DRAW > LOSS). Use for competitive modes.
+  - `"aggressive"`: AI avoids draws (WIN > LOSS > DRAW). Keeps games dynamic.
+  - `"cooperative"`: AI only wins if forced, otherwise plays randomly. Use for teaching puzzles where player should win.
 
 - **`castling`**: Scaffolding in place but move generation not fully implemented. Keep `false` for now.
 

@@ -208,7 +208,10 @@ export interface RuleSet {
   fiftyMoveRule: boolean;   // Draw after 100 plies without capture/pawn move
   threefold: boolean;       // Draw on 3rd position repetition
   promotion: boolean;       // Enable pawn promotion to Q/R/B/N
+  aiStrategy?: AIStrategy;  // AI move selection strategy (optional, defaults to 'perfect')
 }
+
+export type AIStrategy = 'perfect' | 'aggressive' | 'cooperative';
 
 export const DEFAULT_RULES: RuleSet = {
   castling: false,
@@ -216,6 +219,7 @@ export const DEFAULT_RULES: RuleSet = {
   fiftyMoveRule: false,
   threefold: false,
   promotion: false,
+  // aiStrategy defaults to 'perfect' if omitted
 };
 ```
 
@@ -244,7 +248,15 @@ export const DEFAULT_RULES: RuleSet = {
 - `terminal()` returns `'DRAW_THREEFOLD'` on 3rd occurrence
 - Implemented in `applyMove()` and `isThreefoldDraw()`
 
-**5. Castling (`castling: true`)** *(Scaffolding Only)*
+**5. AI Strategy (`aiStrategy: AIStrategy`)**
+- Controls AI move selection in the solver (1-D Chess only)
+- `"perfect"`: Optimal play (WIN > DRAW > LOSS) - default behavior
+- `"aggressive"`: Avoids draws (WIN > LOSS > DRAW) - takes risks to win
+- `"cooperative"`: Only wins if forced, otherwise random - for teaching puzzles
+- Implemented in `solver.ts` at final move selection stage
+- NxM variants use random moves regardless of strategy
+
+**6. Castling (`castling: true`)** *(Scaffolding Only)*
 - Tracks `castlingRights` bitmask: WK=1, WQ=2, BK=4, BQ=8
 - Rights cleared when king/rook moves or rook captured
 - Move generation not yet implemented (TODO in `legalMoves()`)

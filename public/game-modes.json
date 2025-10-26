@@ -13,12 +13,6 @@
       "icon": "♟️"
     },
     {
-      "id": "classic-technique",
-      "name": "Classic Technique",
-      "description": "Timeless mates and endgame drills adapted to narrow boards (no castling; promotion where applicable).",
-      "icon": "📘"
-    },
-    {
       "id": "minichess-classics",
       "name": "Minichess Classics",
       "description": "Famous NxM starting arrays (no castling; promotion allowed).",
@@ -30,13 +24,13 @@
       "id": "1D12_CHESSTRAPS",
       "categoryId": "1d-chess",
       "name": "1-D Chess by ChessTraps",
-      "description": "Deep strategy in a single file. Knights and rooks vie for space.",
+      "description": "Knights and rooks vie for space!",
       "variant": "1xN",
       "boardWidth": 1,
       "boardHeight": 12,
       "startPosition": "bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w",
-      "difficulty": "Intermediate",
-      "difficultyStars": 3,
+      "difficulty": "Beginner",
+      "difficultyStars": 1,
       "icon": "📚",
       "help": {
         "challenge": "The 12-square 1-D setup with a full complement of pieces per side. Tactical and strategic skirmishes abound.",
@@ -59,19 +53,20 @@
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": false
+        "promotion": false,
+        "aiStrategy": "perfect"
       }
     },
     {
       "id": "1D8_MONK",
       "categoryId": "1d-chess",
       "name": "Monk 1-D Chess",
-      "description": "A classic 1×8 K+N+R vs K+N+R duel. Tactical and precise.",
+      "description": "A classic 1×8 K+N+R vs K+N+R duel.",
       "variant": "1xN",
       "boardWidth": 1,
       "boardHeight": 8,
       "startPosition": "bk,bn,br,x,x,wr,wn,wk:w",
-      "difficulty": "Advanced",
+      "difficulty": "Intermediate",
       "difficultyStars": 4,
       "icon": "🧘",
       "help": {
@@ -98,118 +93,8 @@
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": false
-      }
-    },
-    {
-      "id": "2X6_TOP_RANK_GUILLOTINE",
-      "categoryId": "classic-technique",
-      "name": "Top‑Rank Guillotine (K+R vs K)",
-      "description": "Textbook ladder‑mate on a 2×6 board.",
-      "variant": "NxM",
-      "boardWidth": 2,
-      "boardHeight": 6,
-      "startPosition": "x,bk/x,x/x,x/wk,x/wr,x/x,x:w",
-      "difficulty": "Beginner",
-      "difficultyStars": 1,
-      "icon": "🧩",
-      "help": {
-        "challenge": "Mate with K+R vs K in 2–3 moves by laddering the rook.",
-        "solvabilityType": "FORCED_WIN_WHITE",
-        "hints": [
-          "Bring the king up first to support the rook.",
-          "Cut ranks with the rook; don’t stalemate early."
-        ],
-        "solution": null,
-        "strategy": {
-          "whitePlan": "Use the rook to slice off ranks while the king approaches.",
-          "blackPlan": "Hug the edge and seek stalemate swindles."
-        },
-        "learningObjectives": [
-          "Basic K+R vs K technique",
-          "Opposition and laddering",
-          "Avoiding stalemate"
-        ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": false,
-        "threefold": false,
-        "promotion": false
-      }
-    },
-    {
-      "id": "2X5_KQ_VS_K_M1",
-      "categoryId": "classic-technique",
-      "name": "Royal Net (K+Q vs K)",
-      "description": "Elementary mate with king and queen on a 2×5 board.",
-      "variant": "NxM",
-      "boardWidth": 2,
-      "boardHeight": 5,
-      "startPosition": "x,bk/x,x/x,x/wk,wq/x,x:w",
-      "difficulty": "Beginner",
-      "difficultyStars": 1,
-      "icon": "👑",
-      "help": {
-        "challenge": "Deliver mate quickly without stalemating the lone king.",
-        "solvabilityType": "FORCED_WIN_WHITE",
-        "hints": [
-          "Use the queen to restrict, then bring your king closer.",
-          "Aim to box the king on the edge before the final check."
-        ],
-        "solution": null,
-        "strategy": null,
-        "learningObjectives": [
-          "Mating net with the queen",
-          "Opposition and restriction",
-          "Stalemate awareness"
-        ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": false,
-        "threefold": false,
-        "promotion": false
-      }
-    },
-    {
-      "id": "3X5_KBN_VS_K_FINISH",
-      "categoryId": "classic-technique",
-      "name": "Bishop+Knight Mate (Finish)",
-      "description": "Practice the KBN vs K mate on a compact 3×5.",
-      "variant": "NxM",
-      "boardWidth": 3,
-      "boardHeight": 5,
-      "startPosition": "x,x,bk/x,x,x/wn,x,x/wb,wk,x/x,x,x:w",
-      "difficulty": "Advanced",
-      "difficultyStars": 4,
-      "icon": "🗝️",
-      "help": {
-        "challenge": "Drive the king to the corner of the bishop’s color and complete the mate.",
-        "solvabilityType": "FORCED_WIN_WHITE",
-        "hints": [
-          "Corral toward the bishop‑colored corner.",
-          "Use waiting moves to preserve tempo for the final net."
-        ],
-        "solution": null,
-        "strategy": {
-          "whitePlan": "Triangulate with king/knight while bishop controls key diagonals.",
-          "blackPlan": "Head for the wrong‑colored corner; seek stalemate nets."
-        },
-        "learningObjectives": [
-          "KBN mate technique",
-          "Tempo management and triangulation",
-          "Corner‑color principle"
-        ]
-      },
-      "rules": {
-        "castling": false,
-        "enPassant": false,
-        "fiftyMoveRule": false,
-        "threefold": false,
-        "promotion": false
+        "promotion": false,
+        "aiStrategy": "cooperative"
       }
     },
     {
@@ -247,7 +132,8 @@
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": true
+        "promotion": true,
+        "aiStrategy": "perfect"
       }
     },
     {
@@ -285,7 +171,8 @@
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": true
+        "promotion": true,
+        "aiStrategy": "perfect"
       }
     },
     {
@@ -323,7 +210,8 @@
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": true
+        "promotion": true,
+        "aiStrategy": "perfect"
       }
     },
     {
@@ -361,7 +249,8 @@
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": true
+        "promotion": true,
+        "aiStrategy": "perfect"
       }
     }
   ]

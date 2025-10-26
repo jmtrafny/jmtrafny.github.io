@@ -128,7 +128,34 @@ export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<s
   // Remove current position from path before returning
   path.delete(key);
 
-  // If we have a drawing move, take it
+  // Apply AI strategy to move selection
+  const aiStrategy = rules.aiStrategy || 'perfect';
+
+  if (aiStrategy === 'cooperative') {
+    // Cooperative: Only return WIN if found, otherwise play randomly to give opponent chances
+    // This helps in teaching/puzzle modes where you want the AI to give the player winning opportunities
+    if (hasDrawChild || losingMove) {
+      // We're not winning - pick a random move to give opponent a chance
+      const randomMove = moves[Math.floor(Math.random() * moves.length)];
+      return save(key, { res: 'DRAW', depth: 0, best: randomMove });
+    }
+    // Should never reach here since we returned early on WIN
+    return save(key, { res: 'DRAW', depth: 0, best: moves[0] });
+  }
+
+  if (aiStrategy === 'aggressive') {
+    // Aggressive: Prefer WIN > LOSS > DRAW (avoids draws, takes risks)
+    if (hasDrawChild && losingMove) {
+      // Have both draw and loss options - choose loss to keep game going
+      return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
+    }
+    if (hasDrawChild) {
+      return save(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
+    }
+    return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
+  }
+
+  // Perfect (default): WIN > DRAW > LOSS (always optimal)
   if (hasDrawChild) {
     return save(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
   }

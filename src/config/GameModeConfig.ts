@@ -32,6 +32,14 @@ export type ModeIcon = '🧩' | '⚖️' | '📚' | '🎯' | '👑' | '🪓';
 export type CategoryIcon = '♟️' | '🧩';
 
 /**
+ * AI strategy for move selection
+ * - perfect: Always optimal (WIN > DRAW > LOSS)
+ * - aggressive: Avoids draws, takes risks (WIN > LOSS > DRAW)
+ * - cooperative: Only plays winning moves, otherwise random (helps opponent)
+ */
+export type AIStrategy = 'perfect' | 'aggressive' | 'cooperative';
+
+/**
  * Rule set configuration for a game mode
  */
 export interface RuleSet {
@@ -40,6 +48,7 @@ export interface RuleSet {
   fiftyMoveRule: boolean;
   threefold: boolean;
   promotion: boolean;
+  aiStrategy?: AIStrategy;  // Optional: defaults to 'perfect'
 }
 
 /**

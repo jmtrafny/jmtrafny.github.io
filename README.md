@@ -240,7 +240,8 @@ Each game mode can specify its own ruleset in `public/game-modes.json`:
     "enPassant": true,
     "fiftyMoveRule": true,
     "threefold": true,
-    "promotion": true
+    "promotion": true,
+    "aiStrategy": "perfect"
   }
 }
 ```
@@ -262,6 +263,12 @@ Each game mode can specify its own ruleset in `public/game-modes.json`:
 - **`threefold`** (boolean)
   - `true`: Game drawn when same position occurs 3 times (same board, turn, EP, castling)
   - `false`: No repetition detection
+
+- **`aiStrategy`** ("perfect" | "aggressive" | "cooperative")
+  - `"perfect"`: AI always plays optimally (WIN > DRAW > LOSS) - best for competitive modes
+  - `"aggressive"`: AI avoids draws, takes risks (WIN > LOSS > DRAW) - keeps game going
+  - `"cooperative"`: AI only plays winning moves, otherwise random - helps player learn in puzzles
+  - Defaults to `"perfect"` if omitted
 
 - **`castling`** (boolean)
   - `true`: Castling enabled (king-side and queen-side) - *not yet fully implemented*
