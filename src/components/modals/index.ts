@@ -9,3 +9,4 @@ export { ModePicker } from './ModePicker';
 export { HelpModal } from './HelpModal';
 export { GameSetup } from './GameSetup';
 export { ResignConfirm } from './ResignConfirm';
+export { SupportModal } from './SupportModal';

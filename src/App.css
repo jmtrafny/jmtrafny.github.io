@@ -964,6 +964,51 @@ details summary {
   }
 }
 
+/* Support Modal */
+.support-modal {
+  max-width: 450px;
+}
+
+.support-btn {
+  background: #0b1020;
+  color: var(--text);
+  border: 2px solid #1f2937;
+  border-radius: 12px;
+  padding: 20px;
+  font-weight: 700;
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+}
+
+.support-btn:hover {
+  border-color: var(--accent);
+  background: #1a1f2e;
+  transform: translateY(-2px);
+}
+
+.support-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.support-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.kofi-btn:hover {
+  border-color: #ff5e5b;
+}
+
+.paypal-btn:hover {
+  border-color: #00a1e0;
+}
+
 /* Very small devices - ensure minimum playable size */
 @media (max-width: 480px) or (max-height: 667px) {
   :root {

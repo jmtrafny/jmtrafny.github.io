@@ -41,6 +41,7 @@ import {
   HelpModal,
   GameSetup,
   ResignConfirm,
+  SupportModal,
 } from './components/modals';
 import './App.css';
 
@@ -79,6 +80,7 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   // Track last game result to prevent duplicate sound playback on re-renders
   const lastGameResultRef = useRef<string>('');
@@ -409,6 +411,10 @@ function App() {
         <ResignConfirm onConfirm={handleResignConfirm} onCancel={modalActions.closeModal} />
       )}
 
+      {showSupportModal && (
+        <SupportModal onClose={() => setShowSupportModal(false)} />
+      )}
+
       {/* Main UI */}
       <div className="panel">
         <div className="header">
@@ -429,6 +435,13 @@ function App() {
               title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
             >
               {soundMuted ? '🔇' : '🔊'}
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setShowSupportModal(true)}
+              title="Support this project"
+            >
+              ❤️
             </button>
             {showInstallButton && (
               <button className="install-btn" onClick={handleInstall}>
