@@ -9,22 +9,22 @@ This project implements two chess variants in a single codebase using a **fully 
 
 **Key Design Principles:**
 - **Unified engine** with variant parameter for code reuse
-- **Position object** embeds variant type (`'thin'` | `'skinny'`) + optional dimensions
+- **Position object** embeds variant type (`'1xN'` | `'NxM'`) + optional dimensions
 - **BoardConfig** system dynamically generates board dimensions
 - **Fully generalized** - supports any board size and piece combination
 - **Type-safe** TypeScript throughout
 
-**Internal vs User-Facing Names:**
+**Variant Type Names:**
 ```typescript
-// Internal (code):
-type VariantType = 'thin' | 'skinny';  // Never change these!
+// Variant identifiers (used throughout codebase):
+type VariantType = '1xN' | 'NxM';
 
 // User-facing (UI):
-'thin' → "1-D Chess"
-'skinny' → "Thin Chess"
+'1xN' → "1-D Chess" (single file, N squares)
+'NxM' → "Thin Chess" (N×M narrow boards)
 ```
 
-**Why this matters:** Position encoding uses internal names. Changing them breaks saved positions.
+**Why this matters:** Position encoding uses variant names. These must match exactly in JSON config and code.
 
 ---
 
@@ -43,12 +43,12 @@ export type Piece = `${Side}${PieceType}`;  // e.g., 'wk', 'br', 'wq'
 export type Cell = Piece | '.';             // '.' = empty (internal)
 export type Board = Cell[];                 // Flat array of cells
 
-export type VariantType = 'thin' | 'skinny';
+export type VariantType = '1xN' | 'NxM';
 
 export interface BoardConfig {
   variant: VariantType;
-  width: number;     // 1 for thin, 2-N for skinny (dynamic)
-  height: number;    // 6-12 for thin, 8-10 for skinny (dynamic)
+  width: number;     // 1 for 1xN, 2-N for NxM (dynamic)
+  height: number;    // 6-12 for 1xN, 8-10 for NxM (dynamic)
   size: number;      // total squares (width × height)
   files: string[];   // ['a'] or ['a','b','c',...] (auto-generated)
   ranks: number[];   // [1..N] (auto-generated)
@@ -71,12 +71,12 @@ export interface Move {
 
 #### Board Representation
 
-**1-D Chess (thin):**
+**1-D Chess (1xN):**
 - Single array of 12 cells: `board[0..11]`
 - Index 0 = rank 12 (top), index 11 = rank 1 (bottom)
 - Position encoding: `bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w`
 
-**Thin Chess (skinny):**
+**Thin Chess (NxM):**
 - Single array of 20 cells: `board[0..19]` (row-major indexing)
 - Rank 10 at indices 0-1, rank 1 at indices 18-19
 - Position encoding: `x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w`
@@ -105,7 +105,7 @@ export function indexToAlgebraic(idx: number, config: BoardConfig): string
 
 #### Movement Logic
 
-**1-D Chess (thin):**
+**1-D Chess (1xN):**
 ```typescript
 // King: ±1
 if (piece === 'k') {
@@ -133,7 +133,7 @@ if (piece === 'n') {
 }
 ```
 
-**Thin Chess (skinny):**
+**Thin Chess (NxM):**
 ```typescript
 // King: 8 directions
 const kingDeltas = [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]];
@@ -249,7 +249,7 @@ Main React component implementing the entire UI.
 
 ```typescript
 // Variant & Mode
-const [gameVariant, setGameVariant] = useState<VariantType>('thin');
+const [gameVariant, setGameVariant] = useState<VariantType>('1xN');
 const [showVariantPicker, setShowVariantPicker] = useState(true);
 const [showModePicker, setShowModePicker] = useState(false);
 const [selectedMode, setSelectedMode] = useState<SkinnyMode | null>(null);
@@ -260,7 +260,7 @@ const [helpMode, setHelpMode] = useState<string | null>(null);
 const [hintLevel, setHintLevel] = useState(0);  // 0=none, 1=hint1, 2=hint2, 3=solution
 
 // Game State
-const [pos, setPos] = useState<Position>(() => decode(START_POSITIONS.thin, 'thin'));
+const [pos, setPos] = useState<Position>(() => decode(START_POSITIONS['1xN'], '1xN'));
 const [history, setHistory] = useState<string[]>([...]);
 const [hIndex, setHIndex] = useState(0);
 const [sel, setSel] = useState<number | null>(null);
@@ -282,7 +282,7 @@ const makeAIMove = (position: Position) => {
   setTimeout(() => {
     let bestMove: Move | undefined;
 
-    if (position.variant === 'skinny') {
+    if (position.variant === 'NxM') {
       // Thin Chess: random move
       const moves = legalMoves(position);
       if (moves.length > 0) {
@@ -638,25 +638,29 @@ Add to `GAME_MODES.md`:
 *Bishops, pawns, and queens are typically not used in 1-D Chess, but the engine supports them if needed.
 
 
-### Changing Variant Names (User-Facing)
+### Changing Variant Names
+
+**Variant identifiers must be consistent:**
+- `type VariantType = '1xN' | 'NxM'` in TypeScript code
+- `"variant": "1xN"` or `"variant": "NxM"` in game-modes.json
+- All engine logic checks (`pos.variant === '1xN'`, etc.)
+- Position encoding/decoding uses these exact strings
 
 **Safe to change:**
-- Strings in `App.tsx` (button labels, titles)
+- User-facing display strings in `App.tsx` (button labels, titles)
 - Meta tags in `index.html`
 - Documentation in `README.md`, `DEVELOPER.md`
 
-**Never change:**
-- `type VariantType = 'thin' | 'skinny'` (breaks position encoding!)
-- Any hardcoded `'thin'` or `'skinny'` in engine logic
-
 **Example:**
 ```typescript
-// ✅ SAFE - user-facing text
-<button>Play 1-D Chess</button>
-{gameVariant === 'thin' ? '1-D Chess' : 'Thin Chess'}
+// ✅ Variant identifiers must match exactly
+type VariantType = '1xN' | 'NxM';
+if (gameVariant === '1xN') { ... }
+"variant": "1xN"  // in JSON
 
-// ❌ NEVER - internal variant identifier
-type VariantType = 'onedimensional' | 'thinchess';  // BREAKS EVERYTHING
+// ✅ Display text can be customized
+<button>Play 1-D Chess</button>
+{gameVariant === '1xN' ? '1-D Chess' : 'Thin Chess'}
 ```
 
 
@@ -669,13 +673,13 @@ type VariantType = 'onedimensional' | 'thinchess';  // BREAKS EVERYTHING
 2. Paste into browser console:
 ```javascript
 import { decode } from './engine';
-const pos = decode('x,bk/x,bb/.../wk,x:w', 'skinny');
+const pos = decode('x,bk/x,bb/.../wk,x:w', 'NxM');
 console.log(pos);
 ```
 
 3. Check:
-   - Correct number of cells? (12 for thin, 20 for skinny)
-   - Correct separator? (`,` for thin, `/` for skinny)
+   - Correct number of cells? (12 for 1xN, 20 for NxM)
+   - Correct separator? (`,` for 1xN, `/` for NxM)
    - Valid pieces? (`[wb][krnbp]` or `x`)
    - Side to move? (`:w` or `:b`)
 
@@ -691,12 +695,12 @@ Always test both variants after engine modifications:
 
 ```typescript
 // Test 1-D Chess
-const thin1 = decode('bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w', 'thin');
+const thin1 = decode('bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w', '1xN');
 const thinMoves = legalMoves(thin1);
 console.log('1-D Chess moves:', thinMoves.length);  // Should be ~5-8
 
 // Test Thin Chess
-const skinny1 = decode('x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w', 'skinny');
+const skinny1 = decode('x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w', 'NxM');
 const skinnyMoves = legalMoves(skinny1);
 console.log('Thin Chess moves:', skinnyMoves.length);  // Should be ~8-12
 ```

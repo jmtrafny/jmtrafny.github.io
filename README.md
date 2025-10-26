@@ -1,174 +1,287 @@
-# ♟️ 1-D Chess & Thin Chess
+# ♟️ Thin Chess
 
-Minimalist chess variants: **1-D Chess (1×12)** with perfect-play solver and **Thin Chess (2×10)** with curated tactical challenges.
+Master chess fundamentals through minimalist variants on narrow boards. Features **1-D Chess** (single-file line chess) with perfect-play solver and **Thin Chess** (2-3 file boards) with curated tactical and endgame challenges.
 
 **[Play Now →](https://jmtrafny.github.io/jmtrafny.github.io/)**
 
 ---
 
-## Variants
+## What is Thin Chess?
 
-### 1-D Chess (1×12)
-A single-file chess variant with Kings, Rooks, and Knights on a 1×12 board. Features a **perfect-play solver** that can solve any position instantly.
+Thin Chess is a collection of chess variants played on extremely narrow boards (1-3 files). By stripping away the complexity of the full 8×8 board, these variants help you:
 
-### Thin Chess (2×10)
-A 2-file, 10-rank variant with Kings, Rooks, Knights, Bishops, and Pawns. Includes **5 curated challenges** ranging from beginner puzzles to advanced endgames.
+- **Master fundamental tactics** - Forks, pins, and skewers in simplified positions
+- **Learn endgame technique** - King and rook mates, opposition, tempo play
+- **Build pattern recognition** - Core chess principles without overwhelming complexity
+- **Train calculation** - See deeper with fewer pieces and squares
+
+### Current Game Modes
+
+**1-D Chess** (2 modes)
+- Single-file line chess with Kings, Rooks, and Knights
+- Perfect-play solver provides instant evaluations
+- Includes classic 12-square variant and compact 8-square "Monk" variant
+
+**Classic Technique** (3 modes)
+- Essential endgame patterns on 2×5, 2×6, and 3×5 boards
+- K+R vs K ladder mate, K+Q vs K technique, K+B+N mate finish
+- Progressive hint system with full solutions
 
 ---
 
 ## Features
 
-✨ **Perfect-Play Solver** (1-D Chess) - Get instant WIN/LOSS/DRAW evaluations with best move suggestions
+✨ **Perfect-Play Solver** (1-D Chess) - Instant WIN/LOSS/DRAW evaluations with best move suggestions
 🎮 **Interactive Board** - Touch and mouse-friendly with legal move highlighting
-🧩 **Curated Challenges** (Thin Chess) - 5 tactical puzzles and strategic positions with progressive hints
+🧩 **Curated Challenges** - Tactical puzzles and endgame positions with progressive hints
 📴 **Works Offline** - Installable PWA with full offline support
 💾 **Position Sharing** - Export and import positions via compact text codes
 ⚡ **Instant Analysis** - Cached transposition table for fast repeated evaluations
 🎯 **Progressive Hints** - Learn with step-by-step guidance and full solutions
+🎲 **1-Player & 2-Player** - Play against the AI or challenge a friend
 
 ---
 
-## 1-D Chess Rules
+## Game Modes
 
-### Board
-- 1 file of **12 ranks** (numbered 1-12 from top to bottom)
-- Alternating light/dark squares
+### 1-D Chess
 
-### Pieces
-| Piece | Movement |
-|-------|----------|
-| **King (K)** | ±1 square |
-| **Rook (R)** | Slides any distance in either direction |
-| **Knight (N)** | Jumps exactly ±2 squares |
+Single-file chess played on a vertical line. Pure tactical warfare with no board complexity.
 
-### Special Rules
-- **Kings cannot move into check** (illegal move)
-- **Rooks cannot jump** over pieces (sliding only)
-- **Knights ignore** intervening pieces (leaper)
-- **No legal moves + in check** = Checkmate (loss)
-- **No legal moves + not in check** = Stalemate (draw)
-- **Repetition** in solver search = Draw
+**Available Modes:**
+1. **♟️ 1-D Chess by ChessTraps** (⭐⭐⭐ Intermediate)
+   - Classic 12-square setup with full piece complement
+   - Deep strategy, multi-piece coordination
+   - Perfectly balanced starting position
 
-### Starting Position
+2. **♟️ Monk 1-D Chess** (⭐⭐ Intermediate)
+   - Compact 8-square variant
+   - Faster games, sharper tactics
+   - Ideal for quick matches
 
-```
-1  ♚  Black King
-2  ♜  Black Rook
-3  ♞  Black Knight
-4  ♜  Black Rook
-5  ♞  Black Knight
-6  ·  Empty
-7  ·  Empty
-8  ♘  White Knight
-9  ♖  White Rook
-10 ♘  White Knight
-11 ♖  White Rook
-12 ♔  White King
-```
+**Rules:**
+- **Board:** 1 file of 8-12 ranks (depending on variant)
+- **Pieces:**
+  - King (±1 square)
+  - Rook (slides any distance)
+  - Knight (jumps ±2 squares)
+- **Win Conditions:** Checkmate opponent's king
+- **Draw Conditions:** Stalemate or position repetition
 
-White to move. This position is **perfectly balanced** according to the solver.
+**Solver Features:**
+- Click **"Solve"** to see if the position is a win, loss, or draw
+- Click **"Best Move"** to execute the optimal move
+- Learn perfect play through instant feedback
 
 ---
 
-## Thin Chess (2×10)
+### Classic Technique
 
-### Board
-- 2 files (a, b) of **10 ranks** = 20 squares total
-- Pieces move as in standard chess, but on a narrow 2D board
+Master essential endgame techniques on narrow boards. Each mode teaches a specific mating pattern.
 
-### Pieces
-All standard chess pieces: King, Rook, Knight, Bishop, Pawn
-Movement rules identical to standard chess
+**Available Modes:**
 
-### Curated Challenges
+1. **🧩 Top-Rank Guillotine** (⭐ Beginner) - 2×6 board
+   - Learn K+R vs K ladder mate
+   - Drive the lone king to the edge
+   - **Objective:** Textbook rook endgame technique
 
-1. **🧩 Top-Rank Guillotine** (⭐ Beginner) - Mate in 2-3 moves
-2. **📚 Mirror Towers** (⭐⭐⭐ Advanced) - Standard opening, learn piece development
-3. **🎯 Pawn Corridors** (⭐⭐⭐ Intermediate) - Promotion race with tempo calculation
-4. **👑 Bishop Duel** (⭐⭐⭐⭐ Advanced) - Fortress warfare and zugzwang
-5. **🧩 Flip-Fork** (⭐⭐⭐ Intermediate) - Knight fork tactics
+2. **👑 Royal Net** (⭐ Beginner) - 2×5 board
+   - Learn K+Q vs K technique
+   - Practice the queen "box" method
+   - **Objective:** Elementary mate with queen, avoiding stalemate
 
-Each challenge includes:
-- Clear goal description
-- Progressive hints (reveal one at a time)
-- Full solution with move explanations
-- Learning objectives
+3. **🗝️ Bishop+Knight Mate (Finish)** (⭐⭐⭐⭐ Advanced) - 3×5 board
+   - Practice the trickiest basic checkmate
+   - Position is near the finish line
+   - **Objective:** Execute the final mating sequence
 
-See [THIN_CHESS_MODES.md](THIN_CHESS_MODES.md) for detailed challenge documentation.
+**Hint System:**
+- Click **"?"** to view progressive hints
+- Hints reveal one at a time (no spoilers!)
+- Full solution available after viewing all hints
+- Learning objectives clearly stated
 
 ---
 
 ## How to Play
 
-1. **Choose a variant** - 1-D Chess, Thin Chess, or Thin Chess Challenges
-2. **Click a piece** to select it and see legal target squares (cyan dots)
-3. **Click a target** to move your piece there
-4. **Use buttons:**
-   - **Best Move** (1-D Chess only) - Execute the optimal move
-   - **Solve** (1-D Chess only) - Evaluate position as WIN/LOSS/DRAW
-   - **Undo/Redo** - Navigate move history
-   - **New Game** - Change variant or restart
-   - **Peace Treaty** - Resign or claim draw by repetition
-   - **?** (Thin Chess Challenges) - View hints and solutions
+### Getting Started
 
-### Position Codes
+1. **Launch the app** - Visit the site or install as PWA
+2. **Choose a game mode** - Select from 1-D Chess or Classic Technique categories
+3. **Select game type:**
+   - **1-Player:** Play as White against the AI
+   - **2-Player:** Take turns on the same device
+4. **Make moves** - Click/tap a piece, then click a highlighted target square
 
-Share positions using compact text format:
+### Controls
 
-**1-D Chess:**
+**Move Controls:**
+- **Click piece** → See legal moves (cyan dots)
+- **Click target** → Make the move
+- **Undo** (↶) → Take back last move
+- **Redo** (↷) → Replay undone move
+
+**1-D Chess Solver:**
+- **Solve** → Evaluate position (WIN/LOSS/DRAW)
+- **Best Move** → Execute optimal move instantly
+
+**Classic Technique:**
+- **? (Help)** → View hints and solutions
+- Progressive hint system guides you step-by-step
+
+**Game Controls:**
+- **New Game** → Choose different mode or restart
+- **Peace Treaty** → Resign or claim draw
+
+---
+
+## Position Codes
+
+Share and save positions using compact text notation.
+
+**1-D Chess (8 squares):**
+```
+bk,br,bn,x,x,wn,wr,wk:w
+```
+
+**1-D Chess (12 squares):**
 ```
 bk,br,bn,br,bn,x,x,wn,wr,wn,wr,wk:w
 ```
 
-**Thin Chess:**
+**Thin Chess (2×6 board):**
 ```
-x,bk/x,bb/x,bn/x,br/x,x/x,x/wr,x/wn,x/wb,x/wk,x:w
+x,bk/x,x/x,x/wk,x/wr,x/x,x:w
 ```
 
-Format:
-- `w` = white, `b` = black
-- `k`/`r`/`n`/`b`/`p` = king/rook/knight/bishop/pawn
+**Format Guide:**
+- Pieces: `wk` (white king), `br` (black rook), `wn` (white knight), etc.
 - `x` = empty square
-- `:w` or `:b` = side to move
+- Turn indicator: `:w` (white to move) or `:b` (black to move)
+- **1-D Chess:** Comma-separated from top to bottom
+- **Thin Chess:** Ranks separated by `/`, cells within ranks separated by `,`
+
+---
+
+## Learning Tips
+
+### For 1-D Chess:
+- **Use the solver** to check your intuition after thinking
+- **Study "DRAW" positions** - these are perfectly balanced
+- **Knights are powerful** - they can jump over traffic
+- **Rooks need open lines** - avoid blocking them with your own pieces
+- **King safety matters** - don't walk into checks
+
+### For Classic Technique:
+- **Read the hints before playing** - understand the goal first
+- **Practice the pattern multiple times** - muscle memory matters
+- **Compare to full-board versions** - principles transfer to 8×8 chess
+- **Focus on opponent's king** - restrict it first, mate second
+- **Watch for stalemate** - especially in K+Q vs K
 
 ---
 
 ## Installation
 
-### As PWA (Recommended)
-1. Visit the live site on mobile/desktop
-2. Tap "Add to Home Screen" or "Install"
-3. Launch from home screen - works fully offline!
+### As Progressive Web App (Recommended)
+
+**Mobile (iOS/Android):**
+1. Visit the site in your browser
+2. Tap **"Share"** → **"Add to Home Screen"**
+3. Launch from home screen icon
+4. Works fully offline!
+
+**Desktop (Chrome/Edge):**
+1. Visit the site
+2. Click the **install icon** in the address bar
+3. Click **"Install"**
+4. Launch from Applications/Start Menu
 
 ### Local Development
+
 ```bash
+git clone https://github.com/jmtrafny/jmtrafny.github.io.git
+cd jmtrafny.github.io
 npm install
-npm run dev      # Start dev server
+npm run dev      # Start development server
 npm run build    # Build for production
-npm run preview  # Preview production build
 npm test         # Run test suite
 ```
 
 ---
 
-## Technical Highlights
+## Technical Details
 
-- **Engine**: Pure TypeScript with zero dependencies
-- **1-D Chess Solver**: Tri-valued negamax with transposition table and cycle detection
-- **Thin Chess AI**: Random move selection (game tree too complex for perfect play)
-- **UI**: React 19 with TypeScript and CSS
-- **Build**: Vite for fast dev/build cycles
-- **Testing**: Vitest with comprehensive edge case coverage
-- **Deploy**: GitHub Actions → GitHub Pages
+**Architecture:**
+- **Engine:** Pure TypeScript, zero runtime dependencies
+- **1-D Chess Solver:** Tri-valued negamax with transposition table and repetition detection
+- **Thin Chess AI:** Random legal move selection (positions too complex for perfect play)
+- **UI Framework:** React 19 with TypeScript
+- **Build Tool:** Vite
+- **Testing:** Vitest with comprehensive edge case coverage
+- **Configuration:** JSON-based game mode system - add new modes without code changes
 
----
+**Performance:**
+- Solver evaluates 1-D Chess positions instantly (< 10ms typical)
+- Transposition table caches results for repeated positions
+- Responsive on all devices from phones to desktops
 
-## Browser Support
-
+**Browser Support:**
 - ✅ Chrome/Edge 90+
 - ✅ Firefox 88+
 - ✅ Safari 14+
 - ✅ Mobile browsers (iOS Safari, Chrome Android)
+
+---
+
+## Adding Custom Game Modes
+
+Thin Chess uses a JSON configuration system. You can add new modes without writing code!
+
+See [ADDING_MODES.md](ADDING_MODES.md) for the complete guide.
+
+**Quick example:**
+```json
+{
+  "id": "MY_NEW_MODE",
+  "categoryId": "1d-chess",
+  "name": "My Custom Mode",
+  "variant": "1xN",
+  "boardWidth": 1,
+  "boardHeight": 10,
+  "startPosition": "bk,br,bn,x,x,x,x,wn,wr,wk:w",
+  "difficulty": "Intermediate",
+  "difficultyStars": 3,
+  "icon": "🎯"
+}
+```
+
+---
+
+## Contributing
+
+Contributions welcome! Ways to help:
+
+- **Add new game modes** - Use the JSON configuration system
+- **Report bugs** - Open issues on GitHub
+- **Suggest features** - Discuss in issues before implementing
+- **Improve documentation** - Help others learn
+
+See [DEVELOPER.md](DEVELOPER.md) for architecture details and technical documentation.
+
+---
+
+## Roadmap
+
+**Planned Features:**
+- More 1-D Chess variants (different starting positions)
+- Additional endgame technique modes (R+P vs R, etc.)
+- Move notation display (algebraic notation)
+- Game analysis and position evaluation display
+- Configurable AI difficulty for Thin Chess
+- Opening trainer mode
 
 ---
 
@@ -178,10 +291,14 @@ MIT © [Your Name]
 
 ---
 
-## Contributing
+## Acknowledgments
 
-Contributions welcome! See [DEVELOPER.md](DEVELOPER.md) for architecture details and contribution guidelines.
+- **1-D Chess** concept inspired by ChessTraps YouTube channel
+- **Thin Chess** builds on narrow-board chess traditions
+- Built with React, TypeScript, and Vite
 
 ---
 
 **Made with ♟️ by chess variant enthusiasts**
+
+*Learn chess fundamentals one file at a time.*
