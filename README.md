@@ -287,18 +287,11 @@ See [DEVELOPER.md](DEVELOPER.md) for architecture details and technical document
 
 ## License
 
-MIT © [Your Name]
+MIT © James Trafny
 
 ---
 
 ## Acknowledgments
 
-- **1-D Chess** concept inspired by ChessTraps YouTube channel
-- **Thin Chess** builds on narrow-board chess traditions
+- **1-D Chess** concept inspired by ChessTraps [YouTube channel](https://www.youtube.com/@chesstrapss)
 - Built with React, TypeScript, and Vite
-
----
-
-**Made with ♟️ by chess variant enthusiasts**
-
-*Learn chess fundamentals one file at a time.*
