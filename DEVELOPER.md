@@ -2,10 +2,11 @@
 
 ## Architecture Overview
 
-This project implements two chess variants in a single codebase using a **fully generalized multi-variant architecture**:
+This project implements chess variants in a single codebase using a **configuration-driven multi-variant architecture**:
 
-- **1-D Chess (1×N)**: Single-file chess with variable board lengths (6, 7, 8, 9, 12 squares). Perfect-play solver.
-- **Thin Chess (M×N)**: Multi-file narrow-board chess with variable dimensions (2×10, 3×8, etc.). Progressive hint system.
+- **1-D Chess (1×N)**: Single-file chess with variable board lengths (6-12 squares). Perfect-play solver.
+- **Minichess (M×N)**: Multi-file narrow-board chess with variable dimensions (5×5, 5×6, 6×6, etc.). Random-move AI.
+- **Configuration-driven**: All 9 game modes defined in JSON (`public/game-modes.json`), no hardcoded modes in TypeScript.
 
 **Key Design Principles:**
 - **Unified engine** with variant parameter for code reuse
@@ -21,7 +22,7 @@ type VariantType = '1xN' | 'NxM';
 
 // User-facing (UI):
 '1xN' → "1-D Chess" (single file, N squares)
-'NxM' → "Thin Chess" (N×M narrow boards)
+'NxM' → "Minichess Classics" (M×N compact boards)
 ```
 
 **Why this matters:** Position encoding uses variant names. These must match exactly in JSON config and code.
@@ -467,45 +468,31 @@ const handleRedo = () => {
 };
 ```
 
-#### Thin Chess Challenges System
+#### Game Mode Configuration System
 
-**Mode Pack Data:**
+**All game modes are now defined in `public/game-modes.json`**, not in TypeScript code. This includes:
+
+- Mode metadata (name, description, difficulty, icons)
+- Starting positions and board dimensions
+- Help content (hints, solutions, learning objectives)
+- Rule flags (promotion, en passant, fifty-move rule, etc.)
+- AI strategy settings
+
+**Progressive Hint System** is implemented in the HelpModal component and reads data from the JSON configuration:
+
 ```typescript
-export const SKINNY_MODE_PACK: SkinnyMode[] = [
-  {
-    id: 'top-rank-guillotine',
-    name: 'Top-Rank Guillotine',
-    description: 'Beginner: Mate in 2-3 moves',
-    startPosition: 'x,bk/x,x/x,x/x,x/x,x/x,x/wk,x/wr,x/x,x/x,x:w',
-    difficulty: 'Puzzle',
-  },
-  // ... 4 more modes
-];
+// Help modal component reads from configuration
+const mode = getMode(helpModeId);
+const hints = mode.help.hints;
+const solution = mode.help.solution;
 
-export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {
-  'top-rank-guillotine': {
-    challenge: 'White has a rook and king versus a lone black king...',
-    solvabilityType: 'FORCED_WIN_WHITE',
-    hints: ['Hint 1 text', 'Hint 2 text'],
-    solution: '1. Kb2 - King steps up...',
-    learningObjectives: ['Master K+R vs K', 'Use rook to cut files'],
-    difficultyStars: 1,
-    icon: '🧩',
-  },
-  // ... other modes
-};
-```
-
-**Progressive Hint System:**
-```typescript
-// Help modal shows hints progressively
-{hintLevel === 0 && <button onClick={() => revealHint(1)}>Show Hint 1</button>}
-{hintLevel >= 1 && <div className="hint-box">{MODE_HELP_CONTENT[helpMode].hints[0]}</div>}
-{hintLevel >= 1 && <button onClick={() => revealHint(2)}>Show Hint 2</button>}
-{hintLevel >= 2 && <div className="hint-box">{MODE_HELP_CONTENT[helpMode].hints[1]}</div>}
-{hintLevel >= 2 && <button onClick={() => revealHint(3)}>Show Full Solution</button>}
+// Renders hints progressively based on hintLevel state
+{hintLevel >= 1 && <div className="hint-box">{hints[0]}</div>}
+{hintLevel >= 2 && <div className="hint-box">{hints[1]}</div>}
 {hintLevel >= 3 && <div className="solution-box"><pre>{solution}</pre></div>}
 ```
+
+For adding or modifying game modes, see [ADDING_MODES.md](ADDING_MODES.md) - no code changes required!
 
 ---
 
@@ -574,167 +561,53 @@ if (piece === 'c') {  // camel
 ```
 
 
-### Adding a New Game Mode (Step-by-Step Guide)
+### Adding a New Game Mode
 
-The engine supports any board dimensions and piece combinations. Here's how to add new modes:
+**All game modes are now configuration-driven via JSON!** No code changes needed.
 
-#### **Step 1: Design Your Position**
+See **[ADDING_MODES.md](ADDING_MODES.md)** for the complete step-by-step guide.
 
-Choose your board dimensions and piece setup:
-- **1-D Chess**: Any length (e.g., 5, 6, 7, 8, 9, 10, 12)
-- **Thin Chess**: Any width × height (e.g., 2×10, 3×8, 4×6, 3×12)
-- **Pieces**: Any combination of k, r, n, b, p, q
+**Quick Summary:**
 
-#### **Step 2: Create Position String**
+1. Edit `public/game-modes.json`
+2. Add new mode object to the `modes` array
+3. Ensure `categoryId` matches an existing category
+4. Provide valid position string for your board dimensions
+5. Include complete help content (hints, solution, learning objectives)
+6. Optionally configure rule flags (promotion, en passant, etc.)
+7. Run `npm run build` to validate
+8. Test in browser
 
-**1-D Chess (thin) format:**
-```typescript
-// Format: "cell,cell,cell,...:side"
-// Example: 6-square board
-'wk,wn,x,x,bn,bk:w'
-```
-
-**Thin Chess (skinny) format:**
-```typescript
-// Format: "c1,c2,c3/.../c1,c2,c3:side"  (ranks separated by /)
-// Example: 3×8 board
-'wk,x,x/wq,x,x/x,x,x/x,x,x/x,x,x/x,x,bn/x,br,x/bk,x,x:w'
-```
-
-#### **Step 3A: Add 1-D Chess Mode**
-
-Add to `THIN_MODE_PACK` in `src/engine.ts`:
-
-```typescript
+**Minimal Example:**
+```json
 {
-  id: 'my-1d-mode',              // Unique identifier
-  name: 'My 1-D Mode',           // Display name
-  description: '10 squares - Description (7/10)',  // Short description + rating
-  startPosition: 'wk,wr,x,x,x,x,x,x,br,bk:w',     // Position string
-  boardLength: 10,               // Board size
-  rationale: 'Why this mode is fun and educational',
-  difficulty: 'Puzzle',          // Puzzle | Classic | Strategic | Asymmetric
-}
-```
-
-#### **Step 3B: Add Thin Chess Mode**
-
-Add to `SKINNY_MODE_PACK` in `src/engine.ts`:
-
-```typescript
-{
-  id: 'my-thin-mode',            // Unique identifier
-  name: 'My Thin Mode',          // Display name
-  description: 'Description (8/10)',  // Short description + rating
-  startPosition: 'wk,x/wq,x/x,x/bk,x:w',  // Position string
-  rationale: 'Why this mode is fun and educational',
-  difficulty: 'Strategic',       // Baseline | Tactical | Strategic | Endgame | Puzzle
-  boardWidth: 2,                 // Optional: specify if not 2
-  boardLength: 4,                // Optional: specify if not 10
-}
-```
-
-#### **Step 4: Add Help Content**
-
-Add to `MODE_HELP_CONTENT` in `src/engine.ts`:
-
-```typescript
-'my-mode-id': {
-  challenge: 'Full description of the challenge and goal.',
-  solvabilityType: 'TACTICAL_PUZZLE',  // or FORCED_WIN_WHITE, COMPETITIVE, DRAWISH
-  hints: [
-    'First subtle hint pointing player in right direction',
-    'More specific hint revealing key concept',
-  ],
-  solution: '1. Move notation - Explanation\n2. Next move - Why this works\n\nKey Concepts: List important tactics/strategies.',
-  strategy: {  // Optional: for competitive modes
-    whitePlan: 'Strategy guidance for White',
-    blackPlan: 'Strategy guidance for Black',
-    keyPositions: 'Important positions to understand',
+  "id": "MY_MODE_ID",
+  "categoryId": "1d-chess",
+  "name": "My Custom Mode",
+  "description": "Brief description",
+  "variant": "1xN",
+  "boardWidth": 1,
+  "boardHeight": 8,
+  "startPosition": "bk,br,bn,x,wn,wr,wk:w",
+  "difficulty": "Intermediate",
+  "difficultyStars": 3,
+  "icon": "🎯",
+  "help": {
+    "challenge": "Full description",
+    "solvabilityType": "COMPETITIVE",
+    "hints": ["Hint 1", "Hint 2"],
+    "solution": null,
+    "strategy": null,
+    "learningObjectives": ["Learning goal"]
   },
-  learningObjectives: [
-    'What players learn from this mode',
-    'Specific tactics or concepts',
-    'Endgame or strategic principles',
-  ],
-  difficultyStars: 3,  // 1-5 stars
-  icon: '🎯',          // 🧩 Puzzle | ⚖️ Balanced | 📚 Educational | 🎯 Tactical | 👑 Strategic
-}
-```
-
-#### **Step 5: Test Your Mode**
-
-```bash
-npm run build        # Verify no TypeScript errors
-```
-
-**In the app:**
-1. Start the game
-2. Select your variant (1-D Chess or Thin Chess)
-3. Choose your mode from the mode picker
-4. Verify:
-   - ✅ Board renders with correct dimensions
-   - ✅ All pieces appear in correct positions
-   - ✅ Legal moves work correctly
-   - ✅ Help button shows your content
-   - ✅ Hints progress correctly (Hint 1 → Hint 2 → Solution)
-
-#### **Step 6: Document Your Mode**
-
-Add to `GAME_MODES.md`:
-- Mode name and dimensions
-- Starting position diagram
-- Challenge description
-- Strategic/tactical themes
-- Learning objectives
-
----
-
-### Quick Reference: Common Board Sizes
-
-**1-D Chess (proven interesting):**
-- 6 squares: Minimal tactical puzzles
-- 7 squares: Asymmetric battles
-- 8 squares: Classic Martin Gardner setup
-- 9 squares: Power vs numbers imbalances
-- 12 squares: Full strategic battles
-
-**Thin Chess (proven interesting):**
-- 2×10: Standard, highly tactical
-- 3×8: Diagonal tactics with queen
-- 2×12: Extended endgames (untested)
-- 4×8: Wider tactical playground (untested)
-
----
-
-### Example: Adding a 4×6 "Wide Chess" Mode
-
-```typescript
-// 1. Add to SKINNY_MODE_PACK
-{
-  id: 'wide-chess',
-  name: 'Wide Chess',
-  description: 'Four files - open tactics (8/10)',
-  startPosition: 'bk,br,bn,bb/x,x,x,x/x,x,x,x/x,x,x,x/x,x,x,x/wk,wr,wn,wb:w',
-  rationale: 'Four files create open board with more maneuvering room.',
-  difficulty: 'Baseline',
-  boardWidth: 4,
-  boardLength: 6,
-}
-
-// 2. Add help content
-'wide-chess': {
-  challenge: 'Standard opening on 4×6 board...',
-  solvabilityType: 'COMPETITIVE',
-  hints: [],
-  strategy: {
-    whitePlan: '...',
-    blackPlan: '...',
-    keyPositions: '...',
-  },
-  learningObjectives: ['...'],
-  difficultyStars: 3,
-  icon: '📚',
+  "rules": {
+    "castling": false,
+    "enPassant": false,
+    "fiftyMoveRule": false,
+    "threefold": false,
+    "promotion": false,
+    "aiStrategy": "perfect"
+  }
 }
 ```
 

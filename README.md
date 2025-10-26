@@ -20,12 +20,12 @@ Thin Chess is a collection of chess variants played on extremely narrow boards (
 **1-D Chess** (2 modes)
 - Single-file line chess with Kings, Rooks, and Knights
 - Perfect-play solver provides instant evaluations
-- Includes classic 12-square variant and compact 8-square "Monk" variant
+- Classic 12-square "ChessTraps" variant and compact 8-square "Monk" variant
 
-**Classic Technique** (3 modes)
-- Essential endgame patterns on 2×5, 2×6, and 3×5 boards
-- K+R vs K ladder mate, K+Q vs K technique, K+B+N mate finish
-- Progressive hint system with full solutions
+**Minichess Classics** (4 modes)
+- Famous historical minichess variants on compact boards (5×5, 5×6, 6×6)
+- Los Alamos Chess (6×6), Gardner Minichess (5×5), QuickChess (5×6), Elena/Sirotkin (5×6)
+- Full 2D chess with promotion, tactical depth, and competitive AI
 
 ---
 
@@ -266,9 +266,10 @@ Each game mode can specify its own ruleset in `public/game-modes.json`:
 
 - **`aiStrategy`** ("perfect" | "aggressive" | "cooperative")
   - `"perfect"`: AI always plays optimally (WIN > DRAW > LOSS) - best for competitive modes
-  - `"aggressive"`: AI avoids draws, takes risks (WIN > LOSS > DRAW) - keeps game going
-  - `"cooperative"`: AI only plays winning moves, otherwise random - helps player learn in puzzles
+  - `"aggressive"`: AI avoids draws, takes risks (WIN > LOSS > DRAW) - keeps games dynamic
+  - `"cooperative"`: AI only plays winning moves if forced; otherwise plays randomly - ideal for teaching/puzzle modes where player should win
   - Defaults to `"perfect"` if omitted
+  - **Note:** Only affects 1-D Chess (1×N) modes with perfect-play solver. Minichess (NxM) modes always use random move selection.
 
 - **`castling`** (boolean)
   - `true`: Castling enabled (king-side and queen-side) - *not yet fully implemented*
@@ -316,13 +317,34 @@ See [ADDING_MODES.md](ADDING_MODES.md) for the complete guide.
   "id": "MY_NEW_MODE",
   "categoryId": "1d-chess",
   "name": "My Custom Mode",
+  "description": "A brief description of the mode",
   "variant": "1xN",
   "boardWidth": 1,
   "boardHeight": 10,
   "startPosition": "bk,br,bn,x,x,x,x,wn,wr,wk:w",
   "difficulty": "Intermediate",
   "difficultyStars": 3,
-  "icon": "🎯"
+  "icon": "🎯",
+  "help": {
+    "challenge": "Full description of the challenge and objective",
+    "solvabilityType": "COMPETITIVE",
+    "hints": ["First hint", "Second hint"],
+    "solution": null,
+    "strategy": {
+      "whitePlan": "White's strategic approach",
+      "blackPlan": "Black's counter-strategy",
+      "keyPositions": "Critical positions to understand"
+    },
+    "learningObjectives": ["What players will learn"]
+  },
+  "rules": {
+    "castling": false,
+    "enPassant": false,
+    "fiftyMoveRule": false,
+    "threefold": false,
+    "promotion": false,
+    "aiStrategy": "perfect"
+  }
 }
 ```
 
@@ -344,12 +366,12 @@ See [DEVELOPER.md](DEVELOPER.md) for architecture details and technical document
 ## Roadmap
 
 **Planned Features:**
-- More 1-D Chess variants (different starting positions)
-- Additional endgame technique modes (R+P vs R, etc.)
-- Move notation display (algebraic notation)
-- Game analysis and position evaluation display
-- Configurable AI difficulty for Thin Chess
-- Opening trainer mode
+- Move animation for better visual feedback
+- Position sharing via URL parameters
+- Game analysis mode with move-by-move evaluation
+- Export game notation (PGN-like format)
+- Theme customization (light/dark mode toggle)
+- Additional game modes via community contributions
 
 ---
 

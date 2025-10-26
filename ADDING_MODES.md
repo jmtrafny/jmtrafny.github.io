@@ -113,10 +113,11 @@ You can optionally specify a `rules` object to enable/disable specific chess rul
 
 - **`threefold`**: When `true`, game is drawn when the same position (board + turn + EP + castling) occurs 3 times. Position history tracked automatically.
 
-- **`aiStrategy`**: Controls AI move selection behavior:
+- **`aiStrategy`**: Controls AI move selection behavior (**1×N modes only**):
   - `"perfect"`: AI plays optimally (WIN > DRAW > LOSS). Use for competitive modes.
   - `"aggressive"`: AI avoids draws (WIN > LOSS > DRAW). Keeps games dynamic.
   - `"cooperative"`: AI only wins if forced, otherwise plays randomly. Use for teaching puzzles where player should win.
+  - **Note:** This flag only affects 1-D Chess (1×N) modes that use the perfect-play solver. Minichess (M×N) modes always use random move selection regardless of this setting.
 
 - **`castling`**: Scaffolding in place but move generation not fully implemented. Keep `false` for now.
 

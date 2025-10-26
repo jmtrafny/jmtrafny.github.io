@@ -4,10 +4,9 @@
 _Last updated: 2025-10-25_
 
 ## 1) Overview
-This project features two minimalist chess variants with **12 curated game modes** organized into 3 categories:
-- **1-D Chess (1×N)**: Single-file chess variant with perfect-play solver
-- **Thin Chess (M×N)**: Multi-file narrow-board variant
-- **Mini-Board Puzzles**: Tactical & endgame challenges
+This project features minimalist chess variants with **9 curated game modes** organized into 2 categories:
+- **1-D Chess (1×N)**: Single-file chess variant with perfect-play solver (2 modes)
+- **Minichess Classics (M×N)**: Historic minichess variants on compact boards (4 modes: Los Alamos, Gardner, QuickChess, Elena/Sirotkin)
 
 All game modes are **configuration-driven** via `public/game-modes.json` - no code changes needed to add/modify modes.
 
@@ -146,9 +145,9 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
       "categoryId": "category-id",
       "name": "Mode Name",
       "description": "Short description",
-      "variant": "thin" | "skinny",
-      "boardWidth": 1-3,
-      "boardHeight": 6-12,
+      "variant": "1xN" | "NxM",
+      "boardWidth": 1-6,
+      "boardHeight": 5-12,
       "startPosition": "encoded-position",
       "difficulty": "Beginner" | "Intermediate" | "Advanced",
       "difficultyStars": 1-5,
@@ -186,18 +185,17 @@ Deployed at **[thinchess.com](https://thinchess.com)** (also available at [jmtra
 - Help content must include required fields
 
 ### Multi-Variant System
-**Decision:** Unified engine with variant parameter (`'thin'` | `'skinny'`) supporting different board sizes.
+**Decision:** Unified engine with variant parameter (`'1xN'` | `'NxM'`) supporting different board sizes.
 
 **Rationale:** Code reuse for common logic (check detection, move application) while allowing variant-specific movement generation.
 
 **Internal Naming (Code):**
-- `'thin'` = 1-D Chess (1×N boards)
-- `'skinny'` = Thin Chess (M×N boards)
+- `'1xN'` = 1-D Chess (1×N boards)
+- `'NxM'` = Minichess Classics (M×N boards)
 
 **User-Facing Naming:**
-- "1-D Chess" = Single-file chess
-- "Thin Chess" = Multi-file narrow chess
-- "Mini-Board Puzzles" = Tactical challenges
+- "1-D Chess" = Single-file chess variants
+- "Minichess Classics" = Historic compact board variants
 
 **Implementation:**
 - `BoardConfig` interface defines dimensions for each mode
@@ -296,9 +294,10 @@ Each mode can specify:
 
 **Board-Agnostic:** All rules work on any NxM board size (1×8, 2×10, 3×5, etc.).
 
-**Strategy Usage in Modes:**
-- **Cooperative AI** (4 teaching puzzles): 1D8_MONK, 2X6_TOP_RANK_GUILLOTINE, 2X5_KQ_VS_K_M1, 3X5_KBN_VS_K_FINISH
-- **Perfect AI** (5 competitive modes): 1D12_CHESSTRAPS, 6X6_LOS_ALAMOS, 5X5_GARDNER_MINICHESS, 5X6_QUICKCHESS_RBQKN, 5X6_ELENA_NQKBR
+**Strategy Usage in Modes (1×N only):**
+- **Cooperative AI** (1 teaching mode): 1D8_MONK
+- **Perfect AI** (1 competitive mode): 1D12_CHESSTRAPS
+- **Note:** All Minichess Classics (NxM) modes use random move selection regardless of aiStrategy setting
 
 ## 5) Base Rules (source of truth for engine)
 
