@@ -5,7 +5,8 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(npm test)",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Read(//c/**)"
     ],
     "deny": [],
     "ask": []
