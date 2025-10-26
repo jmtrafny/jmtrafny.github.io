@@ -446,6 +446,9 @@ export function findKing(board: Board, side: Side, config: BoardConfig): number 
  * Attack detection: Is square idx attacked by opponent?
  */
 export function attacked(board: Board, side: Side, idx: number, config: BoardConfig): boolean {
+  // Guard against invalid indices (e.g., if findKing() fails and returns -1)
+  if (idx < 0 || idx >= config.size) return false;
+
   const opp: Side = side === 'w' ? 'b' : 'w';
   const [rank, file] = indexToCoords(idx, config);
 
@@ -735,9 +738,11 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
             // Double move from starting position (only if not on promotion rank)
             if (rank === startRank && oneStep !== promotionRank) {
               const twoStep = rank + 2 * direction;
-              const j2 = coordsToIndex(twoStep, file, config);
-              if (board[j2] === EMPTY) {
-                pieceMoves.push({ from: i, to: j2 });
+              if (inBounds2D(twoStep, file, config)) {
+                const j2 = coordsToIndex(twoStep, file, config);
+                if (board[j2] === EMPTY) {
+                  pieceMoves.push({ from: i, to: j2 });
+                }
               }
             }
           }
