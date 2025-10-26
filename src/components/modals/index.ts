@@ -10,3 +10,4 @@ export { HelpModal } from './HelpModal';
 export { GameSetup } from './GameSetup';
 export { ResignConfirm } from './ResignConfirm';
 export { SupportModal } from './SupportModal';
+export { BugReportModal } from './BugReportModal';

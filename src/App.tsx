@@ -42,6 +42,7 @@ import {
   GameSetup,
   ResignConfirm,
   SupportModal,
+  BugReportModal,
 } from './components/modals';
 import './App.css';
 
@@ -81,6 +82,7 @@ function App() {
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showBugReportModal, setShowBugReportModal] = useState(false);
 
   // Track last game result to prevent duplicate sound playback on re-renders
   const lastGameResultRef = useRef<string>('');
@@ -415,6 +417,10 @@ function App() {
         <SupportModal onClose={() => setShowSupportModal(false)} />
       )}
 
+      {showBugReportModal && (
+        <BugReportModal onClose={() => setShowBugReportModal(false)} />
+      )}
+
       {/* Main UI */}
       <div className="panel">
         <div className="header">
@@ -435,6 +441,13 @@ function App() {
               title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
             >
               {soundMuted ? '🔇' : '🔊'}
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setShowBugReportModal(true)}
+              title="Report a bug"
+            >
+              🪲
             </button>
             <button
               className="icon-btn"

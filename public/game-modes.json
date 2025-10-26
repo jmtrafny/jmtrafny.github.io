@@ -60,7 +60,7 @@
     {
       "id": "1D8_MONK",
       "categoryId": "1d-chess",
-      "name": "Monk 1-D Chess",
+      "name": "1-D Chess",
       "description": "A classic 1×8 K+N+R vs K+N+R duel.",
       "variant": "1xN",
       "boardWidth": 1,
