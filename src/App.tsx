@@ -420,19 +420,6 @@ function App() {
             {gameState.currentMode && (
               <span className="mode-badge">{gameState.currentMode.difficulty}</span>
             )}
-            <a
-              href="https://www.youtube.com/shorts/nAO0IsMxveA"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="icon-btn"
-              title="Watch on YouTube"
-            >
-              <img
-                src="/svg/youtube.svg"
-                alt="YouTube"
-                style={{ width: '24px', height: '24px' }}
-              />
-            </a>
             <button
               className="icon-btn"
               onClick={handleToggleSound}
