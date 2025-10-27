@@ -139,7 +139,8 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
-        "aiStrategy": "competitive"
+        "aiStrategy": "competitive",
+        "pawnTwoMove": false
       }
     },
     {

@@ -29,6 +29,12 @@ export interface EvalResult {
 // Transposition table: position key -> solve result
 const TT = new Map<string, SolveResult>();
 
+// Node budget counter for search limits
+interface NodeBudget {
+  nodes: number;
+  maxNodes: number;
+}
+
 /**
  * Clear the transposition table (useful for position resets)
  */
@@ -63,12 +69,28 @@ function keyOf(pos: Position): string {
  * @param rules - The rule set to use (defaults to DEFAULT_RULES)
  * @param path - Set of position keys for cycle detection
  * @param depth - Current search depth
+ * @param budget - Optional node budget to limit search (prevents hangs)
  */
-export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<string> = new Set(), depth = 0): SolveResult {
+export function solve(
+  pos: Position,
+  rules: RuleSet = DEFAULT_RULES,
+  path: Set<string> = new Set(),
+  depth = 0,
+  budget?: NodeBudget
+): SolveResult {
   const key = keyOf(pos);
 
+  // Check node budget (prevents infinite search)
+  if (budget) {
+    budget.nodes++;
+    if (budget.nodes > budget.maxNodes) {
+      // Budget exceeded - return draw to exit gracefully
+      return { res: 'DRAW', depth };
+    }
+  }
+
   // Depth limit to prevent stack overflow
-  const MAX_DEPTH = 50;
+  const MAX_DEPTH = 30;
   if (depth > MAX_DEPTH) {
     return { res: 'DRAW', depth: MAX_DEPTH };
   }
@@ -107,7 +129,7 @@ export function solve(pos: Position, rules: RuleSet = DEFAULT_RULES, path: Set<s
   // Try each move
   for (const m of moves) {
     const child = applyMove(pos, m, rules);
-    const r = solve(child, rules, path, depth + 1);
+    const r = solve(child, rules, path, depth + 1, budget);
 
     // Found a winning move (opponent loses)
     if (r.res === 'LOSS') {
@@ -248,8 +270,8 @@ function alphaBeta(
  * Hybrid Solver - Automatically choose best solver tier
  *
  * Tier 1: Perfect solver (pieces ≤ 6)
- * Tier 2: Bounded iterative deepening (pieces 7-10, max 2 seconds)
- * Tier 3: Alpha-beta heuristic (pieces > 10 or timeout)
+ * Tier 2: Bounded iterative deepening (pieces 7-8, max 2 seconds, 50k node budget)
+ * Tier 3: Alpha-beta heuristic (pieces > 8 or timeout/budget exceeded)
  *
  * @param pos - The position to solve
  * @param rules - The rule set to use
@@ -261,6 +283,7 @@ export function solveHybrid(
   maxTime: number = 2000
 ): SolveResult | EvalResult {
   const pieceCount = pos.board.filter(p => p !== EMPTY).length;
+  const moveCount = legalMoves(pos, rules).length;
 
   // Tier 1: Perfect solver for small positions
   if (pieceCount <= 6) {
@@ -272,20 +295,30 @@ export function solveHybrid(
     }
   }
 
-  // Tier 2: Iterative deepening with timeout (7-10 pieces)
-  if (pieceCount <= 10) {
+  // Tier 2: Iterative deepening with timeout and node budget (7-8 pieces)
+  // Skip Tier 2 if position is too complex (many legal moves indicates tactical complexity)
+  if (pieceCount <= 8 && moveCount < 30) {
     const startTime = Date.now();
     let bestResult: SolveResult | null = null;
+    const budget: NodeBudget = { nodes: 0, maxNodes: 50000 };
 
-    for (let maxDepth = 1; maxDepth <= 30; maxDepth++) {
+    for (let maxDepth = 1; maxDepth <= 20; maxDepth++) {
+      // Check time budget
       if (Date.now() - startTime > maxTime) {
         console.log(`[Solver] Tier 2 timeout at depth ${maxDepth}, found:`, bestResult?.res);
         break;
       }
 
+      // Check node budget
+      if (budget.nodes > budget.maxNodes) {
+        console.log(`[Solver] Tier 2 node budget exceeded at ${budget.nodes} nodes, depth ${maxDepth}`);
+        break;
+      }
+
       try {
-        // Temporarily override MAX_DEPTH by using path depth tracking
-        const result = solve(pos, rules, new Set(), 0);
+        // Reset budget for this iteration
+        budget.nodes = 0;
+        const result = solve(pos, rules, new Set(), 0, budget);
 
         // Check if we exceeded depth limit for this iteration
         if (result.depth <= maxDepth) {
@@ -293,7 +326,7 @@ export function solveHybrid(
 
           // Found a WIN - no need to search deeper
           if (result.res === 'WIN') {
-            console.log(`[Solver] Tier 2 found WIN at depth ${maxDepth}`);
+            console.log(`[Solver] Tier 2 found WIN at depth ${maxDepth}, nodes: ${budget.nodes}`);
             return bestResult;
           }
         }
