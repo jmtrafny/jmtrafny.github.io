@@ -53,6 +53,9 @@ export interface RuleSet {
   // Alternative win conditions
   materialCountWin?: boolean;   // No moves + most pieces = win (not stalemate)
   raceToBackRank?: boolean;     // First to get ANY piece to opposite back rank wins
+
+  // Pawn movement rules
+  pawnTwoMove?: boolean;        // Allow pawns to move 2 squares on first move (default: true)
 }
 
 /**

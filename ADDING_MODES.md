@@ -194,11 +194,14 @@ You can enable/disable specific chess rules for any mode:
   "fiftyMoveRule": true,      // Draw after 100 plies without capture/pawn move?
   "threefold": true,          // Draw on 3rd position repetition?
   "promotion": true,          // Pawns promote to Q/R/B/N? (false = freeze on last rank)
+  "pawnTwoMove": true,        // Pawns can move 2 squares on first move? (default: true)
   "aiStrategy": "competitive" // "perfect" | "competitive" | "cooperative"
 }
 ```
 
-**Default:** All flags are `false` if you omit the `rules` section.
+**Default:** All flags are `false` if you omit the `rules` section, except:
+- `pawnTwoMove` defaults to `true`
+- `aiStrategy` defaults to `'perfect'`
 
 **Most common setup:**
 ```json
@@ -208,7 +211,26 @@ You can enable/disable specific chess rules for any mode:
   "enPassant": false,
   "fiftyMoveRule": false,
   "threefold": false,
-  "castling": false
+  "castling": false,
+  "pawnTwoMove": true
+}
+```
+
+### Pawn Movement Rules
+
+- **`pawnTwoMove: true`** (default): Pawns can move 2 squares forward on their first move
+  - **Use for:** Standard chess rules, most variants
+  - **Note:** Pawns track whether they've moved, so this works correctly even with custom positions
+
+- **`pawnTwoMove: false`**: Pawns can ONLY move 1 square at a time
+  - **Use for:** Slow-paced variants, educational modes where double-moves add complexity
+  - **Example:** "One Step Chess" where all pieces move more deliberately
+
+**Example (disable pawn double-moves):**
+```json
+"rules": {
+  "pawnTwoMove": false,
+  "aiStrategy": "competitive"
 }
 ```
 

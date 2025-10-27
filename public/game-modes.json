@@ -294,6 +294,47 @@
         "aiStrategy": "competitive",
         "raceToBackRank": true
       }
+    },
+    {
+      "id": "4X4_OCTOPAWN",
+      "categoryId": "minichess-classics",
+      "name": "Octopawn (4×4)",
+      "description": "First to get any piece to opposite back rank wins!",
+      "variant": "NxM",
+      "boardWidth": 4,
+      "boardHeight": 4,
+      "startPosition": "bp,bp,bp,bp/x,x,x,x/x,x,x,x/wp,wp,wp,wp:w",
+      "difficulty": "Intermediate",
+      "difficultyStars": 3,
+      "icon": "🏁",
+      "help": {
+        "challenge": "Get any piece to the opposite back rank before your opponent",
+        "solvabilityType": "COMPETITIVE",
+        "hints": [
+          "There is a forced win for White if played correctly"
+        ],
+        "solution": "Brainpower is required for this one!",
+        "strategy": {
+          "whitePlan": "do",
+          "blackPlan": "this",
+          "keyPositions": "later"
+        },
+        "learningObjectives": [
+          "Piece advancement and racing tactics",
+          "Pawn promotion strategy",
+          "Breakthrough combinations"
+        ]
+      },
+      "rules": {
+        "castling": false,
+        "enPassant": false,
+        "fiftyMoveRule": false,
+        "threefold": false,
+        "promotion": true,
+        "aiStrategy": "cooperative",
+        "raceToBackRank": true,
+        "pawnTwoMove": false
+      }
     }
   ]
 }

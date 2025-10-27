@@ -99,6 +99,7 @@ export interface Position {
   halfmoveClock?: number;   // Plies since last capture or pawn move (for fifty-move rule)
   castlingRights?: number;  // Bitmask: WK=1, WQ=2, BK=4, BQ=8
   positionHistory?: Map<string, number>; // Position hash -> count (for threefold repetition)
+  movedPawns?: bigint;      // Bitmask: bit N set if pawn at square N has moved (uses BigInt for 64+ square boards)
 }
 
 export interface Move {
@@ -159,6 +160,7 @@ export const DEFAULT_RULES: RuleSet = {
   fiftyMoveRule: false,
   threefold: false,
   promotion: false,
+  pawnTwoMove: true,  // Default: allow double-moves on first pawn move
 };
 
 /**
@@ -273,7 +275,7 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
 
 /**
  * Position encoding/decoding
- * Format: "board:turn[:ep][:halfmove][:castling]"
+ * Format: "board:turn[:ep][:halfmove][:castling][:movedPawns]"
  * Thin format:  "cell,cell,...,cell:side" (comma-separated, flat)
  * Skinny format: "c,c/c,c/.../c,c:side" (ranks separated by /, cells by comma)
  * cell = 'x' (empty) or '[wb][krnbp]' (piece)
@@ -281,6 +283,7 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
  * ep = en passant target square index (optional, '-' for none)
  * halfmove = halfmove clock for fifty-move rule (optional, number)
  * castling = castling rights bitmask (optional, number)
+ * movedPawns = moved pawns bitmask as hex string (optional, '-' for none)
  */
 export function decode(code: string, variant: VariantType, boardLength?: number, boardWidth?: number): Position {
   const parts = code.trim().split(':');
@@ -289,6 +292,7 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
   const epRaw = parts[2];
   const halfmoveRaw = parts[3];
   const castlingRaw = parts[4];
+  const movedPawnsRaw = parts[5];
 
   // Parse cells first to determine actual board dimensions
   let items: string[];
@@ -372,6 +376,18 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
     pos.castlingRights = 0; // Default to no castling rights
   }
 
+  if (movedPawnsRaw && movedPawnsRaw !== '-') {
+    try {
+      // Parse hex string back to BigInt
+      pos.movedPawns = BigInt('0x' + movedPawnsRaw);
+    } catch {
+      // Invalid hex, default to no pawns moved
+      pos.movedPawns = 0n;
+    }
+  } else {
+    pos.movedPawns = 0n; // Default to no pawns moved
+  }
+
   // Note: positionHistory is intentionally NOT initialized here
   // It will be created by applyMove() when needed for threefold detection
   // This prevents wiping history when decoding positions from game history
@@ -405,13 +421,17 @@ export function encode(pos: Position, includeExtendedFields = false): string {
   if (includeExtendedFields ||
       pos.enPassantTarget !== undefined ||
       (pos.halfmoveClock !== undefined && pos.halfmoveClock > 0) ||
-      (pos.castlingRights !== undefined && pos.castlingRights > 0)) {
+      (pos.castlingRights !== undefined && pos.castlingRights > 0) ||
+      (pos.movedPawns !== undefined && pos.movedPawns !== 0n)) {
 
     const ep = pos.enPassantTarget !== undefined ? String(pos.enPassantTarget) : '-';
     const halfmove = pos.halfmoveClock !== undefined ? String(pos.halfmoveClock) : '0';
     const castling = pos.castlingRights !== undefined ? String(pos.castlingRights) : '0';
+    const movedPawns = pos.movedPawns !== undefined && pos.movedPawns !== 0n
+      ? pos.movedPawns.toString(16) // Hex for compactness
+      : '-';
 
-    result += `:${ep}:${halfmove}:${castling}`;
+    result += `:${ep}:${halfmove}:${castling}:${movedPawns}`;
   }
 
   return result;
@@ -735,8 +755,11 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
               pieceMoves.push({ from: i, to: j });
             }
 
-            // Double move from starting position (only if not on promotion rank)
-            if (rank === startRank && oneStep !== promotionRank) {
+            // Double move from starting position (only if pawnTwoMove rule enabled and pawn hasn't moved)
+            // Check: pawnTwoMove enabled AND pawn is on starting rank AND hasn't moved yet (bit not set in movedPawns)
+            const pawnTwoMoveEnabled = rules.pawnTwoMove !== false; // Default to true if undefined
+            const hasMoved = pos.movedPawns ? (pos.movedPawns & (1n << BigInt(i))) !== 0n : false;
+            if (pawnTwoMoveEnabled && rank === startRank && !hasMoved && oneStep !== promotionRank) {
               const twoStep = rank + 2 * direction;
               if (inBounds2D(twoStep, file, config)) {
                 const j2 = coordsToIndex(twoStep, file, config);
@@ -920,6 +943,17 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
   // Update position history for threefold repetition
   const newHistory = rules.threefold ? new Map(pos.positionHistory || new Map()) : undefined;
 
+  // Track pawn movements
+  let newMovedPawns = pos.movedPawns || 0n;
+  if (isPawnMove) {
+    // Set the bit for the square the pawn moved FROM
+    // (After the move, the pawn is no longer there, so we track its origin)
+    newMovedPawns |= (1n << BigInt(m.from));
+    // Also set the bit for where it moved TO
+    // (This ensures if the pawn moves again, we know it has moved)
+    newMovedPawns |= (1n << BigInt(m.to));
+  }
+
   const newPos: Position = {
     variant: pos.variant,
     board: nb,
@@ -930,6 +964,7 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
     halfmoveClock: newHalfmoveClock,
     castlingRights: newCastlingRights,
     positionHistory: newHistory,
+    movedPawns: newMovedPawns,
   };
 
   // Add current position to history after the move
