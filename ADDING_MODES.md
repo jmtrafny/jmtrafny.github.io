@@ -212,6 +212,27 @@ You can enable/disable specific chess rules for any mode:
 }
 ```
 
+### Win Condition Flags
+
+Choose alternative victory conditions:
+
+- **`materialCountWin: true`**: When no legal moves remain, whoever has the most pieces wins (not stalemate)
+  - **Use for:** "Last piece standing" variants
+  - **Example:** Material race modes where piece count matters
+
+- **`raceToBackRank: true`**: First to get ANY piece to opposite back rank wins immediately
+  - **Use for:** Racing/breakthrough variants
+  - **Example:** Pawn race modes, piece advancement challenges
+  - **Note:** White wins by reaching rank 0 (top), Black wins by reaching bottom rank
+
+**Example:**
+```json
+"rules": {
+  "materialCountWin": true,
+  "aiStrategy": "competitive"
+}
+```
+
 ---
 
 ## 7) Testing Your Mode

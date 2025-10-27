@@ -156,6 +156,16 @@ export function useGameState(): [GameState, GameActions] {
         result = 'Draw - Fifty-move rule';
       } else if (term === 'DRAW_THREEFOLD') {
         result = 'Draw - Threefold repetition';
+      } else if (term === 'WHITE_MATERIAL_WIN') {
+        result = 'White Wins - More pieces remaining';
+      } else if (term === 'BLACK_MATERIAL_WIN') {
+        result = 'Black Wins - More pieces remaining';
+      } else if (term === 'DRAW_MATERIAL_TIE') {
+        result = 'Draw - Equal pieces remaining';
+      } else if (term === 'WHITE_RACE_WIN') {
+        result = 'White Wins - Piece reached back rank!';
+      } else if (term === 'BLACK_RACE_WIN') {
+        result = 'Black Wins - Piece reached back rank!';
       }
 
       setState((prev) => ({
@@ -347,7 +357,13 @@ export function useGameState(): [GameState, GameActions] {
     loadPosition: useCallback((positionCode: string) => {
       setState((prev) => {
         try {
-          const newPosition = decode(positionCode.trim(), prev.position.variant);
+          const trimmed = positionCode.trim();
+          // Auto-detect variant from position code format
+          // 1xN format: no slashes (e.g., "wk,x,x,bk:w")
+          // NxM format: has slashes (e.g., "wk,wr/bk,br:b")
+          const detectedVariant = trimmed.split(':')[0].includes('/') ? 'NxM' : '1xN';
+
+          const newPosition = decode(trimmed, detectedVariant);
           clearTT();
 
           return {
@@ -363,6 +379,7 @@ export function useGameState(): [GameState, GameActions] {
           };
         } catch (error) {
           console.error('Failed to load position:', error);
+          alert(`Failed to load position: ${error instanceof Error ? error.message : 'Invalid format'}`);
           return prev;
         }
       });

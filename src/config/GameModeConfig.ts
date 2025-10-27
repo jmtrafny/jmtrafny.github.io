@@ -49,6 +49,10 @@ export interface RuleSet {
   threefold: boolean;
   promotion: boolean;
   aiStrategy?: AIStrategy;  // Optional: defaults to 'perfect'
+
+  // Alternative win conditions
+  materialCountWin?: boolean;   // No moves + most pieces = win (not stalemate)
+  raceToBackRank?: boolean;     // First to get ANY piece to opposite back rank wins
 }
 
 /**

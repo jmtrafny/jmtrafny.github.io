@@ -986,8 +986,33 @@ export function positionHash(pos: Position): string {
 /**
  * Terminal state detection
  * Returns: null (non-terminal) | 'STALEMATE' | 'WHITE_MATE' | 'BLACK_MATE' | 'DRAW_FIFTY' | 'DRAW_THREEFOLD'
+ *          | 'WHITE_RACE_WIN' | 'BLACK_RACE_WIN' | 'WHITE_MATERIAL_WIN' | 'BLACK_MATERIAL_WIN' | 'DRAW_MATERIAL_TIE'
  */
 export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string | null {
+  const config = getConfig(pos);
+
+  // Race to back rank check (before no-moves check - triggers on any move)
+  if (rules.raceToBackRank) {
+    // Check if ANY white piece reached top rank (rank 0)
+    for (let i = 0; i < config.width; i++) {
+      const square = coordsToIndex(0, i, config);
+      const piece = pos.board[square];
+      if (piece !== EMPTY && sideOf(piece) === 'w') {
+        return 'WHITE_RACE_WIN';
+      }
+    }
+
+    // Check if ANY black piece reached bottom rank (height - 1)
+    const bottomRank = config.height - 1;
+    for (let i = 0; i < config.width; i++) {
+      const square = coordsToIndex(bottomRank, i, config);
+      const piece = pos.board[square];
+      if (piece !== EMPTY && sideOf(piece) === 'b') {
+        return 'BLACK_RACE_WIN';
+      }
+    }
+  }
+
   // Check for draw by fifty-move rule
   if (isFiftyMoveDraw(pos, rules)) {
     return 'DRAW_FIFTY';
@@ -1004,6 +1029,17 @@ export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string 
   // No legal moves
   if (isCheck(pos)) {
     return pos.turn === 'w' ? 'WHITE_MATE' : 'BLACK_MATE';
+  }
+
+  // Material count win (replaces stalemate when enabled)
+  if (rules.materialCountWin) {
+    // Count pieces for each side (excluding empty squares)
+    const whitePieces = pos.board.filter(p => p !== EMPTY && sideOf(p) === 'w').length;
+    const blackPieces = pos.board.filter(p => p !== EMPTY && sideOf(p) === 'b').length;
+
+    if (whitePieces > blackPieces) return 'WHITE_MATERIAL_WIN';
+    if (blackPieces > whitePieces) return 'BLACK_MATERIAL_WIN';
+    return 'DRAW_MATERIAL_TIE';  // Equal material = still draw
   }
 
   return 'STALEMATE';

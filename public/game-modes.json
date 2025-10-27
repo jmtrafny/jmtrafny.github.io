@@ -252,6 +252,48 @@
         "promotion": true,
         "aiStrategy": "competitive"
       }
+    },
+    {
+      "id": "6X6_RACING_KINGS",
+      "categoryId": "minichess-classics",
+      "name": "Racing Kings (6×6)",
+      "description": "First to get any piece to opposite back rank wins!",
+      "variant": "NxM",
+      "boardWidth": 6,
+      "boardHeight": 6,
+      "startPosition": "bn,br,bb,bq,br,bn/bp,bp,bp,bp,bp,bp/x,x,x,x,x,x/x,x,x,x,x,x/wp,wp,wp,wp,wp,wp/wn,wr,wb,wq,wr,wn:w",
+      "difficulty": "Advanced",
+      "difficultyStars": 4,
+      "icon": "🏁",
+      "help": {
+        "challenge": "Get any piece to the opposite back rank before your opponent",
+        "solvabilityType": "COMPETITIVE",
+        "hints": [
+          "Pawns are fast racers - push them forward",
+          "Use your pieces to clear a path to the back rank",
+          "Block opponent's advancing pieces"
+        ],
+        "solution": null,
+        "strategy": {
+          "whitePlan": "Advance pawns quickly while defending against Black's threats",
+          "blackPlan": "Push pieces toward rank 1 while blocking White's advances",
+          "keyPositions": "Open files provide fastest routes for racing pieces"
+        },
+        "learningObjectives": [
+          "Piece advancement and racing tactics",
+          "Pawn promotion strategy",
+          "Breakthrough combinations"
+        ]
+      },
+      "rules": {
+        "castling": false,
+        "enPassant": false,
+        "fiftyMoveRule": false,
+        "threefold": false,
+        "promotion": true,
+        "aiStrategy": "competitive",
+        "raceToBackRank": true
+      }
     }
   ]
 }

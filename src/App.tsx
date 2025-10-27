@@ -81,9 +81,12 @@ function App() {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
+  const [positionInput, setPositionInput] = useState('');
 
   // Track last game result to prevent duplicate sound playback on re-renders
   const lastGameResultRef = useRef<string>('');
+  // Track the last synced encoded position to detect actual changes
+  const lastSyncedPositionRef = useRef<string>('');
 
   // Initialize audio
   useEffect(() => {
@@ -323,14 +326,24 @@ function App() {
     setDeferredPrompt(null);
   };
 
+  // Sync position input when game position ACTUALLY changes (not just re-renders)
+  useEffect(() => {
+    if (gameState.position) {
+      const currentEncoded = encode(gameState.position);
+      // Only update if the encoded position actually changed
+      if (currentEncoded !== lastSyncedPositionRef.current) {
+        lastSyncedPositionRef.current = currentEncoded;
+        setPositionInput(currentEncoded);
+      }
+    }
+  }, [gameState.position]);
+
   const handleLoad = () => {
-    const input = (document.getElementById('posCode') as HTMLInputElement)?.value || '';
-    gameActions.loadPosition(input);
+    gameActions.loadPosition(positionInput);
   };
 
   const handleCopy = () => {
-    const code = encode(gameState.position);
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(positionInput);
   };
 
   // Loading state
@@ -671,8 +684,8 @@ function App() {
             id="posCode"
             type="text"
             className="mono"
-            value={encode(gameState.position)}
-            onChange={(e) => e.target.value}
+            value={positionInput}
+            onChange={(e) => setPositionInput(e.target.value)}
           />
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
             <button onClick={handleLoad}>Load</button>
