@@ -268,7 +268,7 @@ export function inBounds2D(rank: number, file: number, config: BoardConfig): boo
 
 // Convert coordinates to algebraic notation
 export function coordsToAlgebraic(rank: number, file: number, config: BoardConfig): string {
-  return config.files[file] + (rank + 1);
+  return config.files[file] + (config.height - rank);
 }
 
 /**
