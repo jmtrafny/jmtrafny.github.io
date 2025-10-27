@@ -39,20 +39,15 @@
       "difficultyStars": 2,
       "icon": "📚",
       "help": {
-        "challenge": "The 12-square 1-D setup with a full complement of pieces per side. Tactical and strategic skirmishes abound.",
+        "challenge": "Standard 1-D Chess on a 12-square board with knights and rooks.",
         "solvabilityType": "TACTICAL_PUZZLE",
         "hints": [],
         "solution": null,
         "strategy": {
-          "whitePlan": "Coordinate knights and rook to control the center corridor and compress the black king.",
-          "blackPlan": "Counter-coordination; trade into favorable endings and avoid forks.",
-          "keyPositions": "Squares 5–7 often decide the corridor fight."
-        },
-        "learningObjectives": [
-          "Multi‑piece coordination in 1D",
-          "Rook and knight synergy",
-          "Long‑file pressure and king safety"
-        ]
+          "whitePlan": "Control the center squares and push the black king back.",
+          "blackPlan": "Trade pieces when possible and watch for knight forks.",
+          "keyPositions": "The middle squares (5-7) are key battlegrounds."
+        }
       },
       "rules": {
         "castling": false,
@@ -60,6 +55,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": false,
+        "pawnTwoMove": false,
         "aiStrategy": "cooperative"
       }
     },
@@ -76,23 +72,18 @@
       "difficultyStars": 3,
       "icon": "🧘",
       "help": {
-        "challenge": "Play as White from the well‑known 1×8 setup. Can you convert initiative into a mating net?",
+        "challenge": "Classic 1×8 setup. Can you checkmate with king, knight, and rook?",
         "solvabilityType": "TACTICAL_PUZZLE",
         "hints": [
-          "Use the knight to restrict the enemy king’s flight squares.",
-          "Tempo rook checks drive the king toward your forces."
+          "Use your knight to cut off escape squares.",
+          "Rook checks can force the king where you want it."
         ],
-        "solution": null,
+        "solution": "Try this line: N4 N5, N6 K7, R4 K6, R2 K7, R5++",
         "strategy": {
-          "whitePlan": "Herd with the knight, trap with the rook, and keep your king in range.",
-          "blackPlan": "Counter‑checks and trades; head for fortress motifs.",
-          "keyPositions": "Central empties (4–5) form the corridor of control."
-        },
-        "learningObjectives": [
-          "Coordinate K+R+N in constrained space",
-          "Recognize stalemate traps in 1D",
-          "Close a mating net with limited geometry"
-        ]
+          "whitePlan": "Push the king back with your knight while your rook cuts off escape.",
+          "blackPlan": "Trade pieces if possible. Avoid getting trapped.",
+          "keyPositions": "The center squares (4-5) control the flow of the game."
+        }
       },
       "rules": {
         "castling": false,
@@ -100,6 +91,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": false,
+        "pawnTwoMove": false,
         "aiStrategy": "cooperative"
       }
     },
@@ -116,22 +108,18 @@
       "difficultyStars": 3,
       "icon": "🧪",
       "help": {
-        "challenge": "Classic 6×6 play with no castling. Promotion works (historically, not to bishop).",
+        "challenge": "6×6 chess with no bishops. First chess variant played by a computer (1956).",
         "solvabilityType": "COMPETITIVE",
         "hints": [
-          "Knights cover critical entry squares; early development is key.",
-          "Use pawn breaks to open lines—space is scarce on 6×6."
+          "Get your pieces out early.",
+          "Watch for back rank threats, the board is small!"
         ],
         "solution": null,
         "strategy": {
-          "whitePlan": "Seize the center with pawns and activate rooks along short files.",
-          "blackPlan": "Counterpunch on light files and watch back‑rank motifs."
-        },
-        "learningObjectives": [
-          "Mini‑board piece coordination",
-          "Back‑rank tactics",
-          "Promotion races without castling"
-        ]
+          "whitePlan": "Control the center and activate your rooks.",
+          "blackPlan": "Develop quickly and watch for back rank mates.",
+          "keyPositions": "Center control matters even more on a small board."
+        }
       },
       "rules": {
         "castling": false,
@@ -139,8 +127,8 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
-        "aiStrategy": "competitive",
-        "pawnTwoMove": false
+        "pawnTwoMove": false,
+        "aiStrategy": "competitive"
       }
     },
     {
@@ -156,22 +144,18 @@
       "difficultyStars": 3,
       "icon": "📰",
       "help": {
-        "challenge": "No castling; promotion allowed. Can you outplay theory on a tight board?",
+        "challenge": "Martin Gardner's classic 5×5 minichess. Theoretically a draw with perfect play.",
         "solvabilityType": "COMPETITIVE",
         "hints": [
-          "Develop quickly—one tempo often decides open files.",
-          "Avoid early queen sorties; the board is crowded."
+          "Every move counts on such a tight board.",
+          "Don't bring your queen out too early."
         ],
         "solution": null,
         "strategy": {
-          "whitePlan": "Grab space with pawns on b and d files; coordinate minor pieces.",
-          "blackPlan": "Timely pawn breaks and piece trades to equalize."
-        },
-        "learningObjectives": [
-          "Tempo sensitivity",
-          "Central control in small boards",
-          "Drawish evaluation management"
-        ]
+          "whitePlan": "Control space with pawns and coordinate your pieces.",
+          "blackPlan": "Trade pieces to reduce White's advantage.",
+          "keyPositions": "The center is cramped—fight for it early."
+        }
       },
       "rules": {
         "castling": false,
@@ -179,6 +163,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
+        "pawnTwoMove": false,
         "aiStrategy": "competitive"
       }
     },
@@ -195,22 +180,18 @@
       "difficultyStars": 2,
       "icon": "🏫",
       "help": {
-        "challenge": "Learn fast development and basic mates on a tight board. No castling.",
+        "challenge": "Educational 5×6 variant designed for teaching chess basics.",
         "solvabilityType": "COMPETITIVE",
         "hints": [
-          "Knights leap into action quickly on 5‑files.",
-          "Fight for the only open file after early trades."
+          "Get your pieces out fast.",
+          "Control the open files with your rooks."
         ],
         "solution": null,
         "strategy": {
-          "whitePlan": "Mobilize minor pieces and castle‑less king safety by piece cover.",
-          "blackPlan": "Mirror development; exchange queens early if under pressure."
-        },
-        "learningObjectives": [
-          "Development principles",
-          "Open‑file rook play",
-          "King safety without castling"
-        ]
+          "whitePlan": "Develop your pieces and keep your king safe.",
+          "blackPlan": "Match White's development. Trade queens if you're under attack.",
+          "keyPositions": "Open files are precious—fight for them."
+        }
       },
       "rules": {
         "castling": false,
@@ -218,6 +199,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
+        "pawnTwoMove": false,
         "aiStrategy": "competitive"
       }
     },
@@ -234,22 +216,18 @@
       "difficultyStars": 3,
       "icon": "♟️",
       "help": {
-        "challenge": "Sharp piece imbalances from move 1. No castling; promotion allowed.",
+        "challenge": "5×6 variant with asymmetric piece placement. Things get tactical quickly.",
         "solvabilityType": "COMPETITIVE",
         "hints": [
-          "Beware early queen vs. knight tactics.",
-          "Central pawn breaks are decisive."
+          "Watch for early queen and knight tricks.",
+          "Pawn breaks in the center can decide the game."
         ],
         "solution": null,
         "strategy": {
-          "whitePlan": "Pressure along light squares; coordinate queen/knight.",
-          "blackPlan": "Counter with bishop pairs and rook activity."
-        },
-        "learningObjectives": [
-          "Asymmetric openings",
-          "Tactical awareness",
-          "Endgame transitions on small boards"
-        ]
+          "whitePlan": "Use your queen and knight together.",
+          "blackPlan": "Activate your bishops and rooks.",
+          "keyPositions": "The asymmetry creates imbalances from move one."
+        }
       },
       "rules": {
         "castling": false,
@@ -257,6 +235,7 @@
         "fiftyMoveRule": false,
         "threefold": false,
         "promotion": true,
+        "pawnTwoMove": false,
         "aiStrategy": "competitive"
       }
     },
@@ -273,33 +252,29 @@
       "difficultyStars": 4,
       "icon": "🏁",
       "help": {
-        "challenge": "Get any piece to the opposite back rank before your opponent",
+        "challenge": "Race to get any piece to the opposite back rank. First one there wins!",
         "solvabilityType": "COMPETITIVE",
         "hints": [
-          "Pawns are fast racers - push them forward",
-          "Use your pieces to clear a path to the back rank",
-          "Block opponent's advancing pieces"
+          "Pawns are your fastest pieces—push them.",
+          "Clear a path and block your opponent's path.",
+          "Sometimes sacrificing a piece opens the way."
         ],
         "solution": null,
         "strategy": {
-          "whitePlan": "Advance pawns quickly while defending against Black's threats",
-          "blackPlan": "Push pieces toward rank 1 while blocking White's advances",
-          "keyPositions": "Open files provide fastest routes for racing pieces"
-        },
-        "learningObjectives": [
-          "Piece advancement and racing tactics",
-          "Pawn promotion strategy",
-          "Breakthrough combinations"
-        ]
+          "whitePlan": "Push pawns forward while blocking Black's pieces.",
+          "blackPlan": "Race your pieces to rank 1 while stopping White.",
+          "keyPositions": "Open files are highways to victory."
+        }
       },
       "rules": {
         "castling": false,
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": true,
-        "aiStrategy": "competitive",
-        "raceToBackRank": true
+        "promotion": false,
+        "pawnTwoMove": true,
+        "raceToBackRank": true,
+        "aiStrategy": "competitive"
       }
     },
     {
@@ -315,32 +290,28 @@
       "difficultyStars": 3,
       "icon": "🏁",
       "help": {
-        "challenge": "Get any piece to the opposite back rank before your opponent",
+        "challenge": "Pure pawn racing on a 4×4 board. Race to the other side!",
         "solvabilityType": "COMPETITIVE",
         "hints": [
-          "There is a forced win for White if played correctly"
+          "White can force a win with perfect play.",
+          "Think several moves ahead—this is pure calculation."
         ],
-        "solution": "Brainpower is required for this one!",
+        "solution": "Figure it out yourself!",
         "strategy": {
-          "whitePlan": "do",
-          "blackPlan": "this",
-          "keyPositions": "later"
-        },
-        "learningObjectives": [
-          "Piece advancement and racing tactics",
-          "Pawn promotion strategy",
-          "Breakthrough combinations"
-        ]
+          "whitePlan": "Push forward while blocking Black's pawns.",
+          "blackPlan": "Stop White and race your own pawns through.",
+          "keyPositions": "Every square matters in this tight race."
+        }
       },
       "rules": {
         "castling": false,
         "enPassant": false,
         "fiftyMoveRule": false,
         "threefold": false,
-        "promotion": true,
-        "aiStrategy": "cooperative",
+        "promotion": false,
+        "pawnTwoMove": false,
         "raceToBackRank": true,
-        "pawnTwoMove": false
+        "aiStrategy": "cooperative"
       }
     }
   ]

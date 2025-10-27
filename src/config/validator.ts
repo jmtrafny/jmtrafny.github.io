@@ -311,18 +311,6 @@ function validateMode(mode: unknown, index: number): ValidationError[] {
         message: 'All hints must be strings',
       });
     }
-
-    if (!Array.isArray(help.learningObjectives)) {
-      errors.push({
-        field: `${prefix}.help.learningObjectives`,
-        message: 'help.learningObjectives must be an array',
-      });
-    } else if (!help.learningObjectives.every((obj) => typeof obj === 'string')) {
-      errors.push({
-        field: `${prefix}.help.learningObjectives`,
-        message: 'All learning objectives must be strings',
-      });
-    }
   }
 
   return errors;

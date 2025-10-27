@@ -76,7 +76,7 @@ export interface ModeHelp {
   hints: string[];
   solution: string | null;
   strategy: ModeStrategy | null;
-  learningObjectives: string[];
+  learningObjectives?: string[]; // Optional: for backward compatibility
 }
 
 /**

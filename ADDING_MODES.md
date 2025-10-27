@@ -185,7 +185,25 @@ AI never makes mistakes.
 
 ## 6) Rule Flags Explained
 
-You can enable/disable specific chess rules for any mode:
+You can enable/disable specific chess rules for any mode. While you can omit any rule flag and it will use the default value, **it's recommended to explicitly set all rules** to make your configuration clear.
+
+### Default Values
+
+If you don't specify a rule, these defaults apply:
+
+```json
+"rules": {
+  "castling": false,          // Default: disabled
+  "enPassant": false,         // Default: disabled
+  "fiftyMoveRule": false,     // Default: disabled
+  "threefold": false,         // Default: disabled
+  "promotion": false,         // Default: disabled
+  "pawnTwoMove": true,        // Default: enabled (pawns can double-move)
+  "aiStrategy": "cooperative" // Default: cooperative AI
+}
+```
+
+### All Available Rules
 
 ```json
 "rules": {
@@ -194,25 +212,21 @@ You can enable/disable specific chess rules for any mode:
   "fiftyMoveRule": true,      // Draw after 100 plies without capture/pawn move?
   "threefold": true,          // Draw on 3rd position repetition?
   "promotion": true,          // Pawns promote to Q/R/B/N? (false = freeze on last rank)
-  "pawnTwoMove": true,        // Pawns can move 2 squares on first move? (default: true)
+  "pawnTwoMove": true,        // Pawns can move 2 squares on first move?
   "aiStrategy": "competitive" // "perfect" | "competitive" | "cooperative"
 }
 ```
 
-**Default:** All flags are `false` if you omit the `rules` section, except:
-- `pawnTwoMove` defaults to `true`
-- `aiStrategy` defaults to `'perfect'`
-
-**Most common setup:**
+**Most common setup for competitive games:**
 ```json
 "rules": {
-  "aiStrategy": "competitive",
-  "promotion": true,
+  "castling": false,
   "enPassant": false,
   "fiftyMoveRule": false,
   "threefold": false,
-  "castling": false,
-  "pawnTwoMove": true
+  "promotion": true,
+  "pawnTwoMove": false,
+  "aiStrategy": "competitive"
 }
 ```
 
@@ -291,7 +305,6 @@ Choose alternative victory conditions:
    - ✅ Challenge description appears?
    - ✅ solvabilityType badge shows correctly?
    - ✅ Hints reveal in order (Hint 1 → Hint 2 → Solution)?
-   - ✅ Learning objectives listed?
 
 6. **Test edge cases:**
    - Try undo/redo buttons
@@ -374,11 +387,7 @@ Perfect for beginners to understand the structure.
       "Push the black king to the edge first"
     ],
     "solution": "1. Qd4+ Ka5 2. Ra7#",
-    "strategy": null,
-    "learningObjectives": [
-      "Queen and rook coordination",
-      "Edge checkmate patterns"
-    ]
+    "strategy": null
   },
   "rules": {
     "castling": false,
@@ -420,12 +429,7 @@ Shows how to set up a competitive minichess game.
       "whitePlan": "Occupy center with pawns, develop pieces quickly",
       "blackPlan": "Counter-attack on flanks after White commits center",
       "keyPositions": "Central files decide the game"
-    },
-    "learningObjectives": [
-      "Minichess strategy",
-      "Fast development",
-      "Center control on small boards"
-    ]
+    }
   },
   "rules": {
     "castling": false,
@@ -474,8 +478,7 @@ Every game mode must have these fields:
     "whitePlan": "Optional",
     "blackPlan": "Optional",
     "keyPositions": "Optional"
-  },
-  "learningObjectives": ["What will player learn?"]
+  }
 }
 ```
 

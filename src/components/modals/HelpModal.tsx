@@ -89,14 +89,16 @@ export function HelpModal({ mode, hintLevel, onRevealHint, onClose }: HelpModalP
           </div>
         )}
 
-        <div className="help-section">
-          <h3>Learning Objectives</h3>
-          <ul>
-            {help.learningObjectives.map((obj, i) => (
-              <li key={i}>{obj}</li>
-            ))}
-          </ul>
-        </div>
+        {help.learningObjectives && help.learningObjectives.length > 0 && (
+          <div className="help-section">
+            <h3>Learning Objectives</h3>
+            <ul>
+              {help.learningObjectives.map((obj, i) => (
+                <li key={i}>{obj}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <button className="modal-btn" onClick={onClose}>
           Close
