@@ -536,7 +536,7 @@ function App() {
                 <div className="coords tiny">
                   {Array.from({ length: boardConfig.height }, (_, i) => (
                     <div key={i} className="n">
-                      {i + 1}
+                      {boardConfig.height - i}
                     </div>
                   ))}
                 </div>
