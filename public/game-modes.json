@@ -17,6 +17,12 @@
       "name": "Minichess Classics",
       "description": "Famous NxM starting arrays (no castling; promotion allowed).",
       "icon": "🎓"
+    },
+    {
+      "id": "backline-race",
+      "name": "Backline Race",
+      "description": "First to get a piece to their backline wins.",
+      "icon": "🏁"
     }
   ],
   "modes": [
@@ -255,7 +261,7 @@
     },
     {
       "id": "6X6_RACING_KINGS",
-      "categoryId": "minichess-classics",
+      "categoryId": "backline-race",
       "name": "Racing Kings (6×6)",
       "description": "First to get any piece to opposite back rank wins!",
       "variant": "NxM",
@@ -297,7 +303,7 @@
     },
     {
       "id": "4X4_OCTOPAWN",
-      "categoryId": "minichess-classics",
+      "categoryId": "backline-race",
       "name": "Octopawn (4×4)",
       "description": "First to get any piece to opposite back rank wins!",
       "variant": "NxM",
