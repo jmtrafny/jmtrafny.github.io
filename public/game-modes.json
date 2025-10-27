@@ -9,14 +9,14 @@
     {
       "id": "1d-chess",
       "name": "1-D Chess",
-      "description": "All single-file (1×N) line-chess modes.",
+      "description": "All single-file (1-D) line-chess modes.",
       "icon": "♟️"
     },
     {
       "id": "minichess-classics",
       "name": "Minichess Classics",
-      "description": "Famous NxM starting arrays (no castling; promotion allowed).",
-      "icon": "🎓"
+      "description": "Historic small-board chess variants.",
+      "icon": "🐜"
     },
     {
       "id": "backline-race",
