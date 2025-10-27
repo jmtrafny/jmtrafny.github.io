@@ -34,10 +34,8 @@ import { useGameModes } from './hooks/useGameModes';
 import { useGameState } from './hooks/useGameState';
 import { useModalState } from './hooks/useModalState';
 import {
-  VariantPicker,
-  ModePicker,
+  UnifiedGamePicker,
   HelpModal,
-  GameSetup,
   ResignConfirm,
   SupportModal,
   BugReportModal,
@@ -57,9 +55,7 @@ function App() {
     loading: configLoading,
     error: configError,
     categories,
-    getModesByCategory,
     getMode,
-    getCategory,
   } = useGameModes();
 
   // Game state
@@ -78,7 +74,6 @@ function App() {
   const [soundMuted, setSoundMuted] = useState(() => getMuted());
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
   const [positionInput, setPositionInput] = useState('');
@@ -252,45 +247,12 @@ function App() {
     modalActions.showVariantPicker();
   };
 
-  const handleSelectCategory = (categoryId: string) => {
-    const modes = getModesByCategory(categoryId);
-
-    // If category has no modes, go back
-    if (modes.length === 0) {
-      modalActions.showVariantPicker();
-      return;
-    }
-
-    modalActions.showModePicker(categoryId);
-  };
-
-  const handleSelectMode = (modeId: string) => {
+  const handleStartGame = (modeId: string, gameType: '1player' | '2player', playerSide: Side | null) => {
     const mode = getMode(modeId);
     if (!mode) return;
 
-    modalActions.showGameSetup(modeId);
-    setShowColorPicker(false);
-  };
-
-  const handleSelect1Player = () => {
-    setShowColorPicker(true);
-  };
-
-  const handleSelect2Player = () => {
-    const mode = getMode(modalState.selectedModeId || '');
-    if (!mode) return;
-
-    gameActions.newGame(mode, '2player', null);
+    gameActions.newGame(mode, gameType, playerSide);
     modalActions.closeModal();
-  };
-
-  const handleSelectColor = (side: Side) => {
-    const mode = getMode(modalState.selectedModeId || '');
-    if (!mode) return;
-
-    gameActions.newGame(mode, '1player', side);
-    modalActions.closeModal();
-    setShowColorPicker(false);
   };
 
   const handleToggleSound = () => {
@@ -383,26 +345,12 @@ function App() {
     <div className="app">
       {/* Modals */}
       {modalState.currentModal === 'variant-picker' && (
-        <VariantPicker categories={categories} onSelectCategory={handleSelectCategory} onBack={modalActions.closeModal} />
-      )}
-
-      {modalState.currentModal === 'mode-picker' && modalState.selectedCategoryId && (
-        <ModePicker
-          category={getCategory(modalState.selectedCategoryId)!}
-          modes={getModesByCategory(modalState.selectedCategoryId)}
-          onSelectMode={handleSelectMode}
+        <UnifiedGamePicker
+          categories={categories}
+          modes={config.modes}
+          onStartGame={handleStartGame}
           onShowHelp={modalActions.showHelp}
-          onBack={modalActions.showVariantPicker}
-        />
-      )}
-
-      {modalState.currentModal === 'game-setup' && modalState.selectedModeId && (
-        <GameSetup
-          showColorPicker={showColorPicker}
-          onSelect1Player={handleSelect1Player}
-          onSelect2Player={handleSelect2Player}
-          onSelectColor={handleSelectColor}
-          onBack={() => setShowColorPicker(false)}
+          onBack={modalActions.closeModal}
         />
       )}
 
