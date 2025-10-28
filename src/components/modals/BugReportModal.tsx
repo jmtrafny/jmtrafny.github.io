@@ -7,10 +7,13 @@ export function BugReportModal({ onClose }: BugReportModalProps) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Report a Bug</h2>
-        <p style={{ textAlign: 'center', marginBottom: '24px', opacity: 0.9, lineHeight: 1.6 }}>
-          Found something broken? Help improve the game by reporting issues on GitHub.
+        <p style={{ textAlign: 'left', marginBottom: '24px', opacity: 0.9, lineHeight: 1.6 }}>
+          Found something broken? Help improve the game by reporting issues on GitHub or email:
         </p>
         <div className="modal-buttons">
+          <div className="modal-btn" style={{ cursor: 'text' }}>
+            contact@thinchess.com
+          </div>
           <a
             href="https://github.com/jmtrafny/jmtrafny.github.io/issues"
             target="_blank"
