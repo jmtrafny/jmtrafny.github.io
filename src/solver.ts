@@ -33,6 +33,8 @@ const TT = new Map<string, SolveResult>();
 interface NodeBudget {
   nodes: number;
   maxNodes: number;
+  ttSize?: number;      // Current TT size (optional tracking)
+  maxTTSize?: number;   // Maximum TT size before bailing out
 }
 
 /**
@@ -85,6 +87,12 @@ export function solve(
     budget.nodes++;
     if (budget.nodes > budget.maxNodes) {
       // Budget exceeded - return draw to exit gracefully
+      return { res: 'DRAW', depth };
+    }
+
+    // Check TT size budget (prevents memory exhaustion)
+    if (budget.maxTTSize && TT.size > budget.maxTTSize) {
+      console.warn(`[Solver] TT size limit exceeded: ${TT.size} > ${budget.maxTTSize}`);
       return { res: 'DRAW', depth };
     }
   }
@@ -267,11 +275,31 @@ function alphaBeta(
 }
 
 /**
+ * Calculate position complexity score
+ * Factors in both piece count and board size
+ * Higher scores = more complex positions requiring more computation
+ *
+ * @param pos - The position to evaluate
+ * @param pieceCount - Number of pieces on board
+ * @returns Complexity score (typically 0-20)
+ */
+function calculateComplexity(pos: Position, pieceCount: number): number {
+  const config = { size: pos.board.length };
+  const boardSize = config.size;
+
+  // Baseline: 1×12 board (size=12) has factor 1.0
+  // 6×6 board (size=36) has factor 1.73
+  // Formula: complexity = pieces × sqrt(boardSize / 12)
+  const boardFactor = Math.sqrt(boardSize / 12);
+  return pieceCount * boardFactor;
+}
+
+/**
  * Hybrid Solver - Automatically choose best solver tier
  *
- * Tier 1: Perfect solver (pieces ≤ 6)
- * Tier 2: Bounded iterative deepening (pieces 7-8, max 2 seconds, 50k node budget)
- * Tier 3: Alpha-beta heuristic (pieces > 8 or timeout/budget exceeded)
+ * Tier 1: Perfect solver (complexity ≤ 6, roughly ≤6 pieces on 1×12 or ≤3 pieces on 6×6)
+ * Tier 2: Bounded iterative deepening (complexity ≤ 12, moves < 30, with memory limits)
+ * Tier 3: Alpha-beta heuristic (high complexity or timeout/budget exceeded)
  *
  * @param pos - The position to solve
  * @param rules - The rule set to use
@@ -282,25 +310,32 @@ export function solveHybrid(
   rules: RuleSet = DEFAULT_RULES,
   maxTime: number = 2000
 ): SolveResult | EvalResult {
-  const pieceCount = pos.board.filter(p => p !== EMPTY).length;
-  const moveCount = legalMoves(pos, rules).length;
+  try {
+    const pieceCount = pos.board.filter(p => p !== EMPTY).length;
+    const moveCount = legalMoves(pos, rules).length;
+    const complexity = calculateComplexity(pos, pieceCount);
 
-  // Tier 1: Perfect solver for small positions
-  if (pieceCount <= 6) {
+  // Tier 1: Perfect solver for simple positions only
+  // Use complexity score instead of raw piece count to account for board size
+  if (complexity <= 6) {
     try {
-      const result = solve(pos, rules);
+      console.log(`[Solver] Attempting Tier 1 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount})`);
+      const budget: NodeBudget = { nodes: 0, maxNodes: 10000, maxTTSize: 50000 };
+      const result = solve(pos, rules, new Set(), 0, budget);
+      console.log(`[Solver] Tier 1 success: ${result.res} (nodes: ${budget.nodes}, TT size: ${TT.size})`);
       return { ...result, tier: 1 };
     } catch (error) {
       console.warn('[Solver] Tier 1 failed, falling back to Tier 3:', error);
     }
   }
 
-  // Tier 2: Iterative deepening with timeout and node budget (7-8 pieces)
-  // Skip Tier 2 if position is too complex (many legal moves indicates tactical complexity)
-  if (pieceCount <= 8 && moveCount < 30) {
+  // Tier 2: Iterative deepening with timeout and node budget
+  // Use complexity threshold and move count to filter out overly complex positions
+  if (complexity <= 12 && moveCount < 30) {
+    console.log(`[Solver] Attempting Tier 2 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount}, moves=${moveCount})`);
     const startTime = Date.now();
     let bestResult: SolveResult | null = null;
-    const budget: NodeBudget = { nodes: 0, maxNodes: 50000 };
+    const budget: NodeBudget = { nodes: 0, maxNodes: 50000, maxTTSize: 100000 };
 
     for (let maxDepth = 1; maxDepth <= 20; maxDepth++) {
       // Check time budget
@@ -326,13 +361,18 @@ export function solveHybrid(
 
           // Found a WIN - no need to search deeper
           if (result.res === 'WIN') {
-            console.log(`[Solver] Tier 2 found WIN at depth ${maxDepth}, nodes: ${budget.nodes}`);
+            console.log(`[Solver] Tier 2 found WIN at depth ${maxDepth}, nodes: ${budget.nodes}, TT size: ${TT.size}`);
             return bestResult;
           }
         }
       } catch (error) {
-        // Depth limit hit or other error - stop iterating
+        // Depth limit hit, memory error, or other issue - stop iterating and fall back
         console.warn(`[Solver] Tier 2 error at depth ${maxDepth}:`, error);
+        if (bestResult) {
+          console.log('[Solver] Tier 2 returning partial result before error');
+          return bestResult;
+        }
+        // No partial result - will fall through to Tier 3
         break;
       }
     }
@@ -343,13 +383,24 @@ export function solveHybrid(
     }
   }
 
-  // Tier 3: Alpha-beta heuristic search
-  console.log(`[Solver] Using Tier 3 (heuristic) for ${pieceCount} pieces`);
-  const searchDepth = pieceCount <= 8 ? 6 : pieceCount <= 12 ? 5 : 4;
-  const result = alphaBeta(pos, rules, searchDepth, -Infinity, Infinity);
+    // Tier 3: Alpha-beta heuristic search
+    console.log(`[Solver] Using Tier 3 (heuristic) for complexity=${complexity.toFixed(2)}, pieces=${pieceCount}`);
+    const searchDepth = pieceCount <= 8 ? 6 : pieceCount <= 12 ? 5 : 4;
+    const result = alphaBeta(pos, rules, searchDepth, -Infinity, Infinity);
 
-  // Apply AI strategy to heuristic result
-  return applyHeuristicStrategy(result, pos, rules);
+    // Apply AI strategy to heuristic result
+    return applyHeuristicStrategy(result, pos, rules);
+  } catch (error) {
+    // Emergency fallback: if anything goes wrong, return a safe heuristic result
+    console.error('[Solver] Critical error in solveHybrid, using emergency fallback:', error);
+    const moves = legalMoves(pos, rules);
+    if (moves.length === 0) {
+      // No legal moves - this shouldn't happen but handle gracefully
+      return { score: 0, tier: 3 };
+    }
+    // Return first legal move with neutral evaluation
+    return { score: 0, best: moves[0], tier: 3 };
+  }
 }
 
 /**
