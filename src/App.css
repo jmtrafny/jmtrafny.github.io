@@ -264,6 +264,10 @@ body {
   cursor: pointer;
 }
 
+.sq:active {
+  cursor: grabbing;
+}
+
 .sq .piece {
   width: 90%;
   height: 90%;
@@ -470,6 +474,32 @@ details summary {
 .sq.disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Drag and drop styles */
+.sq.dragging {
+  opacity: 0.3;
+}
+
+.sq.dragging .piece {
+  pointer-events: none;
+}
+
+.drag-overlay {
+  position: fixed;
+  width: var(--square-size);
+  height: var(--square-size);
+  pointer-events: none;
+  z-index: 1000;
+  transition: none;
+  cursor: grabbing;
+}
+
+.drag-overlay .piece {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
 }
 
 /* Game over banner */

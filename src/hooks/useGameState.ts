@@ -35,6 +35,15 @@ function getRulesFromMode(mode: GameMode | null): RuleSet {
 export type GameModeType = '1player' | '2player' | null;
 
 /**
+ * Drag state for piece being dragged
+ */
+export interface DragState {
+  square: number;      // Index of square being dragged from
+  screenX: number;     // Current screen X coordinate
+  screenY: number;     // Current screen Y coordinate
+}
+
+/**
  * Game state interface
  */
 export interface GameState {
@@ -51,6 +60,7 @@ export interface GameState {
   moveLog: string[];
   repetitionDetected: boolean;
   aiThinking: boolean;
+  draggedPiece: DragState | null;
 }
 
 /**
@@ -67,6 +77,9 @@ export interface GameActions {
   resign: () => void;
   claimDraw: () => void;
   setAIThinking: (thinking: boolean) => void;
+  startDrag: (square: number, screenX: number, screenY: number) => void;
+  updateDrag: (screenX: number, screenY: number) => void;
+  endDrag: (targetSquare: number | null) => void;
 }
 
 /**
@@ -90,6 +103,7 @@ function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' |
       moveLog: [],
       repetitionDetected: false,
       aiThinking: false,
+      draggedPiece: null,
     };
   }
 
@@ -111,6 +125,7 @@ function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' |
     moveLog: [],
     repetitionDetected: false,
     aiThinking: false,
+    draggedPiece: null,
   };
 }
 
@@ -123,6 +138,7 @@ export function useGameState(): [GameState, GameActions] {
     gameMode: null,
     playerSide: null,
     currentMode: null,
+    draggedPiece: null,
   }));
 
   // Detect position repetition
@@ -419,6 +435,93 @@ export function useGameState(): [GameState, GameActions] {
         ...prev,
         aiThinking: thinking,
       }));
+    }, []),
+
+    startDrag: useCallback((square: number, screenX: number, screenY: number) => {
+      setState((prev) => {
+        if (prev.aiThinking || prev.gameOver) return prev;
+
+        const piece = prev.position.board[square];
+        const rules = getRulesFromMode(prev.currentMode);
+
+        // Can only drag player's pieces
+        if (piece === EMPTY || piece[0] !== prev.position.turn) {
+          return prev;
+        }
+
+        // Calculate legal move targets for this piece
+        const targets = legalMoves(prev.position, rules)
+          .filter((m) => m.from === square)
+          .map((m) => m.to);
+
+        return {
+          ...prev,
+          draggedPiece: { square, screenX, screenY },
+          selectedSquare: square,
+          targetSquares: targets,
+        };
+      });
+    }, []),
+
+    updateDrag: useCallback((screenX: number, screenY: number) => {
+      setState((prev) => {
+        if (!prev.draggedPiece) return prev;
+
+        return {
+          ...prev,
+          draggedPiece: {
+            ...prev.draggedPiece,
+            screenX,
+            screenY,
+          },
+        };
+      });
+    }, []),
+
+    endDrag: useCallback((targetSquare: number | null) => {
+      setState((prev) => {
+        if (!prev.draggedPiece) return prev;
+
+        const fromSquare = prev.draggedPiece.square;
+
+        // Clear drag state
+        const newState = {
+          ...prev,
+          draggedPiece: null,
+        };
+
+        // If dropped on a legal target, make the move
+        if (targetSquare !== null && prev.targetSquares.includes(targetSquare)) {
+          const rules = getRulesFromMode(prev.currentMode);
+          const move = legalMoves(prev.position, rules).find(
+            (m) => m.from === fromSquare && m.to === targetSquare
+          );
+
+          if (move) {
+            const moveNotation = moveToAlgebraic(prev.position, move);
+            const newPosition = applyMove(prev.position, move, rules);
+            const newHistory = prev.history.slice(0, prev.historyIndex + 1);
+            newHistory.push(encode(newPosition));
+
+            return {
+              ...newState,
+              position: newPosition,
+              history: newHistory,
+              historyIndex: prev.historyIndex + 1,
+              selectedSquare: null,
+              targetSquares: [],
+              moveLog: [...prev.moveLog, moveNotation],
+            };
+          }
+        }
+
+        // Invalid drop - just clear selection and targets
+        return {
+          ...newState,
+          selectedSquare: null,
+          targetSquares: [],
+        };
+      });
     }, []),
   };
 

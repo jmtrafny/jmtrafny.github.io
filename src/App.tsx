@@ -8,12 +8,13 @@
  * - Simplified state and logic
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   PIECE_IMAGES,
   EMPTY,
   getConfig,
   indexToCoords,
+  coordsToIndex,
   encode,
   DEFAULT_RULES,
   type Piece,
@@ -308,6 +309,136 @@ function App() {
     navigator.clipboard.writeText(positionInput);
   };
 
+  // Get board configuration for current position
+  const boardConfig = getConfig(gameState.position);
+
+  // Drag handlers
+  const boardRef = useRef<HTMLDivElement>(null);
+
+  // Get square index from screen coordinates
+  const getSquareFromCoords = useCallback((clientX: number, clientY: number): number | null => {
+    if (!boardRef.current) return null;
+
+    // Compute board config dynamically to avoid stale closure
+    const config = getConfig(gameState.position);
+    const boardRect = boardRef.current.getBoundingClientRect();
+    const relX = clientX - boardRect.left;
+    const relY = clientY - boardRect.top;
+
+    if (relX < 0 || relY < 0 || relX >= boardRect.width || relY >= boardRect.height) {
+      return null;
+    }
+
+    if (config.variant === '1xN') {
+      // 1-D Chess: vertical layout
+      const squareHeight = boardRect.height / config.height;
+      const rank = Math.floor(relY / squareHeight);
+      return coordsToIndex(rank, 0, config);
+    } else {
+      // Thin Chess: 2D grid
+      const squareWidth = boardRect.width / config.width;
+      const squareHeight = boardRect.height / config.height;
+      const file = Math.floor(relX / squareWidth);
+      const rank = Math.floor(relY / squareHeight);
+      return coordsToIndex(rank, file, config);
+    }
+  }, [gameState.position]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent, square: number) => {
+    e.preventDefault();
+    const piece = gameState.position.board[square];
+
+    // Only start drag if it's a piece that can be moved
+    if (piece !== EMPTY && piece[0] === gameState.position.turn && !gameState.aiThinking && !gameState.gameOver) {
+      gameActions.startDrag(square, e.clientX, e.clientY);
+    }
+  }, [gameState.position, gameState.aiThinking, gameState.gameOver, gameActions]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (gameState.draggedPiece) {
+      e.preventDefault();
+      gameActions.updateDrag(e.clientX, e.clientY);
+    }
+  }, [gameState.draggedPiece, gameActions]);
+
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    if (gameState.draggedPiece) {
+      e.preventDefault();
+      const targetSquare = getSquareFromCoords(e.clientX, e.clientY);
+
+      // Check if move was made before clearing drag state
+      const isLegalMove = targetSquare !== null && gameState.targetSquares.includes(targetSquare);
+      const isCapture = isLegalMove ? gameState.position.board[targetSquare] !== EMPTY : false;
+
+      gameActions.endDrag(targetSquare);
+
+      // Play sound if move was made
+      if (isLegalMove) {
+        if (isCapture) {
+          playCapture();
+        } else {
+          playMove();
+        }
+      }
+    }
+  }, [gameState.draggedPiece, gameState.targetSquares, gameState.position, gameActions, getSquareFromCoords]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent, square: number) => {
+    e.preventDefault();
+    const piece = gameState.position.board[square];
+
+    if (piece !== EMPTY && piece[0] === gameState.position.turn && !gameState.aiThinking && !gameState.gameOver) {
+      const touch = e.touches[0];
+      gameActions.startDrag(square, touch.clientX, touch.clientY);
+    }
+  }, [gameState.position, gameState.aiThinking, gameState.gameOver, gameActions]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (gameState.draggedPiece) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      gameActions.updateDrag(touch.clientX, touch.clientY);
+    }
+  }, [gameState.draggedPiece, gameActions]);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (gameState.draggedPiece) {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const targetSquare = getSquareFromCoords(touch.clientX, touch.clientY);
+
+      const isLegalMove = targetSquare !== null && gameState.targetSquares.includes(targetSquare);
+      const isCapture = isLegalMove ? gameState.position.board[targetSquare] !== EMPTY : false;
+
+      gameActions.endDrag(targetSquare);
+
+      if (isLegalMove) {
+        if (isCapture) {
+          playCapture();
+        } else {
+          playMove();
+        }
+      }
+    }
+  }, [gameState.draggedPiece, gameState.targetSquares, gameState.position, gameActions, getSquareFromCoords]);
+
+  // Attach global mouse/touch listeners for drag
+  useEffect(() => {
+    if (gameState.draggedPiece) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [gameState.draggedPiece, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+
   // Loading state
   if (configLoading) {
     return (
@@ -336,10 +467,6 @@ function App() {
       </div>
     );
   }
-
-  // Get board configuration for current position
-  // Handles variable dimensions (1×N, 2×N, 3×N, etc.) from position metadata
-  const boardConfig = getConfig(gameState.position);
 
   return (
     <div className="app">
@@ -450,6 +577,7 @@ function App() {
               // 1-D Chess board
               <>
                 <div
+                  ref={boardRef}
                   className="board board-thin"
                   style={{
                     gridTemplateRows: `repeat(${boardConfig.height}, var(--square-size))`,
@@ -458,6 +586,7 @@ function App() {
                   {gameState.position.board.map((cell, i) => {
                     const [rank, file] = indexToCoords(i, boardConfig);
                     const isLight = (rank + file) % 2 === 0;
+                    const isDragging = gameState.draggedPiece?.square === i;
 
                     return (
                       <div
@@ -466,8 +595,10 @@ function App() {
                           gameState.selectedSquare === i ? 'selected' : ''
                         } ${gameState.targetSquares.includes(i) ? 'target' : ''} ${
                           gameState.aiThinking ? 'disabled' : ''
-                        }`}
+                        } ${isDragging ? 'dragging' : ''}`}
                         onClick={() => handleSquareClick(i)}
+                        onMouseDown={(e) => handleMouseDown(e, i)}
+                        onTouchStart={(e) => handleTouchStart(e, i)}
                       >
                         {cell !== EMPTY && (
                           <img
@@ -493,6 +624,7 @@ function App() {
               // Thin Chess board
               <div className="coords-2d">
                 <div
+                  ref={boardRef}
                   className="board board-skinny"
                   style={{
                     gridColumn: '1',
@@ -504,6 +636,7 @@ function App() {
                   {gameState.position.board.map((cell, i) => {
                     const [rank, file] = indexToCoords(i, boardConfig);
                     const isLight = (rank + file) % 2 === 0;
+                    const isDragging = gameState.draggedPiece?.square === i;
 
                     return (
                       <div
@@ -512,8 +645,10 @@ function App() {
                           gameState.selectedSquare === i ? 'selected' : ''
                         } ${gameState.targetSquares.includes(i) ? 'target' : ''} ${
                           gameState.aiThinking ? 'disabled' : ''
-                        }`}
+                        } ${isDragging ? 'dragging' : ''}`}
                         onClick={() => handleSquareClick(i)}
+                        onMouseDown={(e) => handleMouseDown(e, i)}
+                        onTouchStart={(e) => handleTouchStart(e, i)}
                       >
                         {cell !== EMPTY && (
                           <img
@@ -544,6 +679,25 @@ function App() {
               </div>
             )}
           </div>
+
+          {/* Floating dragged piece */}
+          {gameState.draggedPiece && (
+            <div
+              className="drag-overlay"
+              style={{
+                left: gameState.draggedPiece.screenX,
+                top: gameState.draggedPiece.screenY,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <img
+                src={PIECE_IMAGES[gameState.position.board[gameState.draggedPiece.square] as Piece]}
+                alt="dragging"
+                className="piece"
+                draggable={false}
+              />
+            </div>
+          )}
         </div>
 
         {/* Game Over Banner */}
