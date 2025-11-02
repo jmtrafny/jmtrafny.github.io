@@ -1,0 +1,4 @@
+Los Alamos: No Promote To Bishop
+Gardner minichess: Promote to queen only, capture king, no checks
+QuickChess: Promote Only To Already Captured Piece
+Elena: Promote Only To Already Captured Piece

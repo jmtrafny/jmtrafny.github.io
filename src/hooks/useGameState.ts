@@ -111,7 +111,8 @@ function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' |
     mode.startPosition,
     mode.variant,
     mode.boardHeight,
-    mode.boardWidth
+    mode.boardWidth,
+    mode.rules
   );
 
   return {
@@ -311,7 +312,7 @@ export function useGameState(): [GameState, GameActions] {
 
         return {
           ...prev,
-          position: decode(prev.history[newIndex], prev.position.variant),
+          position: decode(prev.history[newIndex], prev.position.variant, prev.position.boardLength, prev.position.boardWidth, getRulesFromMode(prev.currentMode)),
           historyIndex: newIndex,
           selectedSquare: null,
           targetSquares: [],
@@ -334,7 +335,7 @@ export function useGameState(): [GameState, GameActions] {
 
         return {
           ...prev,
-          position: decode(prev.history[newIndex], prev.position.variant),
+          position: decode(prev.history[newIndex], prev.position.variant, prev.position.boardLength, prev.position.boardWidth, getRulesFromMode(prev.currentMode)),
           historyIndex: newIndex,
           selectedSquare: null,
           targetSquares: [],
@@ -379,7 +380,7 @@ export function useGameState(): [GameState, GameActions] {
           // NxM format: has slashes (e.g., "wk,wr/bk,br:b")
           const detectedVariant = trimmed.split(':')[0].includes('/') ? 'NxM' : '1xN';
 
-          const newPosition = decode(trimmed, detectedVariant);
+          const newPosition = decode(trimmed, detectedVariant, undefined, undefined, getRulesFromMode(prev.currentMode));
           clearTT();
 
           return {

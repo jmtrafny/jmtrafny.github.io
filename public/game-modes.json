@@ -1,7 +1,7 @@
 {
   "version": "v5.0.0",
   "defaultGame": {
-    "modeId": "1D8_MONK",
+    "modeId": "1D12_CHESSTRAPS",
     "gameType": "1player",
     "playerSide": "w"
   },
@@ -23,6 +23,12 @@
       "name": "Backline Race",
       "description": "First to get a piece to their backline wins.",
       "icon": "🏁"
+    },
+    {
+      "id": "traditional-chess",
+      "name": "Traditional Chess",
+      "description": "Full-featured chess on standard and variant boards.",
+      "icon": "♔"
     }
   ],
   "modes": [
@@ -312,6 +318,44 @@
         "pawnTwoMove": false,
         "raceToBackRank": true,
         "aiStrategy": "cooperative"
+      }
+    },
+    {
+      "id": "8X8_STANDARD_CHESS",
+      "categoryId": "traditional-chess",
+      "name": "Standard Chess (8×8)",
+      "description": "Full traditional chess with all rules: castling, en passant, promotion, fifty-move rule, and threefold repetition.",
+      "variant": "NxM",
+      "boardWidth": 8,
+      "boardHeight": 8,
+      "startPosition": "br,bn,bb,bq,bk,bb,bn,br/bp,bp,bp,bp,bp,bp,bp,bp/x,x,x,x,x,x,x,x/x,x,x,x,x,x,x,x/x,x,x,x,x,x,x,x/x,x,x,x,x,x,x,x/wp,wp,wp,wp,wp,wp,wp,wp/wr,wn,wb,wq,wk,wb,wn,wr:w",
+      "difficulty": "Advanced",
+      "difficultyStars": 5,
+      "icon": "♔",
+      "help": {
+        "challenge": "The original game of chess with all traditional rules enabled.",
+        "solvabilityType": "COMPETITIVE",
+        "hints": [
+          "Control the center with pawns and pieces.",
+          "Develop your knights and bishops early.",
+          "Castle to safety and connect your rooks.",
+          "Watch for tactical opportunities: pins, forks, and skewers."
+        ],
+        "solution": null,
+        "strategy": {
+          "whitePlan": "Develop pieces, control center, castle kingside, and look for attacking chances.",
+          "blackPlan": "Match White's development, maintain central presence, and look for counterplay.",
+          "keyPositions": "The center squares (d4, d5, e4, e5) are critical. Castle early for king safety."
+        }
+      },
+      "rules": {
+        "castling": true,
+        "enPassant": true,
+        "fiftyMoveRule": false,
+        "threefold": false,
+        "promotion": true,
+        "pawnTwoMove": true,
+        "aiStrategy": "competitive"
       }
     }
   ]

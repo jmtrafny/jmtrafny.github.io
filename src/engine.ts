@@ -172,6 +172,72 @@ export const CASTLING_BK = 4; // Black kingside
 export const CASTLING_BQ = 8; // Black queenside
 
 /**
+ * Get rook starting squares for castling
+ * Returns: { whiteKingside, whiteQueenside, blackKingside, blackQueenside }
+ * Returns null if board is too small for castling (width < 5)
+ */
+export function getRookSquares(config: BoardConfig): {
+  whiteKingside: number;
+  whiteQueenside: number;
+  blackKingside: number;
+  blackQueenside: number;
+} | null {
+  // Castling only makes sense on boards with width >= 5
+  // Need at least: a-file (queenside rook), c-file, king file, f-file, h-file (kingside rook)
+  if (config.width < 5) return null;
+
+  const lastRank = config.height - 1;
+  const lastFile = config.width - 1;
+
+  return {
+    whiteKingside: coordsToIndex(lastRank, lastFile, config),      // h1 equivalent
+    whiteQueenside: coordsToIndex(lastRank, 0, config),            // a1 equivalent
+    blackKingside: coordsToIndex(0, lastFile, config),             // h8 equivalent
+    blackQueenside: coordsToIndex(0, 0, config),                   // a8 equivalent
+  };
+}
+
+/**
+ * Get initial castling rights based on current board position
+ * Checks if kings and rooks are on their starting squares
+ */
+export function getInitialCastlingRights(pos: Position): number {
+  const config = getConfig(pos);
+  const rookSquares = getRookSquares(config);
+
+  if (!rookSquares) return 0; // Board too small for castling
+
+  let rights = 0;
+  const lastRank = config.height - 1;
+  const kingFile = Math.floor(config.width / 2); // Middle file for king
+
+  const whiteKingSquare = coordsToIndex(lastRank, kingFile, config);
+  const blackKingSquare = coordsToIndex(0, kingFile, config);
+
+  // White kingside castling
+  if (pos.board[whiteKingSquare] === 'wk' && pos.board[rookSquares.whiteKingside] === 'wr') {
+    rights |= CASTLING_WK;
+  }
+
+  // White queenside castling
+  if (pos.board[whiteKingSquare] === 'wk' && pos.board[rookSquares.whiteQueenside] === 'wr') {
+    rights |= CASTLING_WQ;
+  }
+
+  // Black kingside castling
+  if (pos.board[blackKingSquare] === 'bk' && pos.board[rookSquares.blackKingside] === 'br') {
+    rights |= CASTLING_BK;
+  }
+
+  // Black queenside castling
+  if (pos.board[blackKingSquare] === 'bk' && pos.board[rookSquares.blackQueenside] === 'br') {
+    rights |= CASTLING_BQ;
+  }
+
+  return rights;
+}
+
+/**
  * NOTE: Game mode configuration has been moved to public/game-modes.json
  *
  * The SkinnyMode, ThinMode, ModeHelp interfaces and their associated
@@ -285,7 +351,7 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
  * castling = castling rights bitmask (optional, number)
  * movedPawns = moved pawns bitmask as hex string (optional, '-' for none)
  */
-export function decode(code: string, variant: VariantType, boardLength?: number, boardWidth?: number): Position {
+export function decode(code: string, variant: VariantType, boardLength?: number, boardWidth?: number, rules?: RuleSet): Position {
   const parts = code.trim().split(':');
   const cellsRaw = parts[0];
   const turnRaw = parts[1] || 'w';
@@ -373,7 +439,12 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
       pos.castlingRights = castling;
     }
   } else {
-    pos.castlingRights = 0; // Default to no castling rights
+    // Auto-detect castling rights if castling rule is enabled and no explicit rights specified
+    if (rules?.castling && variant === 'NxM') {
+      pos.castlingRights = getInitialCastlingRights(pos);
+    } else {
+      pos.castlingRights = 0; // Default to no castling rights
+    }
   }
 
   if (movedPawnsRaw && movedPawnsRaw !== '-') {
@@ -643,18 +714,105 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
         }
 
         // Castling (if enabled)
-        // NOTE: Castling is disabled in all current modes (castling=false in game-modes.json)
-        // This scaffolding is provided for future use
         if (rules.castling && pos.castlingRights) {
-          // TODO: Implement castling move generation
-          // Requirements:
-          // - King and rook must not have moved (check castlingRights bitmask)
-          // - No pieces between king and rook
-          // - King is not in check
-          // - King does not pass through check
-          // - King does not land in check
-          // Kingside: king moves 2 squares toward h-file, rook jumps to square king passed
-          // Queenside: king moves 2 squares toward a-file, rook jumps to square king passed
+          const rookSquares = getRookSquares(config);
+
+          if (rookSquares) {
+            const kingFile = Math.floor(config.width / 2); // Middle file
+            const isWhite = turn === 'w';
+            const homeRank = isWhite ? config.height - 1 : 0;
+
+            // Only attempt castling if king is on home rank at center file
+            if (rank === homeRank && file === kingFile) {
+              // King must not be in check to castle
+              if (!isCheck(pos)) {
+
+                // Kingside castling
+                const kingsideRight = isWhite ? CASTLING_WK : CASTLING_BK;
+                if (pos.castlingRights & kingsideRight) {
+                  const rookSquare = isWhite ? rookSquares.whiteKingside : rookSquares.blackKingside;
+                  const rookFile = config.width - 1;
+
+                  // Check if rook is still on starting square
+                  if (board[rookSquare] === `${turn}r`) {
+                    // Check if squares between king and rook are empty
+                    let pathClear = true;
+                    for (let f = kingFile + 1; f < rookFile; f++) {
+                      if (board[coordsToIndex(homeRank, f, config)] !== EMPTY) {
+                        pathClear = false;
+                        break;
+                      }
+                    }
+
+                    if (pathClear) {
+                      // Check if king passes through or lands in check
+                      // King moves from kingFile to kingFile+2
+                      const passThroughSquare = coordsToIndex(homeRank, kingFile + 1, config);
+                      const landingSquare = coordsToIndex(homeRank, kingFile + 2, config);
+
+                      // Simulate king on pass-through square
+                      const testBoard1 = board.slice();
+                      testBoard1[i] = EMPTY;
+                      testBoard1[passThroughSquare] = `${turn}k`;
+
+                      // Simulate king on landing square
+                      const testBoard2 = board.slice();
+                      testBoard2[i] = EMPTY;
+                      testBoard2[landingSquare] = `${turn}k`;
+
+                      if (!attacked(testBoard1, turn, passThroughSquare, config) &&
+                          !attacked(testBoard2, turn, landingSquare, config)) {
+                        // Castling is legal! King moves 2 squares toward rook
+                        pieceMoves.push({ from: i, to: landingSquare });
+                      }
+                    }
+                  }
+                }
+
+                // Queenside castling
+                const queensideRight = isWhite ? CASTLING_WQ : CASTLING_BQ;
+                if (pos.castlingRights & queensideRight) {
+                  const rookSquare = isWhite ? rookSquares.whiteQueenside : rookSquares.blackQueenside;
+                  const rookFile = 0;
+
+                  // Check if rook is still on starting square
+                  if (board[rookSquare] === `${turn}r`) {
+                    // Check if squares between king and rook are empty
+                    let pathClear = true;
+                    for (let f = rookFile + 1; f < kingFile; f++) {
+                      if (board[coordsToIndex(homeRank, f, config)] !== EMPTY) {
+                        pathClear = false;
+                        break;
+                      }
+                    }
+
+                    if (pathClear) {
+                      // Check if king passes through or lands in check
+                      // King moves from kingFile to kingFile-2
+                      const passThroughSquare = coordsToIndex(homeRank, kingFile - 1, config);
+                      const landingSquare = coordsToIndex(homeRank, kingFile - 2, config);
+
+                      // Simulate king on pass-through square
+                      const testBoard1 = board.slice();
+                      testBoard1[i] = EMPTY;
+                      testBoard1[passThroughSquare] = `${turn}k`;
+
+                      // Simulate king on landing square
+                      const testBoard2 = board.slice();
+                      testBoard2[i] = EMPTY;
+                      testBoard2[landingSquare] = `${turn}k`;
+
+                      if (!attacked(testBoard1, turn, passThroughSquare, config) &&
+                          !attacked(testBoard2, turn, landingSquare, config)) {
+                        // Castling is legal! King moves 2 squares toward queenside
+                        pieceMoves.push({ from: i, to: landingSquare });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       } else if (t === 'n') {
         // Knight: L-shapes
@@ -868,14 +1026,53 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
     }
   }
 
+  // Detect castling move (king moves 2 squares horizontally)
+  const isKingMove = typeOf(movingPiece) === 'k';
+  let isCastling = false;
+
+  if (isKingMove && pos.variant === 'NxM') {
+    const [fromRank, fromFile] = indexToCoords(m.from, config);
+    const [toRank, toFile] = indexToCoords(m.to, config);
+
+    // Castling: king moves 2 squares on the same rank
+    if (fromRank === toRank && Math.abs(toFile - fromFile) === 2) {
+      isCastling = true;
+
+      // Determine if kingside or queenside
+      const isKingside = toFile > fromFile;
+      const rookSquares = getRookSquares(config);
+
+      if (rookSquares) {
+        const isWhite = pos.turn === 'w';
+        const rookFromSquare = isKingside
+          ? (isWhite ? rookSquares.whiteKingside : rookSquares.blackKingside)
+          : (isWhite ? rookSquares.whiteQueenside : rookSquares.blackQueenside);
+
+        // Calculate rook destination (square the king passed over)
+        const rookToFile = isKingside ? toFile - 1 : toFile + 1;
+        const rookToSquare = coordsToIndex(toRank, rookToFile, config);
+
+        // Move king
+        nb[m.to] = nb[m.from];
+        nb[m.from] = EMPTY;
+
+        // Move rook
+        nb[rookToSquare] = nb[rookFromSquare];
+        nb[rookFromSquare] = EMPTY;
+      }
+    }
+  }
+
   // Handle pawn promotion
-  if (m.promotion) {
-    const side = pos.turn;
-    nb[m.to] = `${side}${m.promotion}` as Piece;
-    nb[m.from] = EMPTY;
-  } else {
-    nb[m.to] = nb[m.from];
-    nb[m.from] = EMPTY;
+  if (!isCastling) {
+    if (m.promotion) {
+      const side = pos.turn;
+      nb[m.to] = `${side}${m.promotion}` as Piece;
+      nb[m.from] = EMPTY;
+    } else {
+      nb[m.to] = nb[m.from];
+      nb[m.from] = EMPTY;
+    }
   }
 
   // Calculate new en passant target
@@ -906,6 +1103,7 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
   let newCastlingRights = pos.castlingRights || 0;
   if (rules.castling && newCastlingRights > 0) {
     const pieceType = typeOf(movingPiece);
+    const rookSquares = getRookSquares(config);
 
     // King moves remove both castling rights for that side
     if (pieceType === 'k') {
@@ -916,26 +1114,38 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
       }
     }
 
-    // Rook moves/captures remove castling rights
-    // Note: Proper implementation requires knowing initial rook squares (e.g., a1, h1 for white)
-    // For now, any rook move clears all rights for that side
-    // TODO: Track rook starting squares to clear only the specific castling right
-    if (pieceType === 'r') {
+    // Rook moves remove castling rights for that specific rook
+    if (pieceType === 'r' && rookSquares) {
       if (pos.turn === 'w') {
-        newCastlingRights &= ~(CASTLING_WK | CASTLING_WQ);
+        if (m.from === rookSquares.whiteKingside) {
+          newCastlingRights &= ~CASTLING_WK;
+        } else if (m.from === rookSquares.whiteQueenside) {
+          newCastlingRights &= ~CASTLING_WQ;
+        }
       } else {
-        newCastlingRights &= ~(CASTLING_BK | CASTLING_BQ);
+        if (m.from === rookSquares.blackKingside) {
+          newCastlingRights &= ~CASTLING_BK;
+        } else if (m.from === rookSquares.blackQueenside) {
+          newCastlingRights &= ~CASTLING_BQ;
+        }
       }
     }
 
-    // If a rook is captured, remove castling rights for that rook
-    // TODO: This also needs to know which corner the rook was in
-    if (isCapture && typeOf(capturedPiece) === 'r') {
+    // If a rook is captured, remove castling rights for that specific rook
+    if (isCapture && typeOf(capturedPiece) === 'r' && rookSquares) {
       const capturedSide = sideOf(capturedPiece);
       if (capturedSide === 'w') {
-        newCastlingRights &= ~(CASTLING_WK | CASTLING_WQ);
+        if (m.to === rookSquares.whiteKingside) {
+          newCastlingRights &= ~CASTLING_WK;
+        } else if (m.to === rookSquares.whiteQueenside) {
+          newCastlingRights &= ~CASTLING_WQ;
+        }
       } else if (capturedSide === 'b') {
-        newCastlingRights &= ~(CASTLING_BK | CASTLING_BQ);
+        if (m.to === rookSquares.blackKingside) {
+          newCastlingRights &= ~CASTLING_BK;
+        } else if (m.to === rookSquares.blackQueenside) {
+          newCastlingRights &= ~CASTLING_BQ;
+        }
       }
     }
   }
@@ -1098,6 +1308,32 @@ export function moveToAlgebraic(pos: Position, move: Move): string {
   const piece = pos.board[move.from];
   const pieceType = typeOf(piece);
   const captured = pos.board[move.to] !== EMPTY;
+
+  // Detect castling (king moves 2 squares horizontally)
+  if (pieceType === 'k' && pos.variant === 'NxM') {
+    const [fromRank, fromFile] = indexToCoords(move.from, config);
+    const [toRank, toFile] = indexToCoords(move.to, config);
+
+    if (fromRank === toRank && Math.abs(toFile - fromFile) === 2) {
+      // Castling move
+      const isKingside = toFile > fromFile;
+
+      // Check if move results in check or checkmate
+      const newPos = applyMove(pos, move);
+      const isCheck = newPos ? (legalMoves(newPos).length === 0 ? false : (findKing(newPos.board, newPos.turn, getConfig(newPos)) >= 0 ? attacked(newPos.board, newPos.turn, findKing(newPos.board, newPos.turn, getConfig(newPos)), getConfig(newPos)) : false)) : false;
+      const isCheckmate = terminal(newPos) === `${newPos.turn === 'w' ? 'WHITE' : 'BLACK'}_MATE`;
+
+      let notation = isKingside ? 'O-O' : 'O-O-O';
+
+      if (isCheckmate) {
+        notation += '#';
+      } else if (isCheck) {
+        notation += '+';
+      }
+
+      return notation;
+    }
+  }
 
   // Get destination square notation
   const [toRank, toFile] = indexToCoords(move.to, config);
