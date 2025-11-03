@@ -384,7 +384,6 @@ function App() {
   }, [gameState.draggedPiece, gameState.targetSquares, gameState.position, gameActions, getSquareFromCoords]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent, square: number) => {
-    e.preventDefault();
     const piece = gameState.position.board[square];
 
     if (piece !== EMPTY && piece[0] === gameState.position.turn && !gameState.aiThinking && !gameState.gameOver) {
@@ -395,7 +394,6 @@ function App() {
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (gameState.draggedPiece) {
-      e.preventDefault();
       const touch = e.touches[0];
       gameActions.updateDrag(touch.clientX, touch.clientY);
     }
@@ -403,7 +401,6 @@ function App() {
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     if (gameState.draggedPiece) {
-      e.preventDefault();
       const touch = e.changedTouches[0];
       const targetSquare = getSquareFromCoords(touch.clientX, touch.clientY);
 
@@ -427,7 +424,7 @@ function App() {
     if (gameState.draggedPiece) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchmove', handleTouchMove);
       document.addEventListener('touchend', handleTouchEnd);
 
       return () => {
