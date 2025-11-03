@@ -240,6 +240,7 @@ body {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
+  touch-action: none;
 }
 
 .board-thin {
@@ -262,6 +263,7 @@ body {
   position: relative;
   user-select: none;
   cursor: pointer;
+  touch-action: none;
 }
 
 .sq:active {
@@ -493,6 +495,7 @@ details summary {
   z-index: 1000;
   transition: none;
   cursor: grabbing;
+  touch-action: none;
 }
 
 .drag-overlay .piece {
