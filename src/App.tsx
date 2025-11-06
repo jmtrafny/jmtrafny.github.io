@@ -163,7 +163,7 @@ function App() {
 
   // AI move handler
   // Triggers AI move when it's the AI's turn in 1-player mode.
-  // Uses 500ms delay to provide visual feedback before move appears.
+  // Uses 100ms delay to provide visual feedback before move appears.
   // Thin chess (skinny): Random move selection
   // 1-D chess (thin): Perfect-play solver
   useEffect(() => {
@@ -178,11 +178,11 @@ function App() {
       return;
     }
 
-    // AI's turn
+    // AI's turn - set thinking flag IMMEDIATELY to prevent race conditions
     console.log('[AI] Starting AI move for position:', gameState.history[gameState.historyIndex]);
     gameActionsRef.current.setAIThinking(true);
 
-    // 500ms delay provides visual feedback that AI is "thinking"
+    // 100ms delay provides visual feedback that AI is "thinking" while minimizing race window
     const timeoutId = setTimeout(() => {
       try {
         const rules = gameState.currentMode?.rules || DEFAULT_RULES;
@@ -212,9 +212,13 @@ function App() {
       } finally {
         gameActionsRef.current.setAIThinking(false);
       }
-    }, 500);
+    }, 100);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      // Ensure aiThinking is cleared if effect is cancelled
+      gameActionsRef.current.setAIThinking(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     gameState.gameMode,
@@ -348,11 +352,23 @@ function App() {
     e.preventDefault();
     const piece = gameState.position.board[square];
 
-    // Only start drag if it's a piece that can be moved
-    if (piece !== EMPTY && piece[0] === gameState.position.turn && !gameState.aiThinking && !gameState.gameOver) {
-      gameActions.startDrag(square, e.clientX, e.clientY);
+    // Defensive checks to prevent dragging opponent pieces in 1-player mode
+    if (piece === EMPTY || gameState.aiThinking || gameState.gameOver) {
+      return;
     }
-  }, [gameState.position, gameState.aiThinking, gameState.gameOver, gameActions]);
+
+    // Must be the piece owner's turn
+    if (piece[0] !== gameState.position.turn) {
+      return;
+    }
+
+    // In 1-player mode, can only drag player's own pieces
+    if (gameState.gameMode === '1player' && gameState.playerSide !== null && piece[0] !== gameState.playerSide) {
+      return;
+    }
+
+    gameActions.startDrag(square, e.clientX, e.clientY);
+  }, [gameState.position, gameState.aiThinking, gameState.gameOver, gameState.gameMode, gameState.playerSide, gameActions]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (gameState.draggedPiece) {
@@ -386,11 +402,24 @@ function App() {
   const handleTouchStart = useCallback((e: React.TouchEvent, square: number) => {
     const piece = gameState.position.board[square];
 
-    if (piece !== EMPTY && piece[0] === gameState.position.turn && !gameState.aiThinking && !gameState.gameOver) {
-      const touch = e.touches[0];
-      gameActions.startDrag(square, touch.clientX, touch.clientY);
+    // Defensive checks to prevent dragging opponent pieces in 1-player mode
+    if (piece === EMPTY || gameState.aiThinking || gameState.gameOver) {
+      return;
     }
-  }, [gameState.position, gameState.aiThinking, gameState.gameOver, gameActions]);
+
+    // Must be the piece owner's turn
+    if (piece[0] !== gameState.position.turn) {
+      return;
+    }
+
+    // In 1-player mode, can only drag player's own pieces
+    if (gameState.gameMode === '1player' && gameState.playerSide !== null && piece[0] !== gameState.playerSide) {
+      return;
+    }
+
+    const touch = e.touches[0];
+    gameActions.startDrag(square, touch.clientX, touch.clientY);
+  }, [gameState.position, gameState.aiThinking, gameState.gameOver, gameState.gameMode, gameState.playerSide, gameActions]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (gameState.draggedPiece) {

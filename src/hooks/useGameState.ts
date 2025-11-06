@@ -30,6 +30,31 @@ function getRulesFromMode(mode: GameMode | null): RuleSet {
 }
 
 /**
+ * Check if the player is allowed to move a piece in the current game mode
+ *
+ * In 1-player mode, players can only move their own pieces (matching playerSide).
+ * In 2-player mode, players can move pieces of the side whose turn it is.
+ *
+ * @returns true if the player can move this piece, false otherwise
+ */
+function canPlayerMovePiece(
+  gameMode: GameModeType,
+  playerSide: Side | null,
+  piece: string,
+  position: Position
+): boolean {
+  if (piece === EMPTY) return false;
+  if (piece[0] !== position.turn) return false;
+
+  // In 1-player mode, enforce that player can only move their own pieces
+  if (gameMode === '1player' && playerSide !== null && piece[0] !== playerSide) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Game mode types
  */
 export type GameModeType = '1player' | '2player' | null;
@@ -212,8 +237,9 @@ export function useGameState(): [GameState, GameActions] {
 
         // If nothing selected, try to select this square
         if (prev.selectedSquare === null) {
-          if (piece === EMPTY || piece[0] !== prev.position.turn) {
-            return prev; // Can't select empty or opponent's piece
+          // Can only select pieces the player is allowed to move
+          if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
+            return prev;
           }
 
           // Select piece and show legal move targets
@@ -250,8 +276,8 @@ export function useGameState(): [GameState, GameActions] {
           };
         }
 
-        // Clicked on different piece of same color - select it
-        if (piece !== EMPTY && piece[0] === prev.position.turn) {
+        // Clicked on different piece - try to select it
+        if (canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
           const targets = legalMoves(prev.position, rules)
             .filter((m) => m.from === index)
             .map((m) => m.to);
@@ -271,6 +297,17 @@ export function useGameState(): [GameState, GameActions] {
       setState((prev) => {
         // Only block if game is over (AI can make moves while aiThinking is true)
         if (prev.gameOver) return prev;
+
+        const piece = prev.position.board[from];
+
+        // In 1-player mode, validate that the player can only move their own pieces
+        // (AI moves are allowed since aiThinking flag doesn't block this function)
+        if (prev.gameMode === '1player' && prev.playerSide !== null && !prev.aiThinking) {
+          if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
+            console.warn('[makeMove] Blocked: Player attempted to move opponent piece in 1-player mode');
+            return prev;
+          }
+        }
 
         const rules = getRulesFromMode(prev.currentMode);
         const moves = legalMoves(prev.position, rules);
@@ -445,8 +482,8 @@ export function useGameState(): [GameState, GameActions] {
         const piece = prev.position.board[square];
         const rules = getRulesFromMode(prev.currentMode);
 
-        // Can only drag player's pieces
-        if (piece === EMPTY || piece[0] !== prev.position.turn) {
+        // Can only drag pieces the player is allowed to move
+        if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
           return prev;
         }
 
@@ -484,6 +521,19 @@ export function useGameState(): [GameState, GameActions] {
         if (!prev.draggedPiece) return prev;
 
         const fromSquare = prev.draggedPiece.square;
+        const piece = prev.position.board[fromSquare];
+
+        // Revalidate that the player can still move this piece
+        // (guards against race conditions where turn changed during drag)
+        if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
+          console.warn('[endDrag] Blocked: Turn changed or invalid piece during drag');
+          return {
+            ...prev,
+            draggedPiece: null,
+            selectedSquare: null,
+            targetSquares: [],
+          };
+        }
 
         // Clear drag state
         const newState = {
