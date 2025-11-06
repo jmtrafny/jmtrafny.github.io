@@ -300,9 +300,10 @@ export function useGameState(): [GameState, GameActions] {
 
         const piece = prev.position.board[from];
 
-        // In 1-player mode, validate that the player can only move their own pieces
-        // (AI moves are allowed since aiThinking flag doesn't block this function)
-        if (prev.gameMode === '1player' && prev.playerSide !== null && !prev.aiThinking) {
+        // In 1-player mode, validate that moves from the player only happen on the player's turn
+        // This prevents the player from moving opponent pieces during any race conditions
+        // AI moves happen on AI's turn (position.turn !== playerSide), so they pass through
+        if (prev.gameMode === '1player' && prev.playerSide !== null && prev.position.turn === prev.playerSide) {
           if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
             console.warn('[makeMove] Blocked: Player attempted to move opponent piece in 1-player mode');
             return prev;
@@ -469,10 +470,24 @@ export function useGameState(): [GameState, GameActions] {
     }, []),
 
     setAIThinking: useCallback((thinking: boolean) => {
-      setState((prev) => ({
-        ...prev,
-        aiThinking: thinking,
-      }));
+      setState((prev) => {
+        // When AI starts thinking, proactively clear any active drag state
+        // This prevents edge cases where player has a piece "in hand" when turn changes
+        if (thinking && prev.draggedPiece) {
+          return {
+            ...prev,
+            aiThinking: thinking,
+            draggedPiece: null,
+            selectedSquare: null,
+            targetSquares: [],
+          };
+        }
+
+        return {
+          ...prev,
+          aiThinking: thinking,
+        };
+      });
     }, []),
 
     startDrag: useCallback((square: number, screenX: number, screenY: number) => {
@@ -523,8 +538,9 @@ export function useGameState(): [GameState, GameActions] {
         const fromSquare = prev.draggedPiece.square;
         const piece = prev.position.board[fromSquare];
 
-        // Revalidate that the player can still move this piece
-        // (guards against race conditions where turn changed during drag)
+        // Revalidate that the player can still move this piece at drop time
+        // Critical: Guards against race conditions where turn changed during drag
+        // (e.g., player started dragging their piece, but AI moved before drop)
         if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
           console.warn('[endDrag] Blocked: Turn changed or invalid piece during drag');
           return {
@@ -542,6 +558,9 @@ export function useGameState(): [GameState, GameActions] {
         };
 
         // If dropped on a legal target, make the move
+        // Note: targetSquares.includes() is a performance optimization to avoid expensive
+        // legalMoves() generation for obviously invalid drops (e.g., dropping on same square).
+        // The actual validation happens via legalMoves() which uses CURRENT position state.
         if (targetSquare !== null && prev.targetSquares.includes(targetSquare)) {
           const rules = getRulesFromMode(prev.currentMode);
           const move = legalMoves(prev.position, rules).find(
