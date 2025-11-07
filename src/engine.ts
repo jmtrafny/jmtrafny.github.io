@@ -414,6 +414,23 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
     return s as Piece;
   });
 
+  // Validate king existence (both sides must have exactly one king)
+  const whiteKingCount = pos.board.filter(p => p === 'wk').length;
+  const blackKingCount = pos.board.filter(p => p === 'bk').length;
+
+  if (whiteKingCount === 0) {
+    throw new Error('Invalid position: White king not found');
+  }
+  if (blackKingCount === 0) {
+    throw new Error('Invalid position: Black king not found');
+  }
+  if (whiteKingCount > 1) {
+    throw new Error(`Invalid position: Multiple white kings found (${whiteKingCount})`);
+  }
+  if (blackKingCount > 1) {
+    throw new Error(`Invalid position: Multiple black kings found (${blackKingCount})`);
+  }
+
   // Parse optional fields (with proper defaults)
   if (epRaw && epRaw !== '-') {
     const epIndex = parseInt(epRaw, 10);
@@ -915,11 +932,14 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
 
             // Double move from starting position (only if pawnTwoMove rule enabled and pawn hasn't moved)
             // Check: pawnTwoMove enabled AND pawn is on starting rank AND hasn't moved yet (bit not set in movedPawns)
+            // Edge case: On very small boards (e.g., 2×4), ensure double-move doesn't overshoot board
             const pawnTwoMoveEnabled = rules.pawnTwoMove !== false; // Default to true if undefined
             const hasMoved = pos.movedPawns ? (pos.movedPawns & (1n << BigInt(i))) !== 0n : false;
             if (pawnTwoMoveEnabled && rank === startRank && !hasMoved && oneStep !== promotionRank) {
               const twoStep = rank + 2 * direction;
-              if (inBounds2D(twoStep, file, config)) {
+              // Validate that double-move doesn't go past promotion rank or out of bounds
+              const wouldOvershoot = (turn === 'w' && twoStep <= promotionRank) || (turn === 'b' && twoStep >= promotionRank);
+              if (!wouldOvershoot && inBounds2D(twoStep, file, config)) {
                 const j2 = coordsToIndex(twoStep, file, config);
                 if (board[j2] === EMPTY) {
                   pieceMoves.push({ from: i, to: j2 });
@@ -975,6 +995,17 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
   return moves;
 }
 
+/**
+ * Check if a move would leave the king in check (and thus be illegal)
+ *
+ * @param m - The move to test
+ * @param board - The current board state
+ * @param turn - The side making the move
+ * @param config - Board configuration
+ * @param rules - Rule set for the game
+ * @param pos - Full position (needed for en passant)
+ * @returns true if the move would expose the king to check
+ */
 function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig, rules: RuleSet, pos: Position): boolean {
   const nb = board.slice();
   const isPawnMove = typeOf(board[m.from]) === 'p';
@@ -992,6 +1023,12 @@ function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig,
   nb[m.to] = nb[m.from];
   nb[m.from] = EMPTY;
   const kIdx = findKing(nb, turn, config);
+
+  // Defensive check: if king not found, position is invalid
+  if (kIdx < 0) {
+    throw new Error(`Invalid position: ${turn} king not found on board`);
+  }
+
   return attacked(nb, turn, kIdx, config);
 }
 
@@ -1303,7 +1340,7 @@ export function detectRepetition(history: string[], currentPos: string): number 
  * Convert a move to standard algebraic notation
  * Examples: "e4", "Nf3", "Rxb5+", "O-O", "Qh4#"
  */
-export function moveToAlgebraic(pos: Position, move: Move): string {
+export function moveToAlgebraic(pos: Position, move: Move, rules: RuleSet = DEFAULT_RULES): string {
   const config = getConfig(pos);
   const piece = pos.board[move.from];
   const pieceType = typeOf(piece);
@@ -1319,15 +1356,15 @@ export function moveToAlgebraic(pos: Position, move: Move): string {
       const isKingside = toFile > fromFile;
 
       // Check if move results in check or checkmate
-      const newPos = applyMove(pos, move);
-      const isCheck = newPos ? (legalMoves(newPos).length === 0 ? false : (findKing(newPos.board, newPos.turn, getConfig(newPos)) >= 0 ? attacked(newPos.board, newPos.turn, findKing(newPos.board, newPos.turn, getConfig(newPos)), getConfig(newPos)) : false)) : false;
-      const isCheckmate = terminal(newPos) === `${newPos.turn === 'w' ? 'WHITE' : 'BLACK'}_MATE`;
+      const newPos = applyMove(pos, move, rules);
+      const isInCheck = isCheck(newPos);
+      const isCheckmate = terminal(newPos, rules) === `${newPos.turn === 'w' ? 'WHITE' : 'BLACK'}_MATE`;
 
       let notation = isKingside ? 'O-O' : 'O-O-O';
 
       if (isCheckmate) {
         notation += '#';
-      } else if (isCheck) {
+      } else if (isInCheck) {
         notation += '+';
       }
 
@@ -1340,9 +1377,9 @@ export function moveToAlgebraic(pos: Position, move: Move): string {
   const toSquare = coordsToAlgebraic(toRank, toFile, config);
 
   // Check if move results in check or checkmate
-  const newPos = applyMove(pos, move);
-  const isCheck = newPos ? (legalMoves(newPos).length === 0 ? false : (findKing(newPos.board, newPos.turn, getConfig(newPos)) >= 0 ? attacked(newPos.board, newPos.turn, findKing(newPos.board, newPos.turn, getConfig(newPos)), getConfig(newPos)) : false)) : false;
-  const isCheckmate = terminal(newPos) === `${newPos.turn === 'w' ? 'WHITE' : 'BLACK'}_MATE`;
+  const newPos = applyMove(pos, move, rules);
+  const isInCheck = isCheck(newPos);
+  const isCheckmate = terminal(newPos, rules) === `${newPos.turn === 'w' ? 'WHITE' : 'BLACK'}_MATE`;
 
   let notation = '';
 
@@ -1353,7 +1390,7 @@ export function moveToAlgebraic(pos: Position, move: Move): string {
 
   // Disambiguation: check if multiple pieces of same type can reach the destination
   if (pieceType && pieceType !== 'p' && pieceType !== 'k') {
-    const samePieceMoves = legalMoves(pos).filter(m => {
+    const samePieceMoves = legalMoves(pos, rules).filter(m => {
       const p = pos.board[m.from];
       return typeOf(p) === pieceType && sideOf(p) === pos.turn && m.to === move.to && m.from !== move.from;
     });
@@ -1408,7 +1445,7 @@ export function moveToAlgebraic(pos: Position, move: Move): string {
   // Check/Checkmate
   if (isCheckmate) {
     notation += '#';
-  } else if (isCheck) {
+  } else if (isInCheck) {
     notation += '+';
   }
 

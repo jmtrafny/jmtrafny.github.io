@@ -10,6 +10,9 @@
 
 import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES, RuleSet, EMPTY } from './engine';
 import { evaluate } from './evaluator';
+import { createLogger } from './utils/logger';
+
+const log = createLogger('Solver');
 
 export type Result = 'WIN' | 'LOSS' | 'DRAW';
 
@@ -92,7 +95,7 @@ export function solve(
 
     // Check TT size budget (prevents memory exhaustion)
     if (budget.maxTTSize && TT.size > budget.maxTTSize) {
-      console.warn(`[Solver] TT size limit exceeded: ${TT.size} > ${budget.maxTTSize}`);
+      log.warn(`TT size limit exceeded: ${TT.size} > ${budget.maxTTSize}`);
       return { res: 'DRAW', depth };
     }
   }
@@ -319,20 +322,20 @@ export function solveHybrid(
   // Use complexity score instead of raw piece count to account for board size
   if (complexity <= 6) {
     try {
-      console.log(`[Solver] Attempting Tier 1 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount})`);
+      log.debug(`Attempting Tier 1 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount})`);
       const budget: NodeBudget = { nodes: 0, maxNodes: 10000, maxTTSize: 50000 };
       const result = solve(pos, rules, new Set(), 0, budget);
-      console.log(`[Solver] Tier 1 success: ${result.res} (nodes: ${budget.nodes}, TT size: ${TT.size})`);
+      log.debug(`Tier 1 success: ${result.res} (nodes: ${budget.nodes}, TT size: ${TT.size})`);
       return { ...result, tier: 1 };
     } catch (error) {
-      console.warn('[Solver] Tier 1 failed, falling back to Tier 3:', error);
+      log.warn('Tier 1 failed, falling back to Tier 3:', error);
     }
   }
 
   // Tier 2: Iterative deepening with timeout and node budget
   // Use complexity threshold and move count to filter out overly complex positions
   if (complexity <= 12 && moveCount < 30) {
-    console.log(`[Solver] Attempting Tier 2 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount}, moves=${moveCount})`);
+    log.debug(`Attempting Tier 2 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount}, moves=${moveCount})`);
     const startTime = Date.now();
     let bestResult: SolveResult | null = null;
     const budget: NodeBudget = { nodes: 0, maxNodes: 50000, maxTTSize: 100000 };
@@ -340,13 +343,13 @@ export function solveHybrid(
     for (let maxDepth = 1; maxDepth <= 20; maxDepth++) {
       // Check time budget
       if (Date.now() - startTime > maxTime) {
-        console.log(`[Solver] Tier 2 timeout at depth ${maxDepth}, found:`, bestResult?.res);
+        log.debug(`Tier 2 timeout at depth ${maxDepth}, found:`, bestResult?.res);
         break;
       }
 
       // Check node budget
       if (budget.nodes > budget.maxNodes) {
-        console.log(`[Solver] Tier 2 node budget exceeded at ${budget.nodes} nodes, depth ${maxDepth}`);
+        log.debug(`Tier 2 node budget exceeded at ${budget.nodes} nodes, depth ${maxDepth}`);
         break;
       }
 
@@ -361,15 +364,15 @@ export function solveHybrid(
 
           // Found a WIN - no need to search deeper
           if (result.res === 'WIN') {
-            console.log(`[Solver] Tier 2 found WIN at depth ${maxDepth}, nodes: ${budget.nodes}, TT size: ${TT.size}`);
+            log.debug(`Tier 2 found WIN at depth ${maxDepth}, nodes: ${budget.nodes}, TT size: ${TT.size}`);
             return bestResult;
           }
         }
       } catch (error) {
         // Depth limit hit, memory error, or other issue - stop iterating and fall back
-        console.warn(`[Solver] Tier 2 error at depth ${maxDepth}:`, error);
+        log.warn(`Tier 2 error at depth ${maxDepth}:`, error);
         if (bestResult) {
-          console.log('[Solver] Tier 2 returning partial result before error');
+          log.debug('Tier 2 returning partial result before error');
           return bestResult;
         }
         // No partial result - will fall through to Tier 3
@@ -378,13 +381,13 @@ export function solveHybrid(
     }
 
     if (bestResult) {
-      console.log('[Solver] Tier 2 returning result:', bestResult.res, 'depth', bestResult.depth);
+      log.debug('Tier 2 returning result:', bestResult.res, 'depth', bestResult.depth);
       return bestResult;
     }
   }
 
     // Tier 3: Alpha-beta heuristic search
-    console.log(`[Solver] Using Tier 3 (heuristic) for complexity=${complexity.toFixed(2)}, pieces=${pieceCount}`);
+    log.debug(`Using Tier 3 (heuristic) for complexity=${complexity.toFixed(2)}, pieces=${pieceCount}`);
     const searchDepth = pieceCount <= 8 ? 6 : pieceCount <= 12 ? 5 : 4;
     const result = alphaBeta(pos, rules, searchDepth, -Infinity, Infinity);
 
@@ -392,7 +395,7 @@ export function solveHybrid(
     return applyHeuristicStrategy(result, pos, rules);
   } catch (error) {
     // Emergency fallback: if anything goes wrong, return a safe heuristic result
-    console.error('[Solver] Critical error in solveHybrid, using emergency fallback:', error);
+    log.error('Critical error in solveHybrid, using emergency fallback:', error);
     const moves = legalMoves(pos, rules);
     if (moves.length === 0) {
       // No legal moves - this shouldn't happen but handle gracefully

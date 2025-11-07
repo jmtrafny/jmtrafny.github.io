@@ -116,9 +116,10 @@ export interface GameActions {
  */
 function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' | 'playerSide' | 'currentMode'> {
   if (!mode) {
-    // Return a minimal default state
+    // Return a minimal default state with valid king positions
+    // Uses smallest valid position: 1×2 board with both kings
     return {
-      position: decode('x:w', '1xN', 1, 1),
+      position: decode('wk,bk:w', '1xN', 2, 1),
       history: [],
       historyIndex: 0,
       selectedSquare: null,
@@ -132,27 +133,47 @@ function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' |
     };
   }
 
-  const position = decode(
-    mode.startPosition,
-    mode.variant,
-    mode.boardHeight,
-    mode.boardWidth,
-    mode.rules
-  );
+  try {
+    const position = decode(
+      mode.startPosition,
+      mode.variant,
+      mode.boardHeight,
+      mode.boardWidth,
+      mode.rules
+    );
 
-  return {
-    position,
-    history: [encode(position)],
-    historyIndex: 0,
-    selectedSquare: null,
-    targetSquares: [],
-    gameOver: false,
-    gameResult: '',
-    moveLog: [],
-    repetitionDetected: false,
-    aiThinking: false,
-    draggedPiece: null,
-  };
+    return {
+      position,
+      history: [encode(position)],
+      historyIndex: 0,
+      selectedSquare: null,
+      targetSquares: [],
+      gameOver: false,
+      gameResult: '',
+      moveLog: [],
+      repetitionDetected: false,
+      aiThinking: false,
+      draggedPiece: null,
+    };
+  } catch (error) {
+    // Defensive fallback: if game mode has invalid start position, use minimal valid position
+    console.error(`[GameState] Invalid start position for mode ${mode.id}:`, error);
+    console.warn('[GameState] Falling back to minimal valid position');
+
+    return {
+      position: decode('wk,bk:w', '1xN', 2, 1),
+      history: [],
+      historyIndex: 0,
+      selectedSquare: null,
+      targetSquares: [],
+      gameOver: false,
+      gameResult: '',
+      moveLog: [],
+      repetitionDetected: false,
+      aiThinking: false,
+      draggedPiece: null,
+    };
+  }
 }
 
 /**
@@ -419,6 +440,8 @@ export function useGameState(): [GameState, GameActions] {
           const detectedVariant = trimmed.split(':')[0].includes('/') ? 'NxM' : '1xN';
 
           const newPosition = decode(trimmed, detectedVariant, undefined, undefined, getRulesFromMode(prev.currentMode));
+
+          // Clear transposition table to prevent false hits from different board configurations
           clearTT();
 
           return {
