@@ -423,17 +423,15 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 
 ### Phase 2: Maintainability Improvements ✅
 - ✅ **M1: Created debug logger utility** (`src/utils/logger.ts`) - Production-safe logging, strips debug logs from builds (~78% reduction in console output)
+- ✅ **M2: Extracted magic numbers to constants** (`src/config/solverConstants.ts`) - Centralized 40+ magic numbers for solver thresholds, budgets, search limits, piece values, and evaluation parameters
+- ✅ **M3: Added config object caching** - Implemented Map-based cache in `engine.ts` with `clearConfigCache()` function to reduce memory allocations in move generation hot paths
 - ✅ **M4: Fixed TT clearing bug** in `loadPosition()` - Prevents stale transposition table entries across different board configurations
+- ✅ **M5: Removed/relocated deprecated exports** (`src/legacy.ts`) - Moved 78 lines of deprecated interfaces to separate legacy file, cleaned up `engine.ts` API surface
 
-### Phase 2 (Remaining): Pending Implementation 📋
-- ⏳ **M2: Extract magic numbers to constants** - Solver thresholds, budgets, and evaluation parameters
-- ⏳ **M3: Add config object caching** - Reduce memory allocations in move generation hot paths
-- ⏳ **M5: Remove/relocate deprecated exports** - Clean up `engine.ts` legacy interfaces
-
-### Phase 3: Readability Enhancements 📋
-- ⏳ **R1: Extract complex boolean predicates** - Convert nested conditions to named helper functions
-- ⏳ **R2: Rename confusing functions** - `getRulesFromMode()` → `extractRules()`, `keyOf()` → `positionKey()`, etc.
-- ⏳ **R3: Add comprehensive JSDoc** - Document all complex functions with examples
+### Phase 3: Readability Enhancements ✅
+- ✅ **R1: Extracted complex boolean predicates** - Added 4 named helper functions (`isPlayerTurnIn1PlayerMode()`, `areActionsBlocked()`, `canUndoAction()`, `canRedoAction()`, `shouldSkipAIMove()`) replacing 8+ complex nested conditions in `useGameState.ts` and `App.tsx`
+- ✅ **R2: Renamed confusing functions** - Renamed 5 functions across 3 files for clarity: `typeOf()` → `pieceType()`, `sideOf()` → `pieceSide()`, `keyOf()` → `positionKey()`, `save()` → `cacheTTEntry()`, `getRulesFromMode()` → `extractRules()` (60+ occurrences updated)
+- ✅ **R3: Added comprehensive JSDoc** - Documented all public functions with @param, @returns, @example sections in `engine.ts` (10 functions), `solver.ts` (4 functions), `evaluator.ts` (1 function), `useGameState.ts` (1 hook), totaling 379 new lines of documentation
 
 ### Code Quality Metrics
 **Before Improvements:**
@@ -441,18 +439,26 @@ Push to `main` branch → GitHub Actions automatically builds and deploys to Git
 - Production Console Logs: ~36
 - Code Documentation: Limited
 - Type Safety: Good
+- Magic Numbers: 40+ scattered across files
+- Complex Predicates: 8+ nested boolean conditions
+- Confusing Function Names: 5 functions shadowing built-ins or unclear
 
-**After Phase 1 & M1/M4:**
+**After All Phases (1, 2, 3):**
 - Critical Bugs: 0 ✅
 - Production Console Logs: ~8 ✅ (-78%)
-- Code Documentation: Enhanced
+- Code Documentation: Comprehensive ✅ (379 lines of JSDoc added)
 - Type Safety: Excellent ✅
+- Magic Numbers: Centralized in `solverConstants.ts` ✅
+- Complex Predicates: Extracted to named helper functions ✅
+- Function Names: All renamed for clarity ✅
+- Config Caching: Implemented ✅
+- Legacy Code: Isolated in `legacy.ts` ✅
 
 **Build Status:**
 - ✅ TypeScript strict mode enabled
 - ✅ No `any` types in codebase
 - ✅ All builds passing
-- ✅ Bundle size: 242.77 KB (stable)
+- ✅ Bundle size: 243.19 KB (+0.42 KB from refactoring, within acceptable range)
 
 ## 9) Goals Achieved
 
