@@ -48,14 +48,39 @@ interface NodeBudget {
 }
 
 /**
- * Clear the transposition table (useful for position resets)
+ * Clear the transposition table
+ *
+ * Removes all cached position evaluations from the transposition table.
+ * Useful when starting a new game or puzzle to ensure clean solver state.
+ * The transposition table persists across moves to accelerate repeated
+ * position analysis, but should be cleared when switching scenarios.
+ *
+ * @example
+ * ```typescript
+ * // Clear TT when starting new game
+ * clearTT();
+ * const result = solveHybrid(newPosition);
+ * ```
  */
 export function clearTT(): void {
   TT.clear();
 }
 
 /**
- * Get TT size (for debugging/stats)
+ * Get transposition table size
+ *
+ * Returns the number of entries currently stored in the transposition table.
+ * Useful for debugging, performance monitoring, and verifying memory budgets.
+ * High TT size (>100K entries) may indicate memory pressure.
+ *
+ * @returns Number of cached position evaluations in the TT
+ *
+ * @example
+ * ```typescript
+ * const size = getTTSize();
+ * console.log(`TT has ${size} entries`);
+ * // => "TT has 42538 entries"
+ * ```
  */
 export function getTTSize(): number {
   return TT.size;
@@ -70,18 +95,42 @@ function positionKey(pos: Position): string {
 }
 
 /**
- * Solve a position recursively with cycle detection
+ * Perfect solver - Recursively solve position with tri-valued logic
  *
- * Returns:
- * - WIN: current side can force a win
- * - LOSS: current side will lose with perfect play
- * - DRAW: position is drawn (stalemate or repetition fortress)
+ * Performs exhaustive minimax search to determine the game-theoretic value of a position.
+ * Returns WIN if side-to-move can force a win, LOSS if they will lose with best play,
+ * or DRAW for positions that are objectively drawn (stalemate, repetition, fortress).
+ *
+ * **Algorithm:**
+ * - Minimax with negamax formulation
+ * - Transposition table for memoization
+ * - Cycle detection via path tracking (repetition = draw)
+ * - Node and memory budgets to prevent hangs
+ * - Win/Draw/Loss preference: WIN > DRAW > LOSS
+ *
+ * **AI Strategy Support:**
+ * - Perfect: Always optimal (WIN > DRAW > LOSS)
+ * - Aggressive: Prefers risks (WIN > LOSS > DRAW)
+ * - Cooperative: Gives opponent chances (plays randomly unless winning)
  *
  * @param pos - The position to solve
- * @param rules - The rule set to use (defaults to DEFAULT_RULES)
- * @param path - Set of position keys for cycle detection
- * @param depth - Current search depth
- * @param budget - Optional node budget to limit search (prevents hangs)
+ * @param rules - Rule set configuration (defaults to DEFAULT_RULES)
+ * @param path - Set of position keys for cycle detection (default: empty set)
+ * @param depth - Current search depth (default: 0)
+ * @param budget - Optional node/memory budget to prevent infinite search
+ * @returns SolveResult with WIN/LOSS/DRAW, depth to conclusion, and best move
+ *
+ * @example
+ * ```typescript
+ * // Solve simple endgame
+ * const result = solve(kwkPosition, DEFAULT_RULES);
+ * // => { res: 'WIN', depth: 12, best: { from: 5, to: 6 } }
+ *
+ * // Solve with budget limit
+ * const budget = { nodes: 0, maxNodes: 10000, maxTTSize: 50000 };
+ * const result = solve(complexPos, DEFAULT_RULES, new Set(), 0, budget);
+ * // => { res: 'DRAW', depth: 8, best: { from: 2, to: 4 } }
+ * ```
  */
 export function solve(
   pos: Position,
@@ -305,15 +354,44 @@ function calculateComplexity(pos: Position, pieceCount: number): number {
 }
 
 /**
- * Hybrid Solver - Automatically choose best solver tier
+ * Hybrid solver - Automatically select optimal solver tier for position
  *
- * Tier 1: Perfect solver (complexity ≤ 6, roughly ≤6 pieces on 1×12 or ≤3 pieces on 6×6)
- * Tier 2: Bounded iterative deepening (complexity ≤ 12, moves < 30, with memory limits)
- * Tier 3: Alpha-beta heuristic (high complexity or timeout/budget exceeded)
+ * Multi-tier system that automatically chooses the best solving approach based on
+ * position complexity (piece count × board size factor). Guarantees results within
+ * reasonable time/memory budgets by falling back to faster heuristic search when needed.
  *
- * @param pos - The position to solve
- * @param rules - The rule set to use
- * @param maxTime - Maximum time in milliseconds for Tier 2
+ * **Tier Selection:**
+ * - **Tier 1** (Perfect Solver): complexity ≤ 6 (~6 pieces on 1×12, ~3 pieces on 6×6)
+ *   - Tri-valued result: WIN/LOSS/DRAW with proof
+ *   - Budget: 10K nodes, 50K TT entries
+ * - **Tier 2** (Bounded Iterative Deepening): 6 < complexity ≤ 12, moves < 30
+ *   - Iterative deepening with time/memory limits
+ *   - Budget: 2 seconds, 50K nodes/iteration, 100K TT entries
+ * - **Tier 3** (Alpha-Beta Heuristic): complexity > 12 or budget exceeded
+ *   - Centipawn evaluation with best move
+ *   - Variable depth (4-6 plies) based on piece count
+ *
+ * **Complexity Calculation:** `pieces × sqrt(boardSize / 12)`
+ *
+ * @param pos - The position to analyze
+ * @param rules - Rule set configuration (defaults to DEFAULT_RULES)
+ * @param maxTime - Maximum time in milliseconds for Tier 2 (default: 2000ms)
+ * @returns SolveResult (Tier 1/2: WIN/LOSS/DRAW) or EvalResult (Tier 3: centipawn score)
+ *
+ * @example
+ * ```typescript
+ * // Simple endgame: Tier 1 perfect solve
+ * const result = solveHybrid(kwkPosition);
+ * // => { res: 'WIN', depth: 12, best: { from: 5, to: 6 }, tier: 1 }
+ *
+ * // Medium complexity: Tier 2 iterative deepening
+ * const result = solveHybrid(middlegamePosition);
+ * // => { res: 'DRAW', depth: 8, best: { from: 2, to: 4 }, tier: 2 }
+ *
+ * // High complexity: Tier 3 heuristic
+ * const result = solveHybrid(complexPosition);
+ * // => { score: 150, best: { from: 0, to: 2 }, tier: 3 }
+ * ```
  */
 export function solveHybrid(
   pos: Position,

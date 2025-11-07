@@ -210,7 +210,52 @@ function createInitialState(mode: GameMode | null): Omit<GameState, 'gameMode' |
 }
 
 /**
- * Hook for managing game state
+ * Primary game state management hook
+ *
+ * Central React hook that manages all game state including position, move history,
+ * game mode, AI state, and user interactions. Handles move validation, undo/redo,
+ * terminal condition detection, and position repetition tracking.
+ *
+ * **State Management:**
+ * - Position and board state
+ * - Move history and navigation (undo/redo)
+ * - Game mode configuration (1-player vs 2-player)
+ * - AI thinking state and player side
+ * - Terminal conditions (checkmate, stalemate, draws)
+ * - Drag-and-drop piece movement
+ *
+ * **Game Actions:**
+ * - `selectSquare`: Click to select piece and target square
+ * - `makeMove`: Execute a move (from, to)
+ * - `undo/redo`: Navigate move history
+ * - `newGame`: Initialize new game with mode and player side
+ * - `restart`: Reset to initial position of current mode
+ * - `loadPosition`: Load position from encoded string
+ * - `resign/claimDraw`: End game with result
+ * - `startDrag/updateDrag/endDrag`: Drag-and-drop interactions
+ *
+ * @returns Tuple of [GameState, GameActions] for reading state and dispatching actions
+ *
+ * @example
+ * ```typescript
+ * function ChessGame() {
+ *   const [gameState, actions] = useGameState();
+ *
+ *   // Start new game
+ *   useEffect(() => {
+ *     actions.newGame(mode, '1player', 'w');
+ *   }, []);
+ *
+ *   // Handle square click
+ *   const handleClick = (square: number) => {
+ *     if (!gameState.aiThinking && !gameState.gameOver) {
+ *       actions.selectSquare(square);
+ *     }
+ *   };
+ *
+ *   return <Board position={gameState.position} onClick={handleClick} />;
+ * }
+ * ```
  */
 export function useGameState(): [GameState, GameActions] {
   const [state, setState] = useState<GameState>(() => ({

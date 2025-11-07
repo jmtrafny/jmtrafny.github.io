@@ -124,8 +124,36 @@ function isEndgame(pos: Position): boolean {
 }
 
 /**
- * Evaluate position from side-to-move perspective
- * Returns centipawn score (positive = advantage for side to move)
+ * Evaluate position with material and positional heuristics
+ *
+ * Returns a centipawn evaluation from the side-to-move perspective, where
+ * positive scores indicate advantage for the player to move. Used by Tier 3
+ * alpha-beta search when perfect solving is infeasible.
+ *
+ * **Evaluation Components:**
+ * - **Material**: Standard piece values (P=100, N=300, B=320, R=500, Q=900)
+ * - **Piece-Square Tables**: Positional bonuses for piece placement (6×6 grid)
+ *   - Pawns: Encourage advancement
+ *   - Knights: Prefer center
+ *   - Kings: Stay safe in midgame, activate in endgame
+ * - **Endgame Detection**: Queens off OR total material < 2600cp
+ *
+ * PST scaling: Only applied to boards ≤6×6 to avoid over-weighting positional factors
+ *
+ * @param pos - The position to evaluate
+ * @returns Centipawn score (positive = side-to-move advantage, negative = disadvantage)
+ *
+ * @example
+ * ```typescript
+ * // Evaluate position
+ * const score = evaluate(position);
+ * // => 150 (white is up ~1.5 pawns)
+ *
+ * // Evaluate from black's perspective (after flipping turn)
+ * const blackPos = { ...position, turn: 'b' };
+ * const blackScore = evaluate(blackPos);
+ * // => -150 (black is down ~1.5 pawns)
+ * ```
  */
 export function evaluate(pos: Position): number {
   const config = getConfig(pos);

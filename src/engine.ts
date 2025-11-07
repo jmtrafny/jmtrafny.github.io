@@ -71,9 +71,30 @@ export function clearConfigCache(): void {
 }
 
 /**
- * Get board configuration for a position.
- * Handles variable board dimensions for both variants.
- * Results are cached to avoid repeated object creation.
+ * Get board configuration for a position
+ *
+ * Retrieves the board configuration (dimensions, files, ranks) for a given position,
+ * handling both standard and custom board sizes. Configurations are cached by
+ * variant and dimensions to avoid repeated object creation and improve performance.
+ *
+ * Supports:
+ * - Standard 1×12 (1-D Chess)
+ * - Standard 2×10 (Minichess Classics)
+ * - Custom 1×N boards (e.g., 1×6, 1×8)
+ * - Custom M×N boards (e.g., 3×8, 2×12)
+ *
+ * Cache key format: `${variant}-${length}-${width}`
+ *
+ * @param pos - The position to get configuration for
+ * @returns Board configuration with variant, dimensions, size, files, and ranks
+ *
+ * @example
+ * ```typescript
+ * const config = getConfig(position);
+ * // Standard 1×12: { variant: '1xN', width: 1, height: 12, size: 12, files: ['a'], ranks: [1..12] }
+ * // Standard 2×10: { variant: 'NxM', width: 2, height: 10, size: 20, files: ['a','b'], ranks: [1..10] }
+ * // Custom 3×8: { variant: 'NxM', width: 3, height: 8, size: 24, files: ['a','b','c'], ranks: [1..8] }
+ * ```
  */
 export function getConfig(pos: Position): BoardConfig {
   // Build cache key from position properties
@@ -294,16 +315,34 @@ export function coordsToAlgebraic(rank: number, file: number, config: BoardConfi
 }
 
 /**
- * Position encoding/decoding
+ * Decode a position string into a Position object
+ *
+ * Parses position strings in either 1-D (comma-separated) or M×N (rank-separated) format.
+ * Supports extended format with en passant, halfmove clock, castling rights, and moved pawns.
+ *
  * Format: "board:turn[:ep][:halfmove][:castling][:movedPawns]"
- * Thin format:  "cell,cell,...,cell:side" (comma-separated, flat)
- * Skinny format: "c,c/c,c/.../c,c:side" (ranks separated by /, cells by comma)
- * cell = 'x' (empty) or '[wb][krnbp]' (piece)
- * side = 'w' or 'b'
- * ep = en passant target square index (optional, '-' for none)
- * halfmove = halfmove clock for fifty-move rule (optional, number)
- * castling = castling rights bitmask (optional, number)
- * movedPawns = moved pawns bitmask as hex string (optional, '-' for none)
+ * - 1xN format: "cell,cell,...,cell:side" (comma-separated, flat)
+ * - NxM format: "c,c/c,c/.../c,c:side" (ranks separated by /, cells by comma)
+ * - cell = 'x' (empty) or '[wb][krnbpq]' (piece)
+ * - side = 'w' or 'b'
+ * - ep = en passant target square index (optional, '-' for none)
+ * - halfmove = halfmove clock for fifty-move rule (optional, number)
+ * - castling = castling rights bitmask (optional, number: WK=1, WQ=2, BK=4, BQ=8)
+ * - movedPawns = moved pawns bitmask as hex string (optional, '-' for none)
+ *
+ * @param code - The position string to decode
+ * @param variant - The variant type ('1xN' or 'NxM')
+ * @param boardLength - Optional custom board height (defaults based on variant)
+ * @param boardWidth - Optional custom board width (defaults based on variant)
+ * @param rules - Optional rule set (defaults to DEFAULT_RULES)
+ * @returns Decoded Position object
+ * @throws Error if position string is invalid or king count is wrong
+ *
+ * @example
+ * ```typescript
+ * const pos = decode('wk,x,x,bk:w', '1xN');
+ * // pos.board => ['.', '.', '.', 'wk', '.', ..., 'bk']
+ * ```
  */
 export function decode(code: string, variant: VariantType, boardLength?: number, boardWidth?: number, rules?: RuleSet): Position {
   const parts = code.trim().split(':');
@@ -437,6 +476,39 @@ export function decode(code: string, variant: VariantType, boardLength?: number,
   return pos;
 }
 
+/**
+ * Encode a position into a string format
+ *
+ * Serializes a Position object into a compact string representation suitable for storage,
+ * transmission, or use as a transposition table key. Format varies by board variant:
+ * - 1xN boards: comma-separated cells (e.g., "wr,wk,x,bk,br")
+ * - MxN boards: rank-separated with '/' (e.g., "wr,wk/x,x/bk,br")
+ *
+ * Base format: `cells:turn`
+ * Extended format: `cells:turn:ep:halfmove:castling:movedPawns`
+ *
+ * Extended fields are automatically included if they have non-default values, or can be
+ * explicitly requested with the includeExtendedFields parameter.
+ *
+ * @param pos - The position to encode
+ * @param includeExtendedFields - Force inclusion of extended fields (default: false)
+ * @returns Encoded position string
+ *
+ * @example
+ * ```typescript
+ * // Basic 1xN encoding
+ * encode({ board: ['wr', 'wk', '.', 'bk', 'br'], turn: 'w', variant: '1xN' })
+ * // => "wr,wk,x,bk,br:w"
+ *
+ * // MxN encoding with ranks
+ * encode({ board: ['wr', 'wk', '.', '.', 'bk', 'br'], turn: 'b', variant: 'MxN', boardWidth: 2 })
+ * // => "wr,wk/x,x/bk,br:b"
+ *
+ * // Extended format with en passant and castling
+ * encode(posWithExtras, true)
+ * // => "wr,wk,x,bk,br:w:3:0:15:a1f"
+ * ```
+ */
 export function encode(pos: Position, includeExtendedFields = false): string {
   const config = getConfig(pos);
   const cells = pos.board.map(p => p === EMPTY ? 'x' : p);
@@ -486,16 +558,56 @@ export function inBounds(i: number, config: BoardConfig): boolean {
   return i >= 0 && i < config.size;
 }
 
+/**
+ * Extract the side (color) from a piece
+ *
+ * @param piece - The piece to analyze (e.g., 'wk', 'br', '.')
+ * @returns The side ('w' or 'b'), or null if empty square
+ *
+ * @example
+ * ```typescript
+ * pieceSide('wk') // => 'w'
+ * pieceSide('br') // => 'b'
+ * pieceSide('.') // => null
+ * ```
+ */
 export function pieceSide(piece: Cell): Side | null {
   if (!piece || piece === EMPTY) return null;
   return piece[0] as Side;
 }
 
+/**
+ * Extract the piece type from a piece
+ *
+ * @param piece - The piece to analyze (e.g., 'wk', 'br', '.')
+ * @returns The piece type ('k', 'r', 'n', 'b', 'p', 'q'), or null if empty square
+ *
+ * @example
+ * ```typescript
+ * pieceType('wk') // => 'k'
+ * pieceType('br') // => 'r'
+ * pieceType('.') // => null
+ * ```
+ */
 export function pieceType(piece: Cell): PieceType | null {
   if (!piece || piece === EMPTY) return null;
   return piece[1] as PieceType;
 }
 
+/**
+ * Find the king's position on the board
+ *
+ * @param board - The board array to search
+ * @param side - The side whose king to find ('w' or 'b')
+ * @param config - Board configuration for size bounds
+ * @returns The square index of the king, or -1 if not found
+ *
+ * @example
+ * ```typescript
+ * const kingPos = findKing(board, 'w', config);
+ * // kingPos => 3 (if white king is at square 3)
+ * ```
+ */
 export function findKing(board: Board, side: Side, config: BoardConfig): number {
   const king: Piece = `${side}k`;
   for (let i = 0; i < config.size; i++) {
@@ -505,7 +617,32 @@ export function findKing(board: Board, side: Side, config: BoardConfig): number 
 }
 
 /**
- * Attack detection: Is square idx attacked by opponent?
+ * Check if a square is under attack by the opponent
+ *
+ * Determines whether a given square is attacked by any enemy piece. Used for:
+ * - Detecting check (is the king under attack)
+ * - Validating move legality (would moving leave king in check)
+ * - Castling legality (castling through or into check is illegal)
+ *
+ * Attack detection varies by variant:
+ * - 1×N boards: 1-D attacks (king ±1, knight ±2, rook sliding)
+ * - M×N boards: 2-D attacks (all standard chess piece movements)
+ *
+ * @param board - The board position to analyze
+ * @param side - The side occupying the square (we check if opponent attacks it)
+ * @param idx - The square index to check for attacks
+ * @param config - Board configuration (dimensions and variant)
+ * @returns True if the square is attacked by the opponent, false otherwise
+ *
+ * @example
+ * ```typescript
+ * // Check if white king is in check
+ * const kingSquare = findKing(position.board, 'w', config);
+ * const inCheck = attacked(position.board, 'w', kingSquare, config);
+ *
+ * // Validate castling: ensure king doesn't pass through attacked square
+ * const canCastle = !attacked(board, 'w', squareBetween, config);
+ * ```
  */
 export function attacked(board: Board, side: Side, idx: number, config: BoardConfig): boolean {
   // Guard against invalid indices (e.g., if findKing() fails and returns -1)
@@ -614,7 +751,22 @@ export function attacked(board: Board, side: Side, idx: number, config: BoardCon
 }
 
 /**
- * Generate all legal moves for current position
+ * Generate all legal moves for the current position
+ *
+ * Generates pseudo-legal moves for all pieces of the side to move, then filters out
+ * moves that would leave the king in check. Supports both 1-D Chess (1×N) and
+ * Minichess Classics (M×N) variants with rule-dependent move generation including
+ * pawn promotion, en passant, and castling.
+ *
+ * @param pos - The position to analyze (includes board, turn, variant, and game state)
+ * @param rules - Rule set configuration (defaults to DEFAULT_RULES if omitted)
+ * @returns Array of legal moves, each with from/to squares and optional promotion piece
+ *
+ * @example
+ * ```typescript
+ * const moves = legalMoves(position, rules);
+ * // moves => [{ from: 0, to: 1 }, { from: 0, to: 2, promotion: 'q' }]
+ * ```
  */
 export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[] {
   const { board, turn, variant } = pos;
@@ -987,7 +1139,23 @@ function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig,
 }
 
 /**
- * Apply a move and return new position
+ * Apply a move and return the resulting position
+ *
+ * Creates a new position by applying the move, handling special moves like pawn promotion,
+ * en passant capture, and castling. Updates all position state including board, turn,
+ * en passant target, halfmove clock, castling rights, and position history for
+ * threefold repetition detection.
+ *
+ * @param pos - The current position
+ * @param m - The move to apply (must be legal - legality not validated)
+ * @param rules - Rule set configuration (defaults to DEFAULT_RULES if omitted)
+ * @returns New position after the move is applied
+ *
+ * @example
+ * ```typescript
+ * const newPos = applyMove(position, { from: 0, to: 1 }, rules);
+ * // newPos.turn flipped, board updated, history tracked
+ * ```
  */
 export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES): Position {
   const config = getConfig(pos);
@@ -1220,9 +1388,30 @@ export function positionHash(pos: Position): string {
 }
 
 /**
- * Terminal state detection
- * Returns: null (non-terminal) | 'STALEMATE' | 'WHITE_MATE' | 'BLACK_MATE' | 'DRAW_FIFTY' | 'DRAW_THREEFOLD'
- *          | 'WHITE_RACE_WIN' | 'BLACK_RACE_WIN' | 'WHITE_MATERIAL_WIN' | 'BLACK_MATERIAL_WIN' | 'DRAW_MATERIAL_TIE'
+ * Check if the position is a terminal state (game over)
+ *
+ * Detects various game-ending conditions based on the active rule set including:
+ * checkmate, stalemate, fifty-move rule, threefold repetition, race-to-back-rank,
+ * and material count win conditions.
+ *
+ * @param pos - The position to check
+ * @param rules - Rule set configuration (defaults to DEFAULT_RULES if omitted)
+ * @returns Terminal state string or null if game continues
+ *   - null: Game in progress
+ *   - 'STALEMATE': No legal moves, not in check
+ *   - 'WHITE_MATE' | 'BLACK_MATE': King is checkmated
+ *   - 'DRAW_FIFTY': Fifty-move rule (100 plies without capture/pawn move)
+ *   - 'DRAW_THREEFOLD': Position repeated three times
+ *   - 'WHITE_RACE_WIN' | 'BLACK_RACE_WIN': Piece reached opponent's back rank
+ *   - 'WHITE_MATERIAL_WIN' | 'BLACK_MATERIAL_WIN' | 'DRAW_MATERIAL_TIE': Material count decision
+ *
+ * @example
+ * ```typescript
+ * const result = terminal(position, rules);
+ * if (result === 'WHITE_MATE') {
+ *   console.log('Black wins by checkmate!');
+ * }
+ * ```
  */
 export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string | null {
   const config = getConfig(pos);
