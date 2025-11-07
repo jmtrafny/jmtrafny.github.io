@@ -17,15 +17,16 @@ import {
   moveToAlgebraic,
   EMPTY,
   DEFAULT_RULES,
+  clearConfigCache,
 } from '../engine';
 import { clearTT } from '../solver';
 import type { GameMode } from '../config/GameModeConfig';
 import type { RuleSet } from '../config/GameModeConfig';
 
 /**
- * Get rules from a game mode, falling back to defaults
+ * Extract rules from a game mode, falling back to defaults
  */
-function getRulesFromMode(mode: GameMode | null): RuleSet {
+function extractRules(mode: GameMode | null): RuleSet {
   return mode?.rules || DEFAULT_RULES;
 }
 
@@ -52,6 +53,38 @@ function canPlayerMovePiece(
   }
 
   return true;
+}
+
+/**
+ * Check if it's the player's turn in 1-player mode
+ * Used to validate player actions and prevent moves on AI's turn
+ */
+function isPlayerTurnIn1PlayerMode(state: Pick<GameState, 'gameMode' | 'playerSide' | 'position'>): boolean {
+  return state.gameMode === '1player'
+    && state.playerSide !== null
+    && state.position.turn === state.playerSide;
+}
+
+/**
+ * Check if actions should be blocked due to game state
+ * Returns true if AI is thinking or game is over
+ */
+function areActionsBlocked(state: Pick<GameState, 'aiThinking' | 'gameOver'>): boolean {
+  return state.aiThinking || state.gameOver;
+}
+
+/**
+ * Check if undo should be allowed
+ */
+function canUndoAction(state: Pick<GameState, 'historyIndex' | 'aiThinking' | 'gameOver'>): boolean {
+  return state.historyIndex > 0 && !state.aiThinking && !state.gameOver;
+}
+
+/**
+ * Check if redo should be allowed
+ */
+function canRedoAction(state: Pick<GameState, 'historyIndex' | 'history' | 'aiThinking' | 'gameOver'>): boolean {
+  return state.historyIndex < state.history.length - 1 && !state.aiThinking && !state.gameOver;
 }
 
 /**
@@ -204,7 +237,7 @@ export function useGameState(): [GameState, GameActions] {
     // or if position is invalid or game already over
     if (!state.currentMode || !state.position || !state.position.board || state.gameOver) return;
 
-    const rules = getRulesFromMode(state.currentMode);
+    const rules = extractRules(state.currentMode);
     const term = terminal(state.position, rules);
     if (term) {
       let result = '';
@@ -242,10 +275,10 @@ export function useGameState(): [GameState, GameActions] {
   const actions: GameActions = {
     selectSquare: useCallback((index: number) => {
       setState((prev) => {
-        if (prev.aiThinking || prev.gameOver) return prev;
+        if (areActionsBlocked(prev)) return prev;
 
         const piece = prev.position.board[index];
-        const rules = getRulesFromMode(prev.currentMode);
+        const rules = extractRules(prev.currentMode);
 
         // Deselect if clicking same square
         if (index === prev.selectedSquare) {
@@ -324,14 +357,14 @@ export function useGameState(): [GameState, GameActions] {
         // In 1-player mode, validate that moves from the player only happen on the player's turn
         // This prevents the player from moving opponent pieces during any race conditions
         // AI moves happen on AI's turn (position.turn !== playerSide), so they pass through
-        if (prev.gameMode === '1player' && prev.playerSide !== null && prev.position.turn === prev.playerSide) {
+        if (isPlayerTurnIn1PlayerMode(prev)) {
           if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
             console.warn('[makeMove] Blocked: Player attempted to move opponent piece in 1-player mode');
             return prev;
           }
         }
 
-        const rules = getRulesFromMode(prev.currentMode);
+        const rules = extractRules(prev.currentMode);
         const moves = legalMoves(prev.position, rules);
 
         const move = moves.find(
@@ -361,7 +394,7 @@ export function useGameState(): [GameState, GameActions] {
 
     undo: useCallback(() => {
       setState((prev) => {
-        if (prev.historyIndex <= 0 || prev.aiThinking || prev.gameOver) {
+        if (!canUndoAction(prev)) {
           return prev;
         }
 
@@ -371,7 +404,7 @@ export function useGameState(): [GameState, GameActions] {
 
         return {
           ...prev,
-          position: decode(prev.history[newIndex], prev.position.variant, prev.position.boardLength, prev.position.boardWidth, getRulesFromMode(prev.currentMode)),
+          position: decode(prev.history[newIndex], prev.position.variant, prev.position.boardLength, prev.position.boardWidth, extractRules(prev.currentMode)),
           historyIndex: newIndex,
           selectedSquare: null,
           targetSquares: [],
@@ -382,7 +415,7 @@ export function useGameState(): [GameState, GameActions] {
 
     redo: useCallback(() => {
       setState((prev) => {
-        if (prev.historyIndex >= prev.history.length - 1 || prev.aiThinking || prev.gameOver) {
+        if (!canRedoAction(prev)) {
           return prev;
         }
 
@@ -394,7 +427,7 @@ export function useGameState(): [GameState, GameActions] {
 
         return {
           ...prev,
-          position: decode(prev.history[newIndex], prev.position.variant, prev.position.boardLength, prev.position.boardWidth, getRulesFromMode(prev.currentMode)),
+          position: decode(prev.history[newIndex], prev.position.variant, prev.position.boardLength, prev.position.boardWidth, extractRules(prev.currentMode)),
           historyIndex: newIndex,
           selectedSquare: null,
           targetSquares: [],
@@ -403,6 +436,7 @@ export function useGameState(): [GameState, GameActions] {
     }, []),
 
     newGame: useCallback((mode: GameMode, gameMode: GameModeType, playerSide: Side | null) => {
+      clearConfigCache();
       clearTT();
       const initialState = createInitialState(mode);
 
@@ -418,6 +452,7 @@ export function useGameState(): [GameState, GameActions] {
       setState((prev) => {
         if (!prev.currentMode) return prev;
 
+        clearConfigCache();
         clearTT();
         const initialState = createInitialState(prev.currentMode);
 
@@ -439,9 +474,10 @@ export function useGameState(): [GameState, GameActions] {
           // NxM format: has slashes (e.g., "wk,wr/bk,br:b")
           const detectedVariant = trimmed.split(':')[0].includes('/') ? 'NxM' : '1xN';
 
-          const newPosition = decode(trimmed, detectedVariant, undefined, undefined, getRulesFromMode(prev.currentMode));
+          const newPosition = decode(trimmed, detectedVariant, undefined, undefined, extractRules(prev.currentMode));
 
-          // Clear transposition table to prevent false hits from different board configurations
+          // Clear transposition table and config cache to prevent false hits from different board configurations
+          clearConfigCache();
           clearTT();
 
           return {
@@ -518,7 +554,7 @@ export function useGameState(): [GameState, GameActions] {
         if (prev.aiThinking || prev.gameOver) return prev;
 
         const piece = prev.position.board[square];
-        const rules = getRulesFromMode(prev.currentMode);
+        const rules = extractRules(prev.currentMode);
 
         // Can only drag pieces the player is allowed to move
         if (!canPlayerMovePiece(prev.gameMode, prev.playerSide, piece, prev.position)) {
@@ -585,7 +621,7 @@ export function useGameState(): [GameState, GameActions] {
         // legalMoves() generation for obviously invalid drops (e.g., dropping on same square).
         // The actual validation happens via legalMoves() which uses CURRENT position state.
         if (targetSquare !== null && prev.targetSquares.includes(targetSquare)) {
-          const rules = getRulesFromMode(prev.currentMode);
+          const rules = extractRules(prev.currentMode);
           const move = legalMoves(prev.position, rules).find(
             (m) => m.from === fromSquare && m.to === targetSquare
           );

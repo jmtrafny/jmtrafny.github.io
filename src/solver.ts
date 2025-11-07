@@ -11,6 +11,13 @@
 import { Position, Move, legalMoves, applyMove, terminal, encode, DEFAULT_RULES, RuleSet, EMPTY } from './engine';
 import { evaluate } from './evaluator';
 import { createLogger } from './utils/logger';
+import {
+  SOLVER_TIER_THRESHOLDS,
+  SOLVER_BUDGETS,
+  SEARCH_LIMITS,
+  EVALUATION_THRESHOLDS,
+  POSITIONAL_PARAMS,
+} from './config/solverConstants';
 
 const log = createLogger('Solver');
 
@@ -58,7 +65,7 @@ export function getTTSize(): number {
  * Position key for transposition table
  * Use extended format to include all position state (EP, halfmove clock, castling)
  */
-function keyOf(pos: Position): string {
+function positionKey(pos: Position): string {
   return encode(pos, true);
 }
 
@@ -83,7 +90,7 @@ export function solve(
   depth = 0,
   budget?: NodeBudget
 ): SolveResult {
-  const key = keyOf(pos);
+  const key = positionKey(pos);
 
   // Check node budget (prevents infinite search)
   if (budget) {
@@ -101,7 +108,7 @@ export function solve(
   }
 
   // Depth limit to prevent stack overflow
-  const MAX_DEPTH = 30;
+  const MAX_DEPTH = SEARCH_LIMITS.MAX_DEPTH;
   if (depth > MAX_DEPTH) {
     return { res: 'DRAW', depth: MAX_DEPTH };
   }
@@ -120,10 +127,10 @@ export function solve(
   const term = terminal(pos, rules);
   if (term) {
     if (term === 'STALEMATE' || term === 'DRAW_FIFTY' || term === 'DRAW_THREEFOLD') {
-      return save(key, { res: 'DRAW', depth: 0 });
+      return cacheTTEntry(key, { res: 'DRAW', depth: 0 });
     }
     // Checkmate: side-to-move is mated (LOSS)
-    return save(key, { res: 'LOSS', depth: 0 });
+    return cacheTTEntry(key, { res: 'LOSS', depth: 0 });
   }
 
   // Add current position to path for cycle detection
@@ -146,7 +153,7 @@ export function solve(
     if (r.res === 'LOSS') {
       const score: SolveResult = { res: 'WIN', depth: r.depth + 1, best: m };
       path.delete(key);
-      return save(key, score);
+      return cacheTTEntry(key, score);
     }
 
     // Track drawing moves (prefer shallowest draw)
@@ -179,37 +186,37 @@ export function solve(
     if (hasDrawChild || losingMove) {
       // We're not winning - pick a random move to give opponent a chance
       const randomMove = moves[Math.floor(Math.random() * moves.length)];
-      return save(key, { res: 'DRAW', depth: 0, best: randomMove });
+      return cacheTTEntry(key, { res: 'DRAW', depth: 0, best: randomMove });
     }
     // Should never reach here since we returned early on WIN
-    return save(key, { res: 'DRAW', depth: 0, best: moves[0] });
+    return cacheTTEntry(key, { res: 'DRAW', depth: 0, best: moves[0] });
   }
 
   if (aiStrategy === 'aggressive') {
     // Aggressive: Prefer WIN > LOSS > DRAW (avoids draws, takes risks)
     if (hasDrawChild && losingMove) {
       // Have both draw and loss options - choose loss to keep game going
-      return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
+      return cacheTTEntry(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
     }
     if (hasDrawChild) {
-      return save(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
+      return cacheTTEntry(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
     }
-    return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
+    return cacheTTEntry(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
   }
 
   // Perfect (default): WIN > DRAW > LOSS (always optimal)
   if (hasDrawChild) {
-    return save(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
+    return cacheTTEntry(key, { res: 'DRAW', depth: bestDepth, best: bestMove });
   }
 
   // All moves lose → return LOSS with move that delays mate longest
-  return save(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
+  return cacheTTEntry(key, { res: 'LOSS', depth: maxLosingDepth + 1, best: losingMove });
 }
 
 /**
- * Save result to TT and return it
+ * Cache result in transposition table and return it
  */
-function save(key: string, val: SolveResult): SolveResult {
+function cacheTTEntry(key: string, val: SolveResult): SolveResult {
   TT.set(key, val);
   return val;
 }
@@ -240,7 +247,7 @@ function alphaBeta(
       return { score: 0, tier: 3 };
     }
     // Checkmate: side-to-move is mated (very negative score)
-    return { score: -99999, tier: 3 };
+    return { score: -EVALUATION_THRESHOLDS.MATE_SCORE, tier: 3 };
   }
 
   // Depth limit reached: return static evaluation
@@ -292,8 +299,8 @@ function calculateComplexity(pos: Position, pieceCount: number): number {
 
   // Baseline: 1×12 board (size=12) has factor 1.0
   // 6×6 board (size=36) has factor 1.73
-  // Formula: complexity = pieces × sqrt(boardSize / 12)
-  const boardFactor = Math.sqrt(boardSize / 12);
+  // Formula: complexity = pieces × sqrt(boardSize / BASELINE_BOARD_SIZE)
+  const boardFactor = Math.sqrt(boardSize / POSITIONAL_PARAMS.BASELINE_BOARD_SIZE);
   return pieceCount * boardFactor;
 }
 
@@ -320,10 +327,10 @@ export function solveHybrid(
 
   // Tier 1: Perfect solver for simple positions only
   // Use complexity score instead of raw piece count to account for board size
-  if (complexity <= 6) {
+  if (complexity <= SOLVER_TIER_THRESHOLDS.TIER1_MAX_COMPLEXITY) {
     try {
       log.debug(`Attempting Tier 1 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount})`);
-      const budget: NodeBudget = { nodes: 0, maxNodes: 10000, maxTTSize: 50000 };
+      const budget: NodeBudget = { nodes: 0, maxNodes: SOLVER_BUDGETS.TIER1_MAX_NODES, maxTTSize: SOLVER_BUDGETS.TIER1_MAX_TT_SIZE };
       const result = solve(pos, rules, new Set(), 0, budget);
       log.debug(`Tier 1 success: ${result.res} (nodes: ${budget.nodes}, TT size: ${TT.size})`);
       return { ...result, tier: 1 };
@@ -334,13 +341,13 @@ export function solveHybrid(
 
   // Tier 2: Iterative deepening with timeout and node budget
   // Use complexity threshold and move count to filter out overly complex positions
-  if (complexity <= 12 && moveCount < 30) {
+  if (complexity <= SOLVER_TIER_THRESHOLDS.TIER2_MAX_COMPLEXITY && moveCount < SOLVER_TIER_THRESHOLDS.TIER2_MAX_MOVES) {
     log.debug(`Attempting Tier 2 (complexity=${complexity.toFixed(2)}, pieces=${pieceCount}, moves=${moveCount})`);
     const startTime = Date.now();
     let bestResult: SolveResult | null = null;
-    const budget: NodeBudget = { nodes: 0, maxNodes: 50000, maxTTSize: 100000 };
+    const budget: NodeBudget = { nodes: 0, maxNodes: SOLVER_BUDGETS.TIER2_MAX_NODES, maxTTSize: SOLVER_BUDGETS.TIER2_MAX_TT_SIZE };
 
-    for (let maxDepth = 1; maxDepth <= 20; maxDepth++) {
+    for (let maxDepth = 1; maxDepth <= SOLVER_BUDGETS.TIER2_MAX_DEPTH; maxDepth++) {
       // Check time budget
       if (Date.now() - startTime > maxTime) {
         log.debug(`Tier 2 timeout at depth ${maxDepth}, found:`, bestResult?.res);
@@ -388,7 +395,11 @@ export function solveHybrid(
 
     // Tier 3: Alpha-beta heuristic search
     log.debug(`Using Tier 3 (heuristic) for complexity=${complexity.toFixed(2)}, pieces=${pieceCount}`);
-    const searchDepth = pieceCount <= 8 ? 6 : pieceCount <= 12 ? 5 : 4;
+    const searchDepth = pieceCount <= SEARCH_LIMITS.TIER3_PIECES_HIGH
+      ? SEARCH_LIMITS.TIER3_DEPTH_HIGH
+      : pieceCount <= SEARCH_LIMITS.TIER3_PIECES_MEDIUM
+      ? SEARCH_LIMITS.TIER3_DEPTH_MEDIUM
+      : SEARCH_LIMITS.TIER3_DEPTH_LOW;
     const result = alphaBeta(pos, rules, searchDepth, -Infinity, Infinity);
 
     // Apply AI strategy to heuristic result
@@ -430,7 +441,7 @@ function applyHeuristicStrategy(
       const childEval = alphaBeta(child, rules, 2, -Infinity, Infinity);
       const score = -childEval.score;
 
-      if (score > 50) {
+      if (score > EVALUATION_THRESHOLDS.COOPERATIVE_ADVANTAGE_CP) {
         goodMoves.push(move);
       }
     }

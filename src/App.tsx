@@ -168,13 +168,7 @@ function App() {
   // 1-D chess (thin): Perfect-play solver
   useEffect(() => {
     // Skip if not AI's turn or already thinking
-    if (
-      gameState.gameMode !== '1player' ||
-      gameState.playerSide === null ||
-      gameState.position.turn === gameState.playerSide ||
-      gameState.aiThinking ||
-      gameState.gameOver
-    ) {
+    if (shouldSkipAIMove(gameState)) {
       return;
     }
 
@@ -315,6 +309,18 @@ function App() {
 
   // Get board configuration for current position
   const boardConfig = getConfig(gameState.position);
+
+  /**
+   * Check if the AI should skip making a move
+   * Returns true if it's not AI's turn or game conditions prevent AI from moving
+   */
+  const shouldSkipAIMove = useCallback((state: typeof gameState): boolean => {
+    return state.gameMode !== '1player'
+      || state.playerSide === null
+      || state.position.turn === state.playerSide
+      || state.aiThinking
+      || state.gameOver;
+  }, []);
 
   // Drag handlers
   const boardRef = useRef<HTMLDivElement>(null);

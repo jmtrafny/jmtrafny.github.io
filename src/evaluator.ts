@@ -5,16 +5,17 @@
  * Returns centipawn scores from side-to-move perspective.
  */
 
-import { Position, EMPTY, typeOf, sideOf, getConfig, indexToCoords, type PieceType, type Side } from './engine';
+import { Position, EMPTY, pieceType, pieceSide, getConfig, indexToCoords, type PieceType, type Side } from './engine';
+import { PIECE_VALUES, ENDGAME_THRESHOLDS, POSITIONAL_PARAMS, COMPLEXITY_PARAMS } from './config/solverConstants';
 
-// Material values in centipawns
-const PIECE_VALUES: Record<PieceType, number> = {
-  p: 100,   // Pawn
-  n: 300,   // Knight
-  b: 320,   // Bishop
-  r: 500,   // Rook
-  q: 900,   // Queen
-  k: 0,     // King (invaluable)
+// Material values in centipawns (mapped from constants for use in Record)
+const PIECE_VALUE_MAP: Record<PieceType, number> = {
+  p: PIECE_VALUES.PAWN,
+  n: PIECE_VALUES.KNIGHT,
+  b: PIECE_VALUES.BISHOP,
+  r: PIECE_VALUES.ROOK,
+  q: PIECE_VALUES.QUEEN,
+  k: PIECE_VALUES.KING,
 };
 
 // Piece-Square Tables (PST) bonuses for positional play
@@ -74,15 +75,15 @@ function getPSTValue(
   isEndgame: boolean
 ): number {
   // Only apply PST for small boards (up to 6x6)
-  if (boardHeight > 6 || boardWidth > 6) return 0;
+  if (boardHeight > POSITIONAL_PARAMS.MAX_PST_DIMENSION || boardWidth > POSITIONAL_PARAMS.MAX_PST_DIMENSION) return 0;
 
   // Flip rank for black pieces
   const adjustedRank = side === 'w' ? (boardHeight - 1 - rank) : rank;
 
   // Scale PST index to 6x6 grid (our PST tables are for 6x6)
-  const pstRank = Math.floor((adjustedRank * 6) / boardHeight);
-  const pstFile = Math.floor((file * 6) / boardWidth);
-  const pstIndex = pstRank * 6 + pstFile;
+  const pstRank = Math.floor((adjustedRank * POSITIONAL_PARAMS.PST_GRID_SIZE) / boardHeight);
+  const pstFile = Math.floor((file * POSITIONAL_PARAMS.PST_GRID_SIZE) / boardWidth);
+  const pstIndex = pstRank * POSITIONAL_PARAMS.PST_GRID_SIZE + pstFile;
 
   let value = 0;
   switch (type) {
@@ -113,13 +114,13 @@ function isEndgame(pos: Position): boolean {
 
   for (const piece of pos.board) {
     if (piece === EMPTY) continue;
-    const type = typeOf(piece);
+    const type = pieceType(piece);
     if (!type) continue;
     if (type === 'q') hasQueen = true;
-    totalMaterial += PIECE_VALUES[type] || 0;
+    totalMaterial += PIECE_VALUE_MAP[type] || 0;
   }
 
-  return !hasQueen || totalMaterial < 2600;
+  return !hasQueen || totalMaterial < ENDGAME_THRESHOLDS.TOTAL_MATERIAL_CP;
 }
 
 /**
@@ -136,12 +137,12 @@ export function evaluate(pos: Position): number {
     const piece = pos.board[i];
     if (piece === EMPTY) continue;
 
-    const type = typeOf(piece);
-    const side = sideOf(piece);
+    const type = pieceType(piece);
+    const side = pieceSide(piece);
     if (!type || !side) continue;
 
     // Material value
-    const materialValue = PIECE_VALUES[type as PieceType] || 0;
+    const materialValue = PIECE_VALUE_MAP[type as PieceType] || 0;
 
     // Positional value
     const [rank, file] = indexToCoords(i, config);
@@ -170,6 +171,6 @@ export function estimateComplexity(pos: Position): number {
   const boardSize = config.size;
 
   // Heuristic: games tend to last ~40% of piece-count × board-factor moves
-  const boardFactor = Math.sqrt(boardSize / 12); // Normalize to 1×12 baseline
-  return Math.floor(pieceCount * boardFactor * 2);
+  const boardFactor = Math.sqrt(boardSize / COMPLEXITY_PARAMS.BASELINE_SIZE); // Normalize to 1×12 baseline
+  return Math.floor(pieceCount * boardFactor * COMPLEXITY_PARAMS.GAME_LENGTH_MULTIPLIER);
 }

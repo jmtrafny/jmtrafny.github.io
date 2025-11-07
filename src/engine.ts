@@ -57,13 +57,42 @@ export const CONFIGS: Record<VariantType, BoardConfig> = {
 };
 
 /**
+ * Configuration cache to avoid recreating config objects
+ * Key format: "variant-boardLength-boardWidth"
+ */
+const configCache = new Map<string, BoardConfig>();
+
+/**
+ * Clear the configuration cache
+ * Useful for testing or when memory needs to be reclaimed
+ */
+export function clearConfigCache(): void {
+  configCache.clear();
+}
+
+/**
  * Get board configuration for a position.
  * Handles variable board dimensions for both variants.
+ * Results are cached to avoid repeated object creation.
  */
 export function getConfig(pos: Position): BoardConfig {
-  if (pos.variant === '1xN' && pos.boardLength && pos.boardLength !== 12) {
+  // Build cache key from position properties
+  const variant = pos.variant;
+  const length = pos.boardLength || (variant === '1xN' ? 12 : 10);
+  const width = pos.boardWidth || (variant === '1xN' ? 1 : 2);
+  const cacheKey = `${variant}-${length}-${width}`;
+
+  // Check cache first
+  if (configCache.has(cacheKey)) {
+    return configCache.get(cacheKey)!;
+  }
+
+  // Generate config (existing logic)
+  let config: BoardConfig;
+
+  if (variant === '1xN' && pos.boardLength && pos.boardLength !== 12) {
     // Custom 1-D Chess mode with non-standard length
-    return {
+    config = {
       variant: '1xN',
       width: 1,
       height: pos.boardLength,
@@ -71,13 +100,12 @@ export function getConfig(pos: Position): BoardConfig {
       files: ['a'],
       ranks: Array.from({ length: pos.boardLength }, (_, i) => i + 1),
     };
-  }
-  if (pos.variant === 'NxM' && (pos.boardWidth || pos.boardLength)) {
+  } else if (variant === 'NxM' && (pos.boardWidth || pos.boardLength)) {
     // Custom Thin Chess mode with non-standard dimensions (e.g., 3×8)
     const width = pos.boardWidth || 2;
     const height = pos.boardLength || 10;
     const files = Array.from({ length: width }, (_, i) => String.fromCharCode(97 + i)); // 'a','b','c'...
-    return {
+    config = {
       variant: 'NxM',
       width,
       height,
@@ -85,8 +113,14 @@ export function getConfig(pos: Position): BoardConfig {
       files,
       ranks: Array.from({ length: height }, (_, i) => i + 1),
     };
+  } else {
+    // Standard configuration
+    config = CONFIGS[variant];
   }
-  return CONFIGS[pos.variant];
+
+  // Cache and return
+  configCache.set(cacheKey, config);
+  return config;
 }
 
 export interface Position {
@@ -236,86 +270,6 @@ export function getInitialCastlingRights(pos: Position): number {
 
   return rights;
 }
-
-/**
- * NOTE: Game mode configuration has been moved to public/game-modes.json
- *
- * The SkinnyMode, ThinMode, ModeHelp interfaces and their associated
- * arrays (SKINNY_MODE_PACK, THIN_MODE_PACK, MINI_BOARD_PUZZLES_PACK, MODE_HELP_CONTENT)
- * have been removed in favor of a configuration-driven architecture.
- *
- * See:
- * - src/config/GameModeConfig.ts for type definitions
- * - src/config/loader.ts for configuration loading
- * - public/game-modes.json for all game mode data
- */
-
-/**
- * @deprecated Legacy interface - use GameMode from src/config/GameModeConfig.ts instead
- */
-export interface SkinnyMode {
-  id: string;
-  name: string;
-  description: string;
-  startPosition: string;
-  rationale: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  boardWidth: number;
-  boardLength: number;
-}
-
-/**
- * @deprecated Moved to public/game-modes.json
- */
-export const SKINNY_MODE_PACK: SkinnyMode[] = [];
-
-/**
- * 1-D Chess Mode Pack
- * Scenarios from "Interesting Starting Conditions for 1D Chess"
- */
-export interface ThinMode {
-  id: string;
-  name: string;
-  description: string;
-  startPosition: string;
-  boardLength: number;
-  rationale: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-}
-
-
-/**
- * @deprecated Moved to public/game-modes.json
- */
-export const THIN_MODE_PACK: ThinMode[] = [];
-
-/**
- * @deprecated Moved to public/game-modes.json
- */
-export const MINI_BOARD_PUZZLES_PACK: Array<ThinMode | SkinnyMode> = [];
-
-/**
- * @deprecated Legacy interface - use ModeHelp from src/config/GameModeConfig.ts instead
- */
-export interface ModeHelp {
-  challenge: string;
-  solvabilityType: 'FORCED_WIN_WHITE' | 'TACTICAL_PUZZLE' | 'COMPETITIVE' | 'DRAWISH';
-  hints: string[];
-  solution?: string;
-  strategy?: {
-    whitePlan: string;
-    blackPlan: string;
-    keyPositions: string;
-  };
-  learningObjectives: string[];
-  difficultyStars: 1 | 2 | 3 | 4 | 5;
-  icon: string;
-}
-
-/**
- * @deprecated Moved to public/game-modes.json
- */
-export const MODE_HELP_CONTENT: Record<string, ModeHelp> = {};
 
 // Convert flat index to 2D coordinates
 export function indexToCoords(idx: number, config: BoardConfig): [number, number] {
@@ -532,12 +486,12 @@ export function inBounds(i: number, config: BoardConfig): boolean {
   return i >= 0 && i < config.size;
 }
 
-export function sideOf(piece: Cell): Side | null {
+export function pieceSide(piece: Cell): Side | null {
   if (!piece || piece === EMPTY) return null;
   return piece[0] as Side;
 }
 
-export function typeOf(piece: Cell): PieceType | null {
+export function pieceType(piece: Cell): PieceType | null {
   if (!piece || piece === EMPTY) return null;
   return piece[1] as PieceType;
 }
@@ -670,9 +624,9 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
   for (let i = 0; i < config.size; i++) {
     const p = board[i];
     if (p === EMPTY) continue;
-    if (sideOf(p) !== turn) continue;
+    if (pieceSide(p) !== turn) continue;
 
-    const t = typeOf(p);
+    const t = pieceType(p);
     let pieceMoves: Move[] = [];
 
     if (variant === '1xN') {
@@ -683,7 +637,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
           const j = i + d;
           if (!inBounds(j, config)) continue;
           const q = board[j];
-          if (q !== EMPTY && sideOf(q) === turn) continue;
+          if (q !== EMPTY && pieceSide(q) === turn) continue;
           pieceMoves.push({ from: i, to: j });
         }
       } else if (t === 'n') {
@@ -692,7 +646,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
           const j = i + d;
           if (!inBounds(j, config)) continue;
           const q = board[j];
-          if (q !== EMPTY && sideOf(q) === turn) continue;
+          if (q !== EMPTY && pieceSide(q) === turn) continue;
           pieceMoves.push({ from: i, to: j });
         }
       } else if (t === 'r') {
@@ -704,7 +658,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
             if (q === EMPTY) {
               pieceMoves.push({ from: i, to: j });
             } else {
-              if (sideOf(q) !== turn) {
+              if (pieceSide(q) !== turn) {
                 pieceMoves.push({ from: i, to: j });
               }
               break;
@@ -726,7 +680,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
           if (!inBounds2D(newRank, newFile, config)) continue;
           const j = coordsToIndex(newRank, newFile, config);
           const q = board[j];
-          if (q !== EMPTY && sideOf(q) === turn) continue;
+          if (q !== EMPTY && pieceSide(q) === turn) continue;
           pieceMoves.push({ from: i, to: j });
         }
 
@@ -840,7 +794,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
           if (!inBounds2D(newRank, newFile, config)) continue;
           const j = coordsToIndex(newRank, newFile, config);
           const q = board[j];
-          if (q !== EMPTY && sideOf(q) === turn) continue;
+          if (q !== EMPTY && pieceSide(q) === turn) continue;
           pieceMoves.push({ from: i, to: j });
         }
       } else if (t === 'r') {
@@ -855,7 +809,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
             if (q === EMPTY) {
               pieceMoves.push({ from: i, to: j });
             } else {
-              if (sideOf(q) !== turn) {
+              if (pieceSide(q) !== turn) {
                 pieceMoves.push({ from: i, to: j });
               }
               break;
@@ -876,7 +830,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
             if (q === EMPTY) {
               pieceMoves.push({ from: i, to: j });
             } else {
-              if (sideOf(q) !== turn) {
+              if (pieceSide(q) !== turn) {
                 pieceMoves.push({ from: i, to: j });
               }
               break;
@@ -900,7 +854,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
             if (q === EMPTY) {
               pieceMoves.push({ from: i, to: j });
             } else {
-              if (sideOf(q) !== turn) {
+              if (pieceSide(q) !== turn) {
                 pieceMoves.push({ from: i, to: j });
               }
               break;
@@ -956,7 +910,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
           if (!inBounds2D(newRank, newFile, config)) continue;
           const j = coordsToIndex(newRank, newFile, config);
           const q = board[j];
-          if (q !== EMPTY && sideOf(q) !== turn) {
+          if (q !== EMPTY && pieceSide(q) !== turn) {
             if (newRank === promotionRank && rules.promotion) {
               // Promotion enabled: generate all four promotion options
               for (const promo of ['q', 'r', 'b', 'n'] as PieceType[]) {
@@ -1008,7 +962,7 @@ export function legalMoves(pos: Position, rules: RuleSet = DEFAULT_RULES): Move[
  */
 function wouldExposeKing(m: Move, board: Board, turn: Side, config: BoardConfig, rules: RuleSet, pos: Position): boolean {
   const nb = board.slice();
-  const isPawnMove = typeOf(board[m.from]) === 'p';
+  const isPawnMove = pieceType(board[m.from]) === 'p';
   const isCapture = board[m.to] !== EMPTY;
 
   // Handle en passant capture (remove the captured pawn)
@@ -1042,7 +996,7 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
   const capturedPiece = nb[m.to];
 
   // Detect if this is a pawn move or capture
-  const isPawnMove = typeOf(movingPiece) === 'p';
+  const isPawnMove = pieceType(movingPiece) === 'p';
   const isCapture = capturedPiece !== EMPTY;
 
   // Handle en passant capture (remove the captured pawn from EP target square)
@@ -1064,7 +1018,7 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
   }
 
   // Detect castling move (king moves 2 squares horizontally)
-  const isKingMove = typeOf(movingPiece) === 'k';
+  const isKingMove = pieceType(movingPiece) === 'k';
   let isCastling = false;
 
   if (isKingMove && pos.variant === 'NxM') {
@@ -1139,11 +1093,11 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
   // Update castling rights
   let newCastlingRights = pos.castlingRights || 0;
   if (rules.castling && newCastlingRights > 0) {
-    const pieceType = typeOf(movingPiece);
+    const movingPieceType = pieceType(movingPiece);
     const rookSquares = getRookSquares(config);
 
     // King moves remove both castling rights for that side
-    if (pieceType === 'k') {
+    if (movingPieceType === 'k') {
       if (pos.turn === 'w') {
         newCastlingRights &= ~(CASTLING_WK | CASTLING_WQ);
       } else {
@@ -1152,7 +1106,7 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
     }
 
     // Rook moves remove castling rights for that specific rook
-    if (pieceType === 'r' && rookSquares) {
+    if (movingPieceType === 'r' && rookSquares) {
       if (pos.turn === 'w') {
         if (m.from === rookSquares.whiteKingside) {
           newCastlingRights &= ~CASTLING_WK;
@@ -1169,8 +1123,8 @@ export function applyMove(pos: Position, m: Move, rules: RuleSet = DEFAULT_RULES
     }
 
     // If a rook is captured, remove castling rights for that specific rook
-    if (isCapture && typeOf(capturedPiece) === 'r' && rookSquares) {
-      const capturedSide = sideOf(capturedPiece);
+    if (isCapture && pieceType(capturedPiece) === 'r' && rookSquares) {
+      const capturedSide = pieceSide(capturedPiece);
       if (capturedSide === 'w') {
         if (m.to === rookSquares.whiteKingside) {
           newCastlingRights &= ~CASTLING_WK;
@@ -1279,7 +1233,7 @@ export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string 
     for (let i = 0; i < config.width; i++) {
       const square = coordsToIndex(0, i, config);
       const piece = pos.board[square];
-      if (piece !== EMPTY && sideOf(piece) === 'w') {
+      if (piece !== EMPTY && pieceSide(piece) === 'w') {
         return 'WHITE_RACE_WIN';
       }
     }
@@ -1289,7 +1243,7 @@ export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string 
     for (let i = 0; i < config.width; i++) {
       const square = coordsToIndex(bottomRank, i, config);
       const piece = pos.board[square];
-      if (piece !== EMPTY && sideOf(piece) === 'b') {
+      if (piece !== EMPTY && pieceSide(piece) === 'b') {
         return 'BLACK_RACE_WIN';
       }
     }
@@ -1316,8 +1270,8 @@ export function terminal(pos: Position, rules: RuleSet = DEFAULT_RULES): string 
   // Material count win (replaces stalemate when enabled)
   if (rules.materialCountWin) {
     // Count pieces for each side (excluding empty squares)
-    const whitePieces = pos.board.filter(p => p !== EMPTY && sideOf(p) === 'w').length;
-    const blackPieces = pos.board.filter(p => p !== EMPTY && sideOf(p) === 'b').length;
+    const whitePieces = pos.board.filter(p => p !== EMPTY && pieceSide(p) === 'w').length;
+    const blackPieces = pos.board.filter(p => p !== EMPTY && pieceSide(p) === 'b').length;
 
     if (whitePieces > blackPieces) return 'WHITE_MATERIAL_WIN';
     if (blackPieces > whitePieces) return 'BLACK_MATERIAL_WIN';
@@ -1343,11 +1297,11 @@ export function detectRepetition(history: string[], currentPos: string): number 
 export function moveToAlgebraic(pos: Position, move: Move, rules: RuleSet = DEFAULT_RULES): string {
   const config = getConfig(pos);
   const piece = pos.board[move.from];
-  const pieceType = typeOf(piece);
+  const type = pieceType(piece);
   const captured = pos.board[move.to] !== EMPTY;
 
   // Detect castling (king moves 2 squares horizontally)
-  if (pieceType === 'k' && pos.variant === 'NxM') {
+  if (type === 'k' && pos.variant === 'NxM') {
     const [fromRank, fromFile] = indexToCoords(move.from, config);
     const [toRank, toFile] = indexToCoords(move.to, config);
 
@@ -1384,15 +1338,15 @@ export function moveToAlgebraic(pos: Position, move: Move, rules: RuleSet = DEFA
   let notation = '';
 
   // Piece prefix (K, Q, R, B, N - nothing for pawns)
-  if (pieceType && pieceType !== 'p') {
-    notation += pieceType.toUpperCase();
+  if (type && type !== 'p') {
+    notation += type.toUpperCase();
   }
 
   // Disambiguation: check if multiple pieces of same type can reach the destination
-  if (pieceType && pieceType !== 'p' && pieceType !== 'k') {
+  if (type && type !== 'p' && type !== 'k') {
     const samePieceMoves = legalMoves(pos, rules).filter(m => {
       const p = pos.board[m.from];
-      return typeOf(p) === pieceType && sideOf(p) === pos.turn && m.to === move.to && m.from !== move.from;
+      return pieceType(p) === type && pieceSide(p) === pos.turn && m.to === move.to && m.from !== move.from;
     });
 
     if (samePieceMoves.length > 0) {
@@ -1424,7 +1378,7 @@ export function moveToAlgebraic(pos: Position, move: Move, rules: RuleSet = DEFA
   }
 
   // Pawn captures need file notation
-  if (pieceType === 'p' && captured) {
+  if (type === 'p' && captured) {
     const [, fromFile] = indexToCoords(move.from, config);
     notation += config.files[fromFile];
   }
